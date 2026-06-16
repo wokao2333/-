@@ -261,6 +261,7 @@ const onDrop = (e: DragEvent | TouchEvent, isTouch?: boolean) => {
     lock: false,
     active: true,
     hide: false,
+    use_proportional_scaling: true,
     props: deep_find_cfg.props,
     tag: deep_find_cfg.id,
     common_animations: deep_find_cfg.common_animations,

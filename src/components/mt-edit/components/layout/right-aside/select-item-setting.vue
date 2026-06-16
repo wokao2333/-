@@ -238,7 +238,7 @@ const item_resize = computed({
 });
 const item_use_proportional_scaling = computed({
   get: () => {
-    return selectItemSettingProps.itemJson?.use_proportional_scaling;
+    return selectItemSettingProps.itemJson?.use_proportional_scaling !== false;
   },
   set: (value) => {
     emits('update:itemJson', {

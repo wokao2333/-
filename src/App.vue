@@ -1,16 +1,20 @@
 <script setup lang="ts">
 import { leftAsideStore } from '@/export';
 import demo from '/svgs/demo.svg?raw';
-const electrical_modules_files = import.meta.glob('./assets/svgs/electrical/**.svg', {
+const electrical_modules_files = import.meta.glob('./assets/svgs/electrical/**/*.svg', {
   eager: true,
   as: 'raw'
 });
-const electrical_stroke_modules_files = import.meta.glob('./assets/svgs/electrical/stroke/**.svg', {
-  eager: true,
-  as: 'raw'
-});
+const electrical_stroke_modules_files = import.meta.glob(
+  './assets/svgs/electrical/stroke/**/*.svg',
+  {
+    eager: true,
+    as: 'raw'
+  }
+);
 const electrical_register_config: any = [];
 for (const key in electrical_modules_files) {
+  if (key.includes('/stroke/')) continue;
   //根据路径获取svg文件名
   const name = key.split('/').pop()!.split('.')[0];
   electrical_register_config.push({
@@ -41,7 +45,7 @@ for (const key in electrical_stroke_modules_files) {
     props: {
       stroke: {
         type: 'color',
-        val: '#00ff00',
+        val: '#FF0000',
         title: '边框色'
       }
     }

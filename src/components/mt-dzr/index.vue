@@ -88,7 +88,7 @@ const MtDzrProps = withDefaults(defineProps<IDzrProps>(), {
   rotate: true,
   lock: false,
   active: false,
-  useProportionalScaling: false,
+  useProportionalScaling: true,
   showGhostDom: true,
   hide: false,
   disabled: false,

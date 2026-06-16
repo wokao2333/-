@@ -10,7 +10,7 @@
     :rotate="item.rotate"
     :lock="renderCoreProps.globalLock ? true : item.lock"
     :active="renderCoreProps.preivewMode ? false : item.active"
-    :useProportionalScaling="item.use_proportional_scaling"
+    :useProportionalScaling="item.use_proportional_scaling !== false"
     :show-ghost-dom="renderCoreProps.showGhostDom"
     :hide="item.hide"
     :disabled="renderCoreProps.preivewMode"

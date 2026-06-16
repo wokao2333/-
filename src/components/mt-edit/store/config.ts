@@ -226,6 +226,11 @@ const sysComponentItems: ILeftAsideConfigItem[] = [
     type: 'vue',
     thumbnail: `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxZW0iIGhlaWdodD0iMWVtIiB2aWV3Qm94PSIwIDAgMTYgMTYiPjxnIGZpbGw9ImN1cnJlbnRDb2xvciI+PHBhdGggZD0iTTE0LjUgM2EuNS41IDAgMCAxIC41LjV2OWEuNS41IDAgMCAxLS41LjVoLTEzYS41LjUgMCAwIDEtLjUtLjV2LTlhLjUuNSAwIDAgMSAuNS0uNXptLTEzLTFBMS41IDEuNSAwIDAgMCAwIDMuNXY5QTEuNSAxLjUgMCAwIDAgMS41IDE0aDEzYTEuNSAxLjUgMCAwIDAgMS41LTEuNXYtOUExLjUgMS41IDAgMCAwIDE0LjUgMnoiLz48cGF0aCBkPSJNMyA1LjVhLjUuNSAwIDAgMSAuNS0uNWg5YS41LjUgMCAwIDEgMCAxaC05YS41LjUgMCAwIDEtLjUtLjVNMyA4YS41LjUgMCAwIDEgLjUtLjVoOWEuNS41IDAgMCAxIDAgMWgtOUEuNS41IDAgMCAxIDMgOG0wIDIuNWEuNS41IDAgMCAxIC41LS41aDZhLjUuNSAwIDAgMSAwIDFoLTZhLjUuNSAwIDAgMS0uNS0uNSIvPjwvZz48L3N2Zz4=`,
     props: {
+      borderColor: {
+        title: '边框颜色',
+        type: 'color',
+        val: '#35c94a'
+      },
       shadow: {
         title: '阴影显示时机',
         type: 'select',
@@ -239,12 +244,12 @@ const sysComponentItems: ILeftAsideConfigItem[] = [
       backGroundColor: {
         title: '背景颜色',
         type: 'color',
-        val: '#ffffff'
+        val: 'rgba(2, 28, 15, 0.34)'
       },
       boxShadow: {
         title: '阴影颜色',
         type: 'color',
-        val: '#ffffff'
+        val: 'rgba(53, 201, 74, 0.18)'
       }
     },
     common_animations: {

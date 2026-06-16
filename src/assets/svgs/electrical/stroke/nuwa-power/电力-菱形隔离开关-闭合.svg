@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-30 -30 60 60" fill="currentColor" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+  <line x1="0" y1="-30" x2="0" y2="-12" stroke-width="1" />
+  		<line x1="0" y1="30" x2="0" y2="12" stroke-width="1" />
+  		<path d="M0 -12 L12 0 L0 12 L-12 0 L0 -12 z" stroke-width="1" fill="red" />
+</svg>

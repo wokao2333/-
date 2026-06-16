@@ -37,7 +37,7 @@ type ResizeProps = {
 const resizeProps = withDefaults(defineProps<ResizeProps>(), {
   scaleRatio: 1,
   gridAlignSize: 1,
-  useProportionalScaling: false
+  useProportionalScaling: true
 });
 const points = computed(() => {
   return {
