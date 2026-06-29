@@ -8,7 +8,11 @@
           >LX</el-text
         >
       </div>
-      <el-tooltip :content="headerPanelProps.leftAside ? '折叠左侧栏' : '展开左侧栏'" placement="bottom" effect="dark">
+      <el-tooltip
+        :content="headerPanelProps.leftAside ? '折叠左侧栏' : '展开左侧栏'"
+        placement="bottom"
+        effect="dark"
+      >
         <el-button
           text
           circle
@@ -99,7 +103,12 @@
           :disabled="!headerPanelProps.alignEnabled"
         >
           <template #reference>
-            <el-tooltip content="对齐" placement="bottom" effect="dark" :disabled="headerPanelProps.alignEnabled">
+            <el-tooltip
+              content="对齐"
+              placement="bottom"
+              effect="dark"
+              :disabled="headerPanelProps.alignEnabled"
+            >
               <el-button text circle size="small" :disabled="!headerPanelProps.alignEnabled">
                 <el-icon :size="20">
                   <svg-analysis name="align"></svg-analysis>
@@ -152,7 +161,12 @@
                 </el-button>
               </el-tooltip>
               <el-tooltip content="水平分布" placement="bottom" effect="dark">
-                <el-button text circle size="small" @click="alignSelected('horizontal-distribution')">
+                <el-button
+                  text
+                  circle
+                  size="small"
+                  @click="alignSelected('horizontal-distribution')"
+                >
                   <el-icon :size="20">
                     <svg-analysis name="horizontal-distribution"></svg-analysis>
                   </el-icon>
@@ -200,10 +214,7 @@
         <el-divider direction="vertical" v-if="!is_npm_env"></el-divider>
         <el-tooltip v-if="!is_npm_env" content="连线编辑模式" placement="bottom" effect="dark">
           <el-button text circle size="small" @click="onDrawLineClick">
-            <el-icon
-              :size="20"
-              :class="drawline_selected ? 'icon-selected' : ''"
-            >
+            <el-icon :size="20" :class="drawline_selected ? 'icon-selected' : ''">
               <svg-analysis name="pen-line"></svg-analysis>
             </el-icon>
           </el-button>
@@ -231,13 +242,13 @@
           </el-button>
         </el-tooltip>
         <el-divider v-if="headerPanelProps.useThumbnail" direction="vertical"></el-divider>
-        <el-tooltip v-if="headerPanelProps.useThumbnail" content="生成缩略图" placement="bottom" effect="dark">
-          <el-button
-            text
-            circle
-            size="small"
-            @click="emits('onThumbnailClick')"
-          >
+        <el-tooltip
+          v-if="headerPanelProps.useThumbnail"
+          content="生成缩略图"
+          placement="bottom"
+          effect="dark"
+        >
+          <el-button text circle size="small" @click="emits('onThumbnailClick')">
             <el-icon :size="20">
               <svg-analysis name="thumbnail"></svg-analysis>
             </el-icon>
@@ -254,7 +265,11 @@
       </div>
     </div>
     <div class="flex items-center justify-between w-200px">
-      <el-tooltip :content="headerPanelProps.rightAside ? '折叠右侧栏' : '展开右侧栏'" placement="bottom" effect="dark">
+      <el-tooltip
+        :content="headerPanelProps.rightAside ? '折叠右侧栏' : '展开右侧栏'"
+        placement="bottom"
+        effect="dark"
+      >
         <el-button
           text
           circle
@@ -271,12 +286,18 @@
         <el-tooltip :content="isFullscreen ? '退出全屏' : '全屏'" placement="bottom" effect="dark">
           <el-button text circle size="small" @click="toggle">
             <el-icon :size="20">
-              <svg-analysis :name="isFullscreen ? 'exit-full-screen' : 'full-screen'"></svg-analysis>
+              <svg-analysis
+                :name="isFullscreen ? 'exit-full-screen' : 'full-screen'"
+              ></svg-analysis>
             </el-icon>
           </el-button>
         </el-tooltip>
         <el-divider direction="vertical"></el-divider>
-        <el-tooltip :content="headerPanelProps.lockState ? '已锁定 (点击解锁)' : '已解锁 (点击锁定)'" placement="bottom" effect="dark">
+        <el-tooltip
+          :content="headerPanelProps.lockState ? '已锁定 (点击解锁)' : '已解锁 (点击锁定)'"
+          placement="bottom"
+          effect="dark"
+        >
           <el-button text circle size="small" @click="changeLockState">
             <el-icon :size="20">
               <svg-analysis :name="headerPanelProps.lockState ? 'lock' : 'unlock'"></svg-analysis>
@@ -284,7 +305,11 @@
           </el-button>
         </el-tooltip>
         <el-divider direction="vertical"></el-divider>
-        <el-tooltip :content="isDark ? '切换到日间模式' : '切换到夜间模式'" placement="bottom" effect="dark">
+        <el-tooltip
+          :content="isDark ? '切换到日间模式' : '切换到夜间模式'"
+          placement="bottom"
+          effect="dark"
+        >
           <el-button text circle size="small" class="mr-10px" @click="toggleDark()">
             <el-icon :size="20">
               <svg-analysis :name="isDark ? 'light' : 'dark'"></svg-analysis>

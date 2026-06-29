@@ -22,7 +22,7 @@ import { globalStore } from '../../store/global';
 import { useExportJsonToDoneJson } from '../../composables';
 const import_json = ref('');
 const onImport = () => {
-  return new Promise((resolve, reject) => {
+  return new Promise<IExportJson | false>((resolve) => {
     try {
       const json: IExportJson = JSON.parse(import_json.value);
 
@@ -30,7 +30,7 @@ const onImport = () => {
       globalStore.canvasCfg = canvasCfg;
       globalStore.gridCfg = gridCfg;
       globalStore.setGlobalStoreDoneJson(importDoneJson);
-      resolve(true);
+      resolve(json);
     } catch (error) {
       resolve(false);
     }

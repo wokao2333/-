@@ -3,6 +3,8 @@
   "version": "0.3.1",
   "private": false,
   "scripts": {
+    "api:dev": "node server/index.cjs",
+    "dev:all": "run-p api:dev dev",
     "dev": "pnpm run format && vite",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",

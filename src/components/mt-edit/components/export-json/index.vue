@@ -18,14 +18,16 @@
 import { VAceEditor } from 'vue3-ace-editor';
 import type { IDoneJson, IGlobalStoreCanvasCfg, IGlobalStoreGridCfg } from '../../store/types';
 import { computed } from 'vue';
-import type { IExportDoneJson, IExportJson } from '../types';
 import { genExportJson } from '../../composables';
 type ExportProps = {
   doneJson: IDoneJson[];
   canvasCfg: IGlobalStoreCanvasCfg;
   gridCfg: IGlobalStoreGridCfg;
+  extraJson?: Record<string, unknown>;
 };
-const exportProps = withDefaults(defineProps<ExportProps>(), {});
+const exportProps = withDefaults(defineProps<ExportProps>(), {
+  extraJson: () => ({})
+});
 const export_json = computed({
   get: () => {
     const { exportJson } = genExportJson(
@@ -33,7 +35,14 @@ const export_json = computed({
       exportProps.gridCfg,
       exportProps.doneJson
     );
-    return JSON.stringify(exportJson, null, 2);
+    return JSON.stringify(
+      {
+        ...exportJson,
+        ...exportProps.extraJson
+      },
+      null,
+      2
+    );
   },
   set: () => {}
 });

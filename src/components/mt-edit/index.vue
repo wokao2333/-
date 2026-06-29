@@ -1,36 +1,65 @@
 <template>
   <div id="mt-edit" class="relative flex-auto w-1/1 h-1/1 dark">
     <el-container class="h-1/1">
-      <el-header height="45px" class="dark:bg-myDarkBgColor cb-border p-0 select-none"
-        @mousedown="mainPanelRef?.stopListenerKeyDown()">
-        <header-panel v-model:leftAside="aside_state.left_show" v-model:rightAside="aside_state.right_show"
-          v-model:lock-state="globalStore.lock" :selected-items-id="globalStore.selected_items_id"
-          :group-enabled="header_group_enabled" :un-group-enabled="header_un_group_enabled"
-          :align-enabled="header_align_enabled" :delete-enabled="header_delete_enabled"
+      <el-header
+        height="45px"
+        class="dark:bg-myDarkBgColor cb-border p-0 select-none"
+        @mousedown="mainPanelRef?.stopListenerKeyDown()"
+      >
+        <header-panel
+          v-model:leftAside="aside_state.left_show"
+          v-model:rightAside="aside_state.right_show"
+          v-model:lock-state="globalStore.lock"
+          :selected-items-id="globalStore.selected_items_id"
+          :group-enabled="header_group_enabled"
+          :un-group-enabled="header_un_group_enabled"
+          :align-enabled="header_align_enabled"
+          :delete-enabled="header_delete_enabled"
           :undo-enabled="cacheStore.historyIndex > 0"
           :redo-enabled="cacheStore.historyIndex < cacheStore.history.length - 1"
-          :real-time-data="globalStore.real_time_data" :use-thumbnail="mtEidtProps.useThumbnail"
-          @on-group-click="mainPanelRef?.createGroupItem" @on-ungroup-click="mainPanelRef?.onUngroup"
-          @on-delete-click="onDeleteClick" @on-export-click="onExportClick"
-          @on-tree-click="done_json_tree_visiable = true" @align-selected="onAlignSelected" @on-redo-click="onRedoClick"
-          @on-undo-click="onUndoClick" @on-import-click="onImportClick" @on-return-click="emits('onReturnClick')"
-          @on-save-click="onSaveClick" @on-preview-click="onPreviewClick" @on-thumbnail-click="onThumbnailClick"
-          @on-draw-line-click="onDrawLineClick"></header-panel>
+          :real-time-data="globalStore.real_time_data"
+          :use-thumbnail="mtEidtProps.useThumbnail"
+          @on-group-click="mainPanelRef?.createGroupItem"
+          @on-ungroup-click="mainPanelRef?.onUngroup"
+          @on-delete-click="onDeleteClick"
+          @on-export-click="onExportClick"
+          @on-tree-click="done_json_tree_visiable = true"
+          @align-selected="onAlignSelected"
+          @on-redo-click="onRedoClick"
+          @on-undo-click="onUndoClick"
+          @on-import-click="onImportClick"
+          @on-return-click="emits('onReturnClick')"
+          @on-save-click="onSaveClick"
+          @on-preview-click="onPreviewClick"
+          @on-thumbnail-click="onThumbnailClick"
+          @on-draw-line-click="onDrawLineClick"
+        ></header-panel>
       </el-header>
       <el-container class="h-[calc(100%-45px-40px)]">
-        <el-aside :width="aside_state.left_show ? '200px' : '0px'"
+        <el-aside
+          :width="aside_state.left_show ? '200px' : '0px'"
           class="dark:bg-myDarkBgColor cr-border mt-edit-aside h-1/1 select-none"
-          @mousedown="mainPanelRef?.stopListenerKeyDown()">
+          @mousedown="mainPanelRef?.stopListenerKeyDown()"
+        >
           <left-aside :leftAsideConfig="leftAsideStore.config"></left-aside>
         </el-aside>
-        <el-main class="dark:bg-myMainDarkBgColor" @mousedown="mainPanelRef?.beginListenerKeyDown()">
-          <main-panel ref="mainPanelRef" :group-enabled="header_group_enabled"
-            :un-group-enabled="header_un_group_enabled" :delete-enabled="header_delete_enabled"
-            :line-append-enable="line_append_enable"></main-panel>
+        <el-main
+          class="dark:bg-myMainDarkBgColor"
+          @mousedown="mainPanelRef?.beginListenerKeyDown()"
+        >
+          <main-panel
+            ref="mainPanelRef"
+            :group-enabled="header_group_enabled"
+            :un-group-enabled="header_un_group_enabled"
+            :delete-enabled="header_delete_enabled"
+            :line-append-enable="line_append_enable"
+          ></main-panel>
         </el-main>
-        <el-aside :width="aside_state.right_show ? '200px' : '0px'"
+        <el-aside
+          :width="aside_state.right_show ? '200px' : '0px'"
           class="dark:bg-myDarkBgColor cl-border mt-edit-aside select-none"
-          @mousedown="mainPanelRef?.stopListenerKeyDown()">
+          @mousedown="mainPanelRef?.stopListenerKeyDown()"
+        >
           <right-aside>
             <template v-if="hasDeviceBindSlot" #deviceBind="{ item }">
               <slot name="deviceBind" :item="item" />
@@ -42,20 +71,35 @@
         <footer-panel></footer-panel>
       </el-footer>
     </el-container>
-    <el-dialog v-model="import_visible" title="数据导入" @close="mainPanelRef?.beginListenerKeyDown()">
+    <el-dialog
+      v-model="import_visible"
+      title="数据导入"
+      @close="mainPanelRef?.beginListenerKeyDown()"
+    >
       <import-json ref="importJsonRef"></import-json>
       <template #footer>
         <el-button type="primary" @click="onImportYes">确定</el-button>
       </template>
     </el-dialog>
-    <el-dialog v-model="export_visible" title="数据导出" @close="mainPanelRef?.beginListenerKeyDown()">
-      <export-json :done-json="objectDeepClone(globalStore.done_json)" :canvas-cfg="globalStore.canvasCfg"
-        :grid-cfg="globalStore.gridCfg"></export-json>
+    <el-dialog
+      v-model="export_visible"
+      title="数据导出"
+      @close="mainPanelRef?.beginListenerKeyDown()"
+    >
+      <export-json
+        :done-json="objectDeepClone(globalStore.done_json)"
+        :canvas-cfg="globalStore.canvasCfg"
+        :grid-cfg="globalStore.gridCfg"
+        :extra-json="mtEidtProps.exportExtra"
+      ></export-json>
     </el-dialog>
     <el-drawer v-model="done_json_tree_visiable" title="图形结构树" direction="ltr" size="30%">
-      <done-tree :done-json="globalStore.done_json" :selected-items-id="globalStore.selected_items_id"
+      <done-tree
+        :done-json="globalStore.done_json"
+        :selected-items-id="globalStore.selected_items_id"
         @update-selected-items-id="onTreeUpdateSelectedItemsId"
-        @update-selected-id-hide="onDoneTreeUpdateSelectedIdHide"></done-tree>
+        @update-selected-id-hide="onDoneTreeUpdateSelectedIdHide"
+      ></done-tree>
     </el-drawer>
   </div>
 </template>
@@ -88,11 +132,19 @@ import { genExportJson, useExportJsonToDoneJson } from './composables';
 import type { IExportJson } from './components/types';
 type MtEditProps = {
   useThumbnail?: boolean;
+  exportExtra?: Record<string, unknown>;
 };
 const mtEidtProps = withDefaults(defineProps<MtEditProps>(), {
-  useThumbnail: false
+  useThumbnail: false,
+  exportExtra: () => ({})
 });
-const emits = defineEmits(['onPreviewClick', 'onReturnClick', 'onSaveClick', 'onThumbnailClick']);
+const emits = defineEmits([
+  'onPreviewClick',
+  'onReturnClick',
+  'onSaveClick',
+  'onThumbnailClick',
+  'onImportSuccess'
+]);
 const slots = useSlots();
 const mainPanelRef = ref<InstanceType<typeof MainPanel>>();
 const importJsonRef = ref<InstanceType<typeof ImportJson>>();
@@ -171,6 +223,7 @@ const onImportYes = async () => {
   if (res) {
     import_visible.value = false;
     cacheStore.addHistory(globalStore.done_json);
+    emits('onImportSuccess', res);
   } else {
     ElMessage.error('导入失败,请检查数据格式');
   }
@@ -205,6 +258,7 @@ const setImportJson = (exportJson: IExportJson) => {
   globalStore.gridCfg = gridCfg;
   globalStore.setGlobalStoreDoneJson(importDoneJson);
   cacheStore.history[0] = importDoneJson;
+  emits('onImportSuccess', exportJson);
   return true;
 };
 defineExpose({
