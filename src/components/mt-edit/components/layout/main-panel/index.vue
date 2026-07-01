@@ -11,66 +11,68 @@
       @mousemove="onCanvasMove"
       @click.right.prevent="onCanvasRightClick"
     >
-      <pattern-grid
-        v-if="globalStore.gridCfg.enabled"
-        :grid="globalStore.gridCfg.size"
-      ></pattern-grid>
-      <render-core
-        v-model:done-json="done_json"
-        :canvas-cfg="globalStore.canvasCfg"
-        :grid-cfg="globalStore.gridCfg"
-        :show-ghost-dom="globalStore.selected_items_id?.length > 1 ? false : true"
-        :canvas-dom="canvasAreaRef"
-        :global-lock="globalStore.lock"
-        :line-append-enable="mainPanelProps.lineAppendEnable"
-        @on-mouse-down="onRenderCoreMouseDown"
-        @on-item-move="onItemMove"
-        @on-move-mouse-up="onMoveMouseUp"
-        @on-item-mouse-enter="onItemMouseEnter"
-        @on-item-mouse-leave="onItemMouseLeave"
-        @set-intention="setIntention"
-        @on-item-resize-done="onItemResizeDone"
-        @on-item-rotate-done="onItemRotateDone"
-        @on-item-right-click.stop="onItemRightClick"
-      ></render-core>
-      <selected-area
-        v-show="globalStore.intention === 'beginMulSelect'"
-        ref="selectedAreaRef"
-        :scale-ratio="globalStore.canvasCfg.scale"
-        :target-dom="canvasAreaRef"
-        @selected-area-mouse-up="onSelectedAreaMouseUp"
-      ></selected-area>
-      <drag-canvas
-        ref="dragCanvasRef"
-        :scale-ratio="globalStore.canvasCfg.scale"
-        @drag-canvas-mouse-down="dragCanvasMouseDown"
-        @drag-canvas-mouse-move="dragCanvasMouseMove"
-        @drag-canvas-mouse-up="dragCanvasMouseUp"
-      ></drag-canvas>
-      <draw-line-render
-        v-show="globalStore.intention == 'drawSysLineStart'"
-        ref="dragLineRenderRef"
-        v-model:item-json="draw_line_data"
-        :canvas-cfg="globalStore.canvasCfg"
-        :canvas-dom="canvasAreaRef"
-        :grid="globalStore.gridCfg"
-        :mode="'pen'"
-        @draw-line-end="onDrawLineEnd"
-      ></draw-line-render>
-      <div v-if="globalStore.intention == 'adsorbStart' || globalStore.intention == 'adsorbEnd'">
-        <div
-          v-for="item in cacheStore.adsorbPoint"
-          :key="item.type"
-          class="adsorb-point touch-none"
-          :style="{ left: item.x + 'px', top: item.y + 'px' }"
-          :data-id="item.type"
-          @mouseenter="onAdsorbPointMouseEnter(item)"
-          @mouseout="onAdsorbPointMouseOut()"
-        ></div>
-      </div>
+      <div class="canvasContent">
+        <pattern-grid
+          v-if="globalStore.gridCfg.enabled"
+          :grid="globalStore.gridCfg.size"
+        ></pattern-grid>
+        <render-core
+          v-model:done-json="done_json"
+          :canvas-cfg="globalStore.canvasCfg"
+          :grid-cfg="globalStore.gridCfg"
+          :show-ghost-dom="globalStore.selected_items_id?.length > 1 ? false : true"
+          :canvas-dom="canvasAreaRef"
+          :global-lock="globalStore.lock"
+          :line-append-enable="mainPanelProps.lineAppendEnable"
+          @on-mouse-down="onRenderCoreMouseDown"
+          @on-item-move="onItemMove"
+          @on-move-mouse-up="onMoveMouseUp"
+          @on-item-mouse-enter="onItemMouseEnter"
+          @on-item-mouse-leave="onItemMouseLeave"
+          @set-intention="setIntention"
+          @on-item-resize-done="onItemResizeDone"
+          @on-item-rotate-done="onItemRotateDone"
+          @on-item-right-click.stop="onItemRightClick"
+        ></render-core>
+        <selected-area
+          v-show="globalStore.intention === 'beginMulSelect'"
+          ref="selectedAreaRef"
+          :scale-ratio="globalStore.canvasCfg.scale"
+          :target-dom="canvasAreaRef"
+          @selected-area-mouse-up="onSelectedAreaMouseUp"
+        ></selected-area>
+        <drag-canvas
+          ref="dragCanvasRef"
+          :scale-ratio="globalStore.canvasCfg.scale"
+          @drag-canvas-mouse-down="dragCanvasMouseDown"
+          @drag-canvas-mouse-move="dragCanvasMouseMove"
+          @drag-canvas-mouse-up="dragCanvasMouseUp"
+        ></drag-canvas>
+        <draw-line-render
+          v-show="globalStore.intention == 'drawSysLineStart'"
+          ref="dragLineRenderRef"
+          v-model:item-json="draw_line_data"
+          :canvas-cfg="globalStore.canvasCfg"
+          :canvas-dom="canvasAreaRef"
+          :grid="globalStore.gridCfg"
+          :mode="'pen'"
+          @draw-line-end="onDrawLineEnd"
+        ></draw-line-render>
+        <div v-if="globalStore.intention == 'adsorbStart' || globalStore.intention == 'adsorbEnd'">
+          <div
+            v-for="item in cacheStore.adsorbPoint"
+            :key="item.type"
+            class="adsorb-point touch-none"
+            :style="{ left: item.x + 'px', top: item.y + 'px' }"
+            :data-id="item.type"
+            @mouseenter="onAdsorbPointMouseEnter(item)"
+            @mouseout="onAdsorbPointMouseOut()"
+          ></div>
+        </div>
 
-      <div id="guide-x"></div>
-      <div id="guide-y"></div>
+        <div id="guide-x"></div>
+        <div id="guide-y"></div>
+      </div>
     </div>
     <context-menu
       :menu-info="contextMenuStore.menuInfo"
@@ -751,6 +753,10 @@ const dragCanvasMouseMove = (move_x: number, move_y: number) => {
   if (move_x === 0 && move_y === 0) {
     return;
   }
+  // 右键菜单显示中，不响应画布拖动
+  if (globalStore.intention == 'showContextMenu') {
+    return;
+  }
   globalStore.setIntention('runDragCanvas');
   // 设置画布偏移
   globalStore.canvasCfg.drag_offset = {
@@ -764,6 +770,9 @@ const dragCanvasMouseMove = (move_x: number, move_y: number) => {
 const dragCanvasMouseUp = () => {
   if (globalStore.intention == 'runDragCanvas') {
     globalStore.setIntention('endDragCanvas');
+  } else if (globalStore.intention == 'showContextMenu') {
+    // 右键菜单显示中，不重置状态，保持菜单可见
+    return;
   } else {
     globalStore.setIntention('none');
   }
@@ -1237,16 +1246,22 @@ defineExpose({
 <style scoped>
 .canvasArea {
   position: relative;
-  transform: v-bind('`scale(${globalStore.canvasCfg.scale})`');
-  transform-origin: v-bind(
-    '`${globalStore.canvasCfg.transform_origin.x}px ${globalStore.canvasCfg.transform_origin.y}px`'
-  );
   width: v-bind('globalStore.canvasCfg.width + "px"');
   height: v-bind('globalStore.canvasCfg.height + "px"');
   background-color: v-bind('globalStore.canvasCfg.color');
   background-image: v-bind('"url("+globalStore.canvasCfg.img+")"');
   left: v-bind('globalStore.canvasCfg.drag_offset.x + "px"');
   top: v-bind('globalStore.canvasCfg.drag_offset.y + "px"');
+}
+
+.canvasContent {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform: v-bind('`scale(${globalStore.canvasCfg.scale})`');
+  transform-origin: v-bind(
+    '`${globalStore.canvasCfg.transform_origin.x}px ${globalStore.canvasCfg.transform_origin.y}px`'
+  );
 }
 
 #guide-x {

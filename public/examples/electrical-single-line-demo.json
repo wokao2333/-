@@ -1,0 +1,1760 @@
+{
+  "canvasCfg": {
+    "width": 1920,
+    "height": 1080,
+    "scale": 0.88,
+    "color": "#05070a",
+    "img": "",
+    "guide": true,
+    "adsorp": true,
+    "adsorp_diff": 3,
+    "transform_origin": {
+      "x": 0,
+      "y": 0
+    },
+    "drag_offset": {
+      "x": -20,
+      "y": -25
+    }
+  },
+  "gridCfg": {
+    "enabled": false,
+    "align": true,
+    "size": 10
+  },
+  "json": [
+    {
+      "id": "card-bg-001",
+      "title": "接线图底板",
+      "type": "vue",
+      "binfo": {
+        "left": 180,
+        "top": 70,
+        "width": 1560,
+        "height": 900,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "borderColor": "#1f8f4d",
+        "shadow": "always",
+        "backGroundColor": "rgba(3, 20, 16, 0.34)",
+        "boxShadow": "rgba(53, 201, 74, 0.18)"
+      },
+      "tag": "card-vue",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "title-001",
+      "title": "文字",
+      "type": "vue",
+      "binfo": {
+        "left": 680,
+        "top": 96,
+        "width": 560,
+        "height": 42,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "text": "110kV / 10kV 变电站一次接线图",
+        "fontFamily": "黑体",
+        "fontSize": 26,
+        "fill": "#FFF700",
+        "vertical": false
+      },
+      "tag": "text-vue",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "label-bus-110",
+      "title": "文字",
+      "type": "vue",
+      "binfo": {
+        "left": 205,
+        "top": 176,
+        "width": 120,
+        "height": 28,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "text": "110kV I 母",
+        "fontFamily": "黑体",
+        "fontSize": 18,
+        "fill": "#FFF700",
+        "vertical": false
+      },
+      "tag": "text-vue",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "line-bus-110",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 320,
+        "top": 190,
+        "width": 1280,
+        "height": 0,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 7,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 1280,
+            "y": 0
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 20,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "label-in-01",
+      "title": "文字",
+      "type": "vue",
+      "binfo": {
+        "left": 438,
+        "top": 92,
+        "width": 130,
+        "height": 28,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "text": "110kV 进线 I",
+        "fontFamily": "黑体",
+        "fontSize": 16,
+        "fill": "#FFF700",
+        "vertical": false
+      },
+      "tag": "text-vue",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "line-in-01",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 500,
+        "top": 120,
+        "width": 0,
+        "height": 70,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 4,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 0,
+            "y": 70
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 18,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "ds-in-01",
+      "title": "电力-隔离开关-下-闭合",
+      "type": "svg",
+      "binfo": {
+        "left": 474,
+        "top": 116,
+        "width": 52,
+        "height": 52,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电力-隔离开关-下-闭合",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "cb-in-01",
+      "title": "电力-断路器-闭合",
+      "type": "svg",
+      "binfo": {
+        "left": 474,
+        "top": 150,
+        "width": 52,
+        "height": 52,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电力-断路器-闭合",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "label-in-02",
+      "title": "文字",
+      "type": "vue",
+      "binfo": {
+        "left": 1358,
+        "top": 92,
+        "width": 140,
+        "height": 28,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "text": "110kV 进线 II",
+        "fontFamily": "黑体",
+        "fontSize": 16,
+        "fill": "#FFF700",
+        "vertical": false
+      },
+      "tag": "text-vue",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "line-in-02",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 1420,
+        "top": 120,
+        "width": 0,
+        "height": 70,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 4,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 0,
+            "y": 70
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 18,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "ds-in-02",
+      "title": "电力-隔离开关-下-闭合",
+      "type": "svg",
+      "binfo": {
+        "left": 1394,
+        "top": 116,
+        "width": 52,
+        "height": 52,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电力-隔离开关-下-闭合",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "cb-in-02",
+      "title": "电力-断路器-闭合",
+      "type": "svg",
+      "binfo": {
+        "left": 1394,
+        "top": 150,
+        "width": 52,
+        "height": 52,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电力-断路器-闭合",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "line-main-transformer",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 960,
+        "top": 190,
+        "width": 0,
+        "height": 410,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 5,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 0,
+            "y": 410
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 14,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "ds-main-001",
+      "title": "电力-隔离开关-下-闭合",
+      "type": "svg",
+      "binfo": {
+        "left": 934,
+        "top": 232,
+        "width": 52,
+        "height": 52,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电力-隔离开关-下-闭合",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "cb-main-001",
+      "title": "电力-断路器-闭合",
+      "type": "svg",
+      "binfo": {
+        "left": 932,
+        "top": 290,
+        "width": 56,
+        "height": 56,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电力-断路器-闭合",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "ct-main-001",
+      "title": "电力-电流互感器",
+      "type": "svg",
+      "binfo": {
+        "left": 934,
+        "top": 348,
+        "width": 52,
+        "height": 52,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电力-电流互感器",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "tr-main-001",
+      "title": "三绕组自耦变压器",
+      "type": "svg",
+      "binfo": {
+        "left": 900,
+        "top": 410,
+        "width": 120,
+        "height": 120,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "三绕组自耦变压器",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "label-tr-main",
+      "title": "文字",
+      "type": "vue",
+      "binfo": {
+        "left": 1035,
+        "top": 438,
+        "width": 160,
+        "height": 64,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "text": "#1 主变\\n110/10kV",
+        "fontFamily": "黑体",
+        "fontSize": 18,
+        "fill": "#FFF700",
+        "vertical": false
+      },
+      "tag": "text-vue",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "label-bus-10",
+      "title": "文字",
+      "type": "vue",
+      "binfo": {
+        "left": 215,
+        "top": 586,
+        "width": 120,
+        "height": 28,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "text": "10kV I 母",
+        "fontFamily": "黑体",
+        "fontSize": 18,
+        "fill": "#FFF700",
+        "vertical": false
+      },
+      "tag": "text-vue",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "line-bus-10",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 320,
+        "top": 600,
+        "width": 1280,
+        "height": 0,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 7,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 1280,
+            "y": 0
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 20,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "line-pt-001",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 360,
+        "top": 600,
+        "width": 0,
+        "height": 160,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 4,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 0,
+            "y": 160
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 20,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "pt-001",
+      "title": "电力-电压互感器",
+      "type": "svg",
+      "binfo": {
+        "left": 332,
+        "top": 646,
+        "width": 56,
+        "height": 56,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电力-电压互感器",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "ground-pt-001",
+      "title": "电力-接地符",
+      "type": "svg",
+      "binfo": {
+        "left": 338,
+        "top": 728,
+        "width": 44,
+        "height": 44,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电力-接地符",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "label-pt-001",
+      "title": "文字",
+      "type": "vue",
+      "binfo": {
+        "left": 290,
+        "top": 780,
+        "width": 140,
+        "height": 28,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "text": "10kV PT柜",
+        "fontFamily": "黑体",
+        "fontSize": 16,
+        "fill": "#FFF700",
+        "vertical": false
+      },
+      "tag": "text-vue",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "line-feeder-01",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 520,
+        "top": 600,
+        "width": 0,
+        "height": 260,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 4,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 0,
+            "y": 260
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 16,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "cb-feeder-01",
+      "title": "电力-小车断路器-闭合",
+      "type": "svg",
+      "binfo": {
+        "left": 492,
+        "top": 636,
+        "width": 56,
+        "height": 56,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电力-小车断路器-闭合",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "ct-feeder-01",
+      "title": "电力-电流互感器",
+      "type": "svg",
+      "binfo": {
+        "left": 494,
+        "top": 704,
+        "width": 52,
+        "height": 52,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电力-电流互感器",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "load-feeder-01",
+      "title": "电力-负荷_下",
+      "type": "svg",
+      "binfo": {
+        "left": 496,
+        "top": 804,
+        "width": 48,
+        "height": 48,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电力-负荷_下",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "label-feeder-01",
+      "title": "文字",
+      "type": "vue",
+      "binfo": {
+        "left": 460,
+        "top": 872,
+        "width": 130,
+        "height": 28,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "text": "10kV 出线 01",
+        "fontFamily": "黑体",
+        "fontSize": 16,
+        "fill": "#FFF700",
+        "vertical": false
+      },
+      "tag": "text-vue",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "line-feeder-02",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 760,
+        "top": 600,
+        "width": 0,
+        "height": 260,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 4,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 0,
+            "y": 260
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 16,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "cb-feeder-02",
+      "title": "电力-小车断路器-闭合",
+      "type": "svg",
+      "binfo": {
+        "left": 732,
+        "top": 636,
+        "width": 56,
+        "height": 56,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电力-小车断路器-闭合",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "ct-feeder-02",
+      "title": "电力-电流互感器",
+      "type": "svg",
+      "binfo": {
+        "left": 734,
+        "top": 704,
+        "width": 52,
+        "height": 52,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电力-电流互感器",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "load-feeder-02",
+      "title": "电力-负荷_下",
+      "type": "svg",
+      "binfo": {
+        "left": 736,
+        "top": 804,
+        "width": 48,
+        "height": 48,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电力-负荷_下",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "label-feeder-02",
+      "title": "文字",
+      "type": "vue",
+      "binfo": {
+        "left": 700,
+        "top": 872,
+        "width": 130,
+        "height": 28,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "text": "10kV 出线 02",
+        "fontFamily": "黑体",
+        "fontSize": 16,
+        "fill": "#FFF700",
+        "vertical": false
+      },
+      "tag": "text-vue",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "line-cap-001",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 1040,
+        "top": 600,
+        "width": 0,
+        "height": 210,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 4,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 0,
+            "y": 210
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 20,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "cap-001",
+      "title": "电容器",
+      "type": "svg",
+      "binfo": {
+        "left": 1012,
+        "top": 660,
+        "width": 56,
+        "height": 56,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电容器",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "ground-cap-001",
+      "title": "电力-接地符",
+      "type": "svg",
+      "binfo": {
+        "left": 1018,
+        "top": 766,
+        "width": 44,
+        "height": 44,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电力-接地符",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "label-cap-001",
+      "title": "文字",
+      "type": "vue",
+      "binfo": {
+        "left": 972,
+        "top": 825,
+        "width": 150,
+        "height": 28,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "text": "电容补偿柜",
+        "fontFamily": "黑体",
+        "fontSize": 16,
+        "fill": "#FFF700",
+        "vertical": false
+      },
+      "tag": "text-vue",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "line-feeder-03",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 1240,
+        "top": 600,
+        "width": 0,
+        "height": 260,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 4,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 0,
+            "y": 260
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 16,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "cb-feeder-03",
+      "title": "电力-小车断路器-闭合",
+      "type": "svg",
+      "binfo": {
+        "left": 1212,
+        "top": 636,
+        "width": 56,
+        "height": 56,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电力-小车断路器-闭合",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "ct-feeder-03",
+      "title": "电力-电流互感器",
+      "type": "svg",
+      "binfo": {
+        "left": 1214,
+        "top": 704,
+        "width": 52,
+        "height": 52,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电力-电流互感器",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "load-feeder-03",
+      "title": "电力-负荷_下",
+      "type": "svg",
+      "binfo": {
+        "left": 1216,
+        "top": 804,
+        "width": 48,
+        "height": 48,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电力-负荷_下",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "label-feeder-03",
+      "title": "文字",
+      "type": "vue",
+      "binfo": {
+        "left": 1180,
+        "top": 872,
+        "width": 130,
+        "height": 28,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "text": "10kV 出线 03",
+        "fontFamily": "黑体",
+        "fontSize": 16,
+        "fill": "#FFF700",
+        "vertical": false
+      },
+      "tag": "text-vue",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "line-feeder-04",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 1480,
+        "top": 600,
+        "width": 0,
+        "height": 260,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 4,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 0,
+            "y": 260
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 16,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "cb-feeder-04",
+      "title": "电力-小车断路器-闭合",
+      "type": "svg",
+      "binfo": {
+        "left": 1452,
+        "top": 636,
+        "width": 56,
+        "height": 56,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电力-小车断路器-闭合",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "ct-feeder-04",
+      "title": "电力-电流互感器",
+      "type": "svg",
+      "binfo": {
+        "left": 1454,
+        "top": 704,
+        "width": 52,
+        "height": 52,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电力-电流互感器",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "load-feeder-04",
+      "title": "电力-负荷_下",
+      "type": "svg",
+      "binfo": {
+        "left": 1456,
+        "top": 804,
+        "width": 48,
+        "height": 48,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#ff2d20"
+      },
+      "tag": "电力-负荷_下",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "label-feeder-04",
+      "title": "文字",
+      "type": "vue",
+      "binfo": {
+        "left": 1420,
+        "top": 872,
+        "width": 130,
+        "height": 28,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "text": "10kV 出线 04",
+        "fontFamily": "黑体",
+        "fontSize": 16,
+        "fill": "#FFF700",
+        "vertical": false
+      },
+      "tag": "text-vue",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "kv-status-001",
+      "title": "键值对",
+      "type": "vue",
+      "binfo": {
+        "left": 1320,
+        "top": 250,
+        "width": 220,
+        "height": 42,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "border": true,
+        "fontFamily": "黑体",
+        "fontSize": 16,
+        "label": "运行方式",
+        "labelWidth": 90,
+        "value": "单母线运行",
+        "valueWidth": 120,
+        "color": "#FFF700",
+        "borderColor": "#35c94a"
+      },
+      "tag": "kv-vue",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "kv-status-002",
+      "title": "键值对",
+      "type": "vue",
+      "binfo": {
+        "left": 1320,
+        "top": 304,
+        "width": 220,
+        "height": 42,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "border": true,
+        "fontFamily": "黑体",
+        "fontSize": 16,
+        "label": "主变负荷",
+        "labelWidth": 90,
+        "value": "68%",
+        "valueWidth": 120,
+        "color": "#FFF700",
+        "borderColor": "#35c94a"
+      },
+      "tag": "kv-vue",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    }
+  ]
+}

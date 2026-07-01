@@ -61,9 +61,7 @@ const props = defineProps({
 }
 .kvKey {
   width: v-bind('`${props.labelWidth}px`');
-  border-right-width: v-bind('`${props.border?1:0}px`');
-  border-right-style: solid;
-  border-right-color: v-bind('`${props.borderColor}`') !important;
+  border-right: v-bind('`${props.border?1:0}px solid ${props.borderColor}`') !important;
 }
 .kvValue {
   width: v-bind('`${props.valueWidth}px`');

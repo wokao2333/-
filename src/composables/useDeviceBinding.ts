@@ -426,3 +426,70 @@ export const formatDeviceValue = (value: unknown, unit = '') => {
 
   return `${value}${unit}`;
 };
+
+/** 后端返回的设备数据项 */
+export interface BackendDeviceItem {
+  deviceType: number;
+  deviceTypeName: string;
+  deviceId: string;
+  deviceName: string;
+  points: { code: string; name: string }[];
+}
+
+/** 后端返回的完整 JSON 结构 */
+export interface BackendDeviceResponse {
+  code: number;
+  msg: string;
+  data: BackendDeviceItem[];
+}
+
+/** 解析结果 */
+export interface ParsedDeviceBindingData {
+  devices: DeviceInfo[];
+  /** 按 deviceId 分组的字段映射 */
+  fieldsMap: Record<string, DeviceField[]>;
+}
+
+/**
+ * 解析后端返回的设备绑定 JSON 数据
+ * 从 data 数组中提取设备列表和每个设备的点位（属性）列表
+ */
+export const parseDeviceBindingData = (raw: unknown): ParsedDeviceBindingData => {
+  const response = raw as BackendDeviceResponse;
+
+  if (!response || response.code !== 200 || !Array.isArray(response.data)) {
+    throw new Error('JSON 格式不正确：缺少 code=200 或 data 数组');
+  }
+
+  const devices: DeviceInfo[] = [];
+  const fieldsMap: Record<string, DeviceField[]> = {};
+
+  for (const item of response.data) {
+    if (!item.deviceId) continue;
+
+    devices.push({
+      id: item.deviceId,
+      name: item.deviceName || item.deviceId
+    });
+
+    const fields: DeviceField[] = (item.points || []).map((point) => ({
+      key: point.code,
+      name: point.name || point.code,
+      unit: ''
+    }));
+
+    // 合并同名设备的点位（去重）
+    if (fieldsMap[item.deviceId]) {
+      const existingKeys = new Set(fieldsMap[item.deviceId].map((f) => f.key));
+      for (const field of fields) {
+        if (!existingKeys.has(field.key)) {
+          fieldsMap[item.deviceId].push(field);
+        }
+      }
+    } else {
+      fieldsMap[item.deviceId] = fields;
+    }
+  }
+
+  return { devices, fieldsMap };
+};

@@ -145,7 +145,9 @@ export const svgToSymbol = (svgStr: string, id: string) => {
   symbol.innerHTML = svgDocument.innerHTML
     .replaceAll('stroke:currentColor', '')
     .replaceAll('stroke: currentColor', '')
-    .replaceAll('stroke="currentColor"', '');
+    .replaceAll('stroke="currentColor"', '')
+    // 移除内联 stroke 具体颜色值，使 <use> 的 stroke 可继承控制
+    .replace(/ stroke="[^"]*"/g, '');
   return { symbol_str: symbol.outerHTML, width, height };
 };
 export const symbolGenSvg = (
@@ -164,10 +166,10 @@ export const symbolGenSvg = (
 >
   ${symbol_str}
   <use
-  xlink:href="#${symbol_id}"
-  ${props_str}
-  x="0"
-  y="0"
+    xlink:href="#${symbol_id}"
+    ${props_str.replace(/(stroke|fill)="([^"]*)"/g, 'stroke="$2" fill="$2"')}
+    x="0"
+    y="0"
 ></use>
 </svg>
 `;

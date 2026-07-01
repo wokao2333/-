@@ -15,7 +15,7 @@ export const globalStore: IGlobalStore = reactive({
     width: 1920,
     height: 1080,
     scale: 1,
-    color: '',
+    color: '#000',
     img: '',
     guide: true,
     adsorp: true,
@@ -30,7 +30,7 @@ export const globalStore: IGlobalStore = reactive({
     }
   },
   gridCfg: {
-    enabled: true,
+    enabled: false,
     align: true,
     size: 10
   },

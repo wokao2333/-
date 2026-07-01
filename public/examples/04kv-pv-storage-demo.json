@@ -1,0 +1,2546 @@
+{
+  "canvasCfg": {
+    "width": 1920,
+    "height": 1080,
+    "scale": 0.8,
+    "color": "#05070a",
+    "img": "",
+    "guide": true,
+    "adsorp": true,
+    "adsorp_diff": 3,
+    "transform_origin": {
+      "x": 0,
+      "y": 0
+    },
+    "drag_offset": {
+      "x": 0,
+      "y": 0
+    }
+  },
+  "gridCfg": {
+    "enabled": false,
+    "align": true,
+    "size": 10
+  },
+  "json": [
+    {
+      "id": "label-bus",
+      "title": "文字",
+      "type": "vue",
+      "binfo": {
+        "left": 40,
+        "top": 185,
+        "width": 100,
+        "height": 32,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "text": "0.4KV",
+        "fontFamily": "黑体",
+        "fontSize": 22,
+        "fill": "#FFF700",
+        "vertical": false
+      },
+      "tag": "text-vue",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "line-bus",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 120,
+        "top": 220,
+        "width": 1680,
+        "height": 0,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 6,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 1680,
+            "y": 0
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 20,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "line-ats-to-pv",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 286.5875244140625,
+        "top": 359.2749938964844,
+        "width": 0,
+        "height": 80,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 3,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 0,
+            "y": 80
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 18,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "pv-inverter",
+      "title": "逆变器",
+      "type": "svg",
+      "binfo": {
+        "left": 254.2624969482422,
+        "top": 602.6000366210938,
+        "width": 64,
+        "height": 48,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "fill": "#FF0000"
+      },
+      "tag": "逆变器",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "line-pv-to-panel",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 286.26251220703125,
+        "top": 645.9999847412109,
+        "width": 0.9999847412109375,
+        "height": 121.00006103515625,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 3,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0,
+            "y": 0.0000152587890625
+          },
+          {
+            "x": 1,
+            "y": 121.00001525878906
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 16,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "pv-panel",
+      "title": "光伏板",
+      "type": "svg",
+      "binfo": {
+        "left": 241.76248168945312,
+        "top": 751,
+        "width": 87,
+        "height": 91,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": false,
+      "props": {
+        "fill": "#FF0000"
+      },
+      "tag": "光伏板",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "pv-label",
+      "title": "文字",
+      "type": "vue",
+      "binfo": {
+        "left": 254.80001831054688,
+        "top": 817,
+        "width": 182,
+        "height": 83,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "text": "光伏",
+        "fontFamily": "黑体",
+        "fontSize": 31,
+        "fill": "#FFFFFF",
+        "vertical": false
+      },
+      "tag": "text-vue",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "props.text.val",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "line-ats-to-load",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 286.99998474121094,
+        "top": 360.6000061035156,
+        "width": 530,
+        "height": 0,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 3,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 530,
+            "y": 0
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 18,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "line-load-down",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 816.5875244140625,
+        "top": 359.61248779296875,
+        "width": 0,
+        "height": 170,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 3,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 0,
+            "y": 170
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 16,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "load-label",
+      "title": "文字",
+      "type": "vue",
+      "binfo": {
+        "left": 787.8375244140625,
+        "top": 816.800048828125,
+        "width": 70,
+        "height": 32,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "text": "负载",
+        "fontFamily": "黑体",
+        "fontSize": 31,
+        "fill": "#FFFFFF",
+        "vertical": false
+      },
+      "tag": "text-vue",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "props.text.val",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "line-bus-to-storage",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 1650,
+        "top": 220,
+        "width": 0,
+        "height": 130,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 3,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 0,
+            "y": 130
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 18,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "line-storage-to-pcs",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 1650,
+        "top": 350,
+        "width": 0,
+        "height": 60,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 3,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0,
+            "y": 0
+          },
+          {
+            "x": 0,
+            "y": 60
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 16,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": []
+    },
+    {
+      "id": "line-storage-to-battery",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 1386.7999267578125,
+        "top": 249.57502365112305,
+        "width": 3.000030517578125,
+        "height": 238.0000114440918,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 3,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0,
+            "y": -0.000026702880859375
+          },
+          {
+            "x": 3,
+            "y": 237.99997329711914
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 16,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "storage-battery",
+      "title": "储能电池",
+      "type": "svg",
+      "binfo": {
+        "left": 1618.2374267578125,
+        "top": 771.9124755859375,
+        "width": 70,
+        "height": 61,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "fill": "#FF0000"
+      },
+      "tag": "储能电池",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "storage-label",
+      "title": "文字",
+      "type": "vue",
+      "binfo": {
+        "left": 1621.7874755859375,
+        "top": 808.8624877929688,
+        "width": 79,
+        "height": 81,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "text": "储能",
+        "fontFamily": "黑体",
+        "fontSize": 31,
+        "fill": "#FFFFFF",
+        "vertical": false
+      },
+      "tag": "text-vue",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "props.text.val",
+        "nameTargetAttr": "",
+        "unit": ""
+      },
+      "use_proportional_scaling": false
+    },
+    {
+      "id": "ATS-YpFycRrMlD",
+      "title": "ATS",
+      "type": "svg",
+      "binfo": {
+        "left": 248,
+        "top": 281,
+        "width": 80,
+        "height": 80,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#FF0000"
+      },
+      "tag": "ATS",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "sys-line-dkuOYbYXs5",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 274.59999084472656,
+        "top": 220.59999465942383,
+        "width": 0,
+        "height": 63.0000114440918,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 3,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": -0.0000152587890625,
+            "y": -0.000003814697265625
+          },
+          {
+            "x": -0.0000152587890625,
+            "y": 62.999996185302734
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 18,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "sys-line-hLDZwl6tZn",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 303.20001220703125,
+        "top": 249.85000610351562,
+        "width": 0,
+        "height": 39.00001525878906,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 3,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0.00000762939453125,
+            "y": 0.0000152587890625
+          },
+          {
+            "x": 0.00000762939453125,
+            "y": 39.00001525878906
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 18,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "sys-line-oczi2fXC2y",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 286.86248779296875,
+        "top": 492.40001678466797,
+        "width": 0,
+        "height": 121.0000228881836,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 3,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0,
+            "y": -0.00002288818359375
+          },
+          {
+            "x": 0,
+            "y": 120.9999771118164
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 18,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "sys-line-Fy5yqKk7Pi",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 816.8624877929688,
+        "top": 586.2000274658203,
+        "width": 0,
+        "height": 160.99998474121094,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 3,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0,
+            "y": -0.000030517578125
+          },
+          {
+            "x": 0,
+            "y": 160.99996948242188
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 18,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "隔离开关-YJWehgJpbx",
+      "title": "隔离开关",
+      "type": "svg",
+      "binfo": {
+        "left": 257,
+        "top": 435,
+        "width": 59,
+        "height": 59,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#FF0000"
+      },
+      "tag": "隔离开关",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "group-cACunWpoLY",
+      "title": "组合",
+      "type": "group",
+      "binfo": {
+        "left": 193.21246337890625,
+        "top": 492.3125,
+        "width": 188.2030487060547,
+        "height": 105.39066314697266,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {},
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "children": [
+        {
+          "id": "电力-电流互感器-KV54gj1lst",
+          "title": "电力-电流互感器",
+          "type": "svg",
+          "binfo": {
+            "width": 55.79080717443343,
+            "height": 99.62931901621317,
+            "left": 0.0016539545932710803,
+            "top": 0.000007239156015756747,
+            "angle": 0
+          },
+          "resize": true,
+          "rotate": true,
+          "lock": false,
+          "active": false,
+          "hide": false,
+          "use_proportional_scaling": true,
+          "props": {
+            "stroke": {
+              "type": "color",
+              "val": "#FF0000",
+              "title": "边框色"
+            }
+          },
+          "tag": "电力-电流互感器",
+          "common_animations": {
+            "val": "",
+            "delay": "delay-0s",
+            "speed": "slow",
+            "repeat": "infinite"
+          },
+          "events": [],
+          "symbol": {
+            "symbol_id": "电力-电流互感器",
+            "symbol_str": "<symbol viewBox=\"-30 -30 60 60\" id=\"电力-电流互感器\">\n  <line xmlns=\"http://www.w3.org/2000/svg\" x1=\"0\" y1=\"-12\" x2=\"0\" y2=\"12\" stroke-width=\"1\"></line>\n  \t\t<circle xmlns=\"http://www.w3.org/2000/svg\" r=\"6\" cx=\"0\" cy=\"0\" stroke-width=\"1\" fill-opacity=\"0\"></circle>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"6\" y1=\"0\" x2=\"17\" y2=\"0\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"8\" y1=\"4\" x2=\"12\" y2=\"-4\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"12\" y1=\"4\" x2=\"16\" y2=\"-4\" stroke-width=\"1\"></line>\n</symbol>",
+            "width": "60",
+            "height": "60"
+          },
+          "deviceBind": {
+            "deviceId": "",
+            "dataKey": "",
+            "targetAttr": "",
+            "nameTargetAttr": "",
+            "unit": ""
+          }
+        },
+        {
+          "id": "电力-电流互感器-kG6qEer7WT",
+          "title": "电力-电流互感器",
+          "type": "svg",
+          "binfo": {
+            "width": 55.79080717443343,
+            "height": 99.62931901621317,
+            "left": 44.20920093318713,
+            "top": 0.3795417107501105,
+            "angle": 0
+          },
+          "resize": true,
+          "rotate": true,
+          "lock": false,
+          "active": false,
+          "hide": false,
+          "use_proportional_scaling": true,
+          "props": {
+            "stroke": {
+              "type": "color",
+              "val": "#FF0000",
+              "title": "边框色"
+            }
+          },
+          "tag": "电力-电流互感器",
+          "common_animations": {
+            "val": "",
+            "delay": "delay-0s",
+            "speed": "slow",
+            "repeat": "infinite"
+          },
+          "events": [],
+          "symbol": {
+            "symbol_id": "电力-电流互感器",
+            "symbol_str": "<symbol viewBox=\"-30 -30 60 60\" id=\"电力-电流互感器\">\n  <line xmlns=\"http://www.w3.org/2000/svg\" x1=\"0\" y1=\"-12\" x2=\"0\" y2=\"12\" stroke-width=\"1\"></line>\n  \t\t<circle xmlns=\"http://www.w3.org/2000/svg\" r=\"6\" cx=\"0\" cy=\"0\" stroke-width=\"1\" fill-opacity=\"0\"></circle>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"6\" y1=\"0\" x2=\"17\" y2=\"0\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"8\" y1=\"4\" x2=\"12\" y2=\"-4\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"12\" y1=\"4\" x2=\"16\" y2=\"-4\" stroke-width=\"1\"></line>\n</symbol>",
+            "width": "60",
+            "height": "60"
+          },
+          "deviceBind": {
+            "deviceId": "",
+            "dataKey": "",
+            "targetAttr": "",
+            "nameTargetAttr": "",
+            "unit": ""
+          }
+        },
+        {
+          "id": "电力-电流互感器-7pwloVjok1",
+          "title": "电力-电流互感器",
+          "type": "svg",
+          "binfo": {
+            "width": 55.79080717443343,
+            "height": 99.62931901621317,
+            "left": 21.806515689259225,
+            "top": 0.000007239156015756747,
+            "angle": 0
+          },
+          "resize": true,
+          "rotate": true,
+          "lock": false,
+          "active": false,
+          "hide": false,
+          "use_proportional_scaling": true,
+          "props": {
+            "stroke": {
+              "type": "color",
+              "val": "#FF0000",
+              "title": "边框色"
+            }
+          },
+          "tag": "电力-电流互感器",
+          "common_animations": {
+            "val": "",
+            "delay": "delay-0s",
+            "speed": "slow",
+            "repeat": "infinite"
+          },
+          "events": [],
+          "symbol": {
+            "symbol_id": "电力-电流互感器",
+            "symbol_str": "<symbol viewBox=\"-30 -30 60 60\" id=\"电力-电流互感器\">\n  <line xmlns=\"http://www.w3.org/2000/svg\" x1=\"0\" y1=\"-12\" x2=\"0\" y2=\"12\" stroke-width=\"1\"></line>\n  \t\t<circle xmlns=\"http://www.w3.org/2000/svg\" r=\"6\" cx=\"0\" cy=\"0\" stroke-width=\"1\" fill-opacity=\"0\"></circle>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"6\" y1=\"0\" x2=\"17\" y2=\"0\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"8\" y1=\"4\" x2=\"12\" y2=\"-4\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"12\" y1=\"4\" x2=\"16\" y2=\"-4\" stroke-width=\"1\"></line>\n</symbol>",
+            "width": "60",
+            "height": "60"
+          },
+          "deviceBind": {
+            "deviceId": "",
+            "dataKey": "",
+            "targetAttr": "",
+            "nameTargetAttr": "",
+            "unit": ""
+          }
+        }
+      ],
+      "events": [],
+      "tag": "group",
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "隔离开关-iz1SPnqGT6",
+      "title": "隔离开关",
+      "type": "svg",
+      "binfo": {
+        "left": 787.3624877929688,
+        "top": 527.7999877929688,
+        "width": 59,
+        "height": 59,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#FF0000"
+      },
+      "tag": "隔离开关",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "group-2XBAjY7Alp",
+      "title": "组合",
+      "type": "group",
+      "binfo": {
+        "left": 722.7875061035156,
+        "top": 594.6437377929688,
+        "width": 188.2030487060547,
+        "height": 105.39066314697266,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {},
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "children": [
+        {
+          "id": "电力-电流互感器-Xqbhox6jfw",
+          "title": "电力-电流互感器",
+          "type": "svg",
+          "binfo": {
+            "width": 55.79080717443343,
+            "height": 99.62931901621317,
+            "left": 0.0016539545932710803,
+            "top": 0.000007239156015756747,
+            "angle": 0
+          },
+          "resize": true,
+          "rotate": true,
+          "lock": false,
+          "active": false,
+          "hide": false,
+          "use_proportional_scaling": true,
+          "props": {
+            "stroke": {
+              "type": "color",
+              "val": "#FF0000",
+              "title": "边框色"
+            }
+          },
+          "tag": "电力-电流互感器",
+          "common_animations": {
+            "val": "",
+            "delay": "delay-0s",
+            "speed": "slow",
+            "repeat": "infinite"
+          },
+          "events": [],
+          "symbol": {
+            "symbol_id": "电力-电流互感器",
+            "symbol_str": "<symbol viewBox=\"-30 -30 60 60\" id=\"电力-电流互感器\">\n  <line xmlns=\"http://www.w3.org/2000/svg\" x1=\"0\" y1=\"-12\" x2=\"0\" y2=\"12\" stroke-width=\"1\"></line>\n  \t\t<circle xmlns=\"http://www.w3.org/2000/svg\" r=\"6\" cx=\"0\" cy=\"0\" stroke-width=\"1\" fill-opacity=\"0\"></circle>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"6\" y1=\"0\" x2=\"17\" y2=\"0\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"8\" y1=\"4\" x2=\"12\" y2=\"-4\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"12\" y1=\"4\" x2=\"16\" y2=\"-4\" stroke-width=\"1\"></line>\n</symbol>",
+            "width": "60",
+            "height": "60"
+          },
+          "deviceBind": {
+            "deviceId": "",
+            "dataKey": "",
+            "targetAttr": "",
+            "nameTargetAttr": "",
+            "unit": ""
+          }
+        },
+        {
+          "id": "电力-电流互感器-mSdpoMXLLy",
+          "title": "电力-电流互感器",
+          "type": "svg",
+          "binfo": {
+            "width": 55.79080717443343,
+            "height": 99.62931901621317,
+            "left": 44.20920093318713,
+            "top": 0.3795417107501105,
+            "angle": 0
+          },
+          "resize": true,
+          "rotate": true,
+          "lock": false,
+          "active": false,
+          "hide": false,
+          "use_proportional_scaling": true,
+          "props": {
+            "stroke": {
+              "type": "color",
+              "val": "#FF0000",
+              "title": "边框色"
+            }
+          },
+          "tag": "电力-电流互感器",
+          "common_animations": {
+            "val": "",
+            "delay": "delay-0s",
+            "speed": "slow",
+            "repeat": "infinite"
+          },
+          "events": [],
+          "symbol": {
+            "symbol_id": "电力-电流互感器",
+            "symbol_str": "<symbol viewBox=\"-30 -30 60 60\" id=\"电力-电流互感器\">\n  <line xmlns=\"http://www.w3.org/2000/svg\" x1=\"0\" y1=\"-12\" x2=\"0\" y2=\"12\" stroke-width=\"1\"></line>\n  \t\t<circle xmlns=\"http://www.w3.org/2000/svg\" r=\"6\" cx=\"0\" cy=\"0\" stroke-width=\"1\" fill-opacity=\"0\"></circle>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"6\" y1=\"0\" x2=\"17\" y2=\"0\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"8\" y1=\"4\" x2=\"12\" y2=\"-4\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"12\" y1=\"4\" x2=\"16\" y2=\"-4\" stroke-width=\"1\"></line>\n</symbol>",
+            "width": "60",
+            "height": "60"
+          },
+          "deviceBind": {
+            "deviceId": "",
+            "dataKey": "",
+            "targetAttr": "",
+            "nameTargetAttr": "",
+            "unit": ""
+          }
+        },
+        {
+          "id": "电力-电流互感器-L0tUvgDy6L",
+          "title": "电力-电流互感器",
+          "type": "svg",
+          "binfo": {
+            "width": 55.79080717443343,
+            "height": 99.62931901621317,
+            "left": 21.806515689259225,
+            "top": 0.000007239156015756747,
+            "angle": 0
+          },
+          "resize": true,
+          "rotate": true,
+          "lock": false,
+          "active": false,
+          "hide": false,
+          "use_proportional_scaling": true,
+          "props": {
+            "stroke": {
+              "type": "color",
+              "val": "#FF0000",
+              "title": "边框色"
+            }
+          },
+          "tag": "电力-电流互感器",
+          "common_animations": {
+            "val": "",
+            "delay": "delay-0s",
+            "speed": "slow",
+            "repeat": "infinite"
+          },
+          "events": [],
+          "symbol": {
+            "symbol_id": "电力-电流互感器",
+            "symbol_str": "<symbol viewBox=\"-30 -30 60 60\" id=\"电力-电流互感器\">\n  <line xmlns=\"http://www.w3.org/2000/svg\" x1=\"0\" y1=\"-12\" x2=\"0\" y2=\"12\" stroke-width=\"1\"></line>\n  \t\t<circle xmlns=\"http://www.w3.org/2000/svg\" r=\"6\" cx=\"0\" cy=\"0\" stroke-width=\"1\" fill-opacity=\"0\"></circle>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"6\" y1=\"0\" x2=\"17\" y2=\"0\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"8\" y1=\"4\" x2=\"12\" y2=\"-4\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"12\" y1=\"4\" x2=\"16\" y2=\"-4\" stroke-width=\"1\"></line>\n</symbol>",
+            "width": "60",
+            "height": "60"
+          },
+          "deviceBind": {
+            "deviceId": "",
+            "dataKey": "",
+            "targetAttr": "",
+            "nameTargetAttr": "",
+            "unit": ""
+          }
+        }
+      ],
+      "events": [],
+      "tag": "group",
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "电力-避雷器2-vf8MbU84Qv",
+      "title": "电力-避雷器2",
+      "type": "svg",
+      "binfo": {
+        "left": 757.8624877929688,
+        "top": 717,
+        "width": 118,
+        "height": 118,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#FF0000"
+      },
+      "tag": "电力-避雷器2",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "group-P5Zn3YUGJN",
+      "title": "组合",
+      "type": "group",
+      "binfo": {
+        "left": 895,
+        "top": 130.8874969482422,
+        "width": 188.2030487060547,
+        "height": 105.39066314697266,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {},
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "children": [
+        {
+          "id": "电力-电流互感器-ktYREkj4WT",
+          "title": "电力-电流互感器",
+          "type": "svg",
+          "binfo": {
+            "width": 55.79080717443343,
+            "height": 99.62931901621317,
+            "left": 0.0016539545932710803,
+            "top": 0.000007239156015756747,
+            "angle": 0
+          },
+          "resize": true,
+          "rotate": true,
+          "lock": false,
+          "active": false,
+          "hide": false,
+          "use_proportional_scaling": true,
+          "props": {
+            "stroke": {
+              "type": "color",
+              "val": "#FF0000",
+              "title": "边框色"
+            }
+          },
+          "tag": "电力-电流互感器",
+          "common_animations": {
+            "val": "",
+            "delay": "delay-0s",
+            "speed": "slow",
+            "repeat": "infinite"
+          },
+          "events": [],
+          "symbol": {
+            "symbol_id": "电力-电流互感器",
+            "symbol_str": "<symbol viewBox=\"-30 -30 60 60\" id=\"电力-电流互感器\">\n  <line xmlns=\"http://www.w3.org/2000/svg\" x1=\"0\" y1=\"-12\" x2=\"0\" y2=\"12\" stroke-width=\"1\"></line>\n  \t\t<circle xmlns=\"http://www.w3.org/2000/svg\" r=\"6\" cx=\"0\" cy=\"0\" stroke-width=\"1\" fill-opacity=\"0\"></circle>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"6\" y1=\"0\" x2=\"17\" y2=\"0\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"8\" y1=\"4\" x2=\"12\" y2=\"-4\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"12\" y1=\"4\" x2=\"16\" y2=\"-4\" stroke-width=\"1\"></line>\n</symbol>",
+            "width": "60",
+            "height": "60"
+          },
+          "deviceBind": {
+            "deviceId": "",
+            "dataKey": "",
+            "targetAttr": "",
+            "nameTargetAttr": "",
+            "unit": ""
+          }
+        },
+        {
+          "id": "电力-电流互感器-EXCQOiZuTv",
+          "title": "电力-电流互感器",
+          "type": "svg",
+          "binfo": {
+            "width": 55.79080717443343,
+            "height": 99.62931901621317,
+            "left": 44.20920093318713,
+            "top": 0.3795417107501105,
+            "angle": 0
+          },
+          "resize": true,
+          "rotate": true,
+          "lock": false,
+          "active": false,
+          "hide": false,
+          "use_proportional_scaling": true,
+          "props": {
+            "stroke": {
+              "type": "color",
+              "val": "#FF0000",
+              "title": "边框色"
+            }
+          },
+          "tag": "电力-电流互感器",
+          "common_animations": {
+            "val": "",
+            "delay": "delay-0s",
+            "speed": "slow",
+            "repeat": "infinite"
+          },
+          "events": [],
+          "symbol": {
+            "symbol_id": "电力-电流互感器",
+            "symbol_str": "<symbol viewBox=\"-30 -30 60 60\" id=\"电力-电流互感器\">\n  <line xmlns=\"http://www.w3.org/2000/svg\" x1=\"0\" y1=\"-12\" x2=\"0\" y2=\"12\" stroke-width=\"1\"></line>\n  \t\t<circle xmlns=\"http://www.w3.org/2000/svg\" r=\"6\" cx=\"0\" cy=\"0\" stroke-width=\"1\" fill-opacity=\"0\"></circle>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"6\" y1=\"0\" x2=\"17\" y2=\"0\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"8\" y1=\"4\" x2=\"12\" y2=\"-4\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"12\" y1=\"4\" x2=\"16\" y2=\"-4\" stroke-width=\"1\"></line>\n</symbol>",
+            "width": "60",
+            "height": "60"
+          },
+          "deviceBind": {
+            "deviceId": "",
+            "dataKey": "",
+            "targetAttr": "",
+            "nameTargetAttr": "",
+            "unit": ""
+          }
+        },
+        {
+          "id": "电力-电流互感器-vPeHP3bl44",
+          "title": "电力-电流互感器",
+          "type": "svg",
+          "binfo": {
+            "width": 55.79080717443343,
+            "height": 99.62931901621317,
+            "left": 21.806515689259225,
+            "top": 0.000007239156015756747,
+            "angle": 0
+          },
+          "resize": true,
+          "rotate": true,
+          "lock": false,
+          "active": false,
+          "hide": false,
+          "use_proportional_scaling": true,
+          "props": {
+            "stroke": {
+              "type": "color",
+              "val": "#FF0000",
+              "title": "边框色"
+            }
+          },
+          "tag": "电力-电流互感器",
+          "common_animations": {
+            "val": "",
+            "delay": "delay-0s",
+            "speed": "slow",
+            "repeat": "infinite"
+          },
+          "events": [],
+          "symbol": {
+            "symbol_id": "电力-电流互感器",
+            "symbol_str": "<symbol viewBox=\"-30 -30 60 60\" id=\"电力-电流互感器\">\n  <line xmlns=\"http://www.w3.org/2000/svg\" x1=\"0\" y1=\"-12\" x2=\"0\" y2=\"12\" stroke-width=\"1\"></line>\n  \t\t<circle xmlns=\"http://www.w3.org/2000/svg\" r=\"6\" cx=\"0\" cy=\"0\" stroke-width=\"1\" fill-opacity=\"0\"></circle>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"6\" y1=\"0\" x2=\"17\" y2=\"0\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"8\" y1=\"4\" x2=\"12\" y2=\"-4\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"12\" y1=\"4\" x2=\"16\" y2=\"-4\" stroke-width=\"1\"></line>\n</symbol>",
+            "width": "60",
+            "height": "60"
+          },
+          "deviceBind": {
+            "deviceId": "",
+            "dataKey": "",
+            "targetAttr": "",
+            "nameTargetAttr": "",
+            "unit": ""
+          }
+        }
+      ],
+      "events": [],
+      "tag": "group",
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "sys-line-lEW0MHqhY5",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 989.1500091552734,
+        "top": 134.31251525878906,
+        "width": 0,
+        "height": 84.99998092651367,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 3,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0.0000152587890625,
+            "y": -0.0000152587890625
+          },
+          {
+            "x": 0.0000152587890625,
+            "y": 84.99998474121094
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 16,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "开关手车-7H8aYCMkEr",
+      "title": "开关手车",
+      "type": "svg",
+      "binfo": {
+        "left": 936.3124694824219,
+        "top": 103,
+        "width": 104,
+        "height": 17,
+        "angle": 89
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": false,
+      "props": {
+        "stroke": "#FF0000"
+      },
+      "tag": "开关手车",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "sys-line-xDtj0cvQ6I",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 987.1125793457031,
+        "top": 18.999991416931152,
+        "width": 0,
+        "height": 69.00000095367432,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 3,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": -0.000030517578125,
+            "y": 9.5367431640625e-7
+          },
+          {
+            "x": -0.000030517578125,
+            "y": 69.00000095367432
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 16,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "group-S6li5kPgzl",
+      "title": "组合",
+      "type": "group",
+      "binfo": {
+        "left": 892.6124572753906,
+        "top": -11.36874771118164,
+        "width": 188.2030487060547,
+        "height": 105.39066314697266,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {},
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "children": [
+        {
+          "id": "电力-电流互感器-AzMxGKKeup",
+          "title": "电力-电流互感器",
+          "type": "svg",
+          "binfo": {
+            "width": 55.79080717443343,
+            "height": 99.62931901621317,
+            "left": 0.0016539545932710803,
+            "top": 0.000007239156015756747,
+            "angle": 0
+          },
+          "resize": true,
+          "rotate": true,
+          "lock": false,
+          "active": false,
+          "hide": false,
+          "use_proportional_scaling": true,
+          "props": {
+            "stroke": {
+              "type": "color",
+              "val": "#FF0000",
+              "title": "边框色"
+            }
+          },
+          "tag": "电力-电流互感器",
+          "common_animations": {
+            "val": "",
+            "delay": "delay-0s",
+            "speed": "slow",
+            "repeat": "infinite"
+          },
+          "events": [],
+          "symbol": {
+            "symbol_id": "电力-电流互感器",
+            "symbol_str": "<symbol viewBox=\"-30 -30 60 60\" id=\"电力-电流互感器\">\n  <line xmlns=\"http://www.w3.org/2000/svg\" x1=\"0\" y1=\"-12\" x2=\"0\" y2=\"12\" stroke-width=\"1\"></line>\n  \t\t<circle xmlns=\"http://www.w3.org/2000/svg\" r=\"6\" cx=\"0\" cy=\"0\" stroke-width=\"1\" fill-opacity=\"0\"></circle>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"6\" y1=\"0\" x2=\"17\" y2=\"0\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"8\" y1=\"4\" x2=\"12\" y2=\"-4\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"12\" y1=\"4\" x2=\"16\" y2=\"-4\" stroke-width=\"1\"></line>\n</symbol>",
+            "width": "60",
+            "height": "60"
+          },
+          "deviceBind": {
+            "deviceId": "",
+            "dataKey": "",
+            "targetAttr": "",
+            "nameTargetAttr": "",
+            "unit": ""
+          }
+        },
+        {
+          "id": "电力-电流互感器-lClymFfXu7",
+          "title": "电力-电流互感器",
+          "type": "svg",
+          "binfo": {
+            "width": 55.79080717443343,
+            "height": 99.62931901621317,
+            "left": 44.20920093318713,
+            "top": 0.3795417107501105,
+            "angle": 0
+          },
+          "resize": true,
+          "rotate": true,
+          "lock": false,
+          "active": false,
+          "hide": false,
+          "use_proportional_scaling": true,
+          "props": {
+            "stroke": {
+              "type": "color",
+              "val": "#FF0000",
+              "title": "边框色"
+            }
+          },
+          "tag": "电力-电流互感器",
+          "common_animations": {
+            "val": "",
+            "delay": "delay-0s",
+            "speed": "slow",
+            "repeat": "infinite"
+          },
+          "events": [],
+          "symbol": {
+            "symbol_id": "电力-电流互感器",
+            "symbol_str": "<symbol viewBox=\"-30 -30 60 60\" id=\"电力-电流互感器\">\n  <line xmlns=\"http://www.w3.org/2000/svg\" x1=\"0\" y1=\"-12\" x2=\"0\" y2=\"12\" stroke-width=\"1\"></line>\n  \t\t<circle xmlns=\"http://www.w3.org/2000/svg\" r=\"6\" cx=\"0\" cy=\"0\" stroke-width=\"1\" fill-opacity=\"0\"></circle>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"6\" y1=\"0\" x2=\"17\" y2=\"0\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"8\" y1=\"4\" x2=\"12\" y2=\"-4\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"12\" y1=\"4\" x2=\"16\" y2=\"-4\" stroke-width=\"1\"></line>\n</symbol>",
+            "width": "60",
+            "height": "60"
+          },
+          "deviceBind": {
+            "deviceId": "",
+            "dataKey": "",
+            "targetAttr": "",
+            "nameTargetAttr": "",
+            "unit": ""
+          }
+        },
+        {
+          "id": "电力-电流互感器-UkYVhIoqeo",
+          "title": "电力-电流互感器",
+          "type": "svg",
+          "binfo": {
+            "width": 55.79080717443343,
+            "height": 99.62931901621317,
+            "left": 21.806515689259225,
+            "top": 0.000007239156015756747,
+            "angle": 0
+          },
+          "resize": true,
+          "rotate": true,
+          "lock": false,
+          "active": false,
+          "hide": false,
+          "use_proportional_scaling": true,
+          "props": {
+            "stroke": {
+              "type": "color",
+              "val": "#FF0000",
+              "title": "边框色"
+            }
+          },
+          "tag": "电力-电流互感器",
+          "common_animations": {
+            "val": "",
+            "delay": "delay-0s",
+            "speed": "slow",
+            "repeat": "infinite"
+          },
+          "events": [],
+          "symbol": {
+            "symbol_id": "电力-电流互感器",
+            "symbol_str": "<symbol viewBox=\"-30 -30 60 60\" id=\"电力-电流互感器\">\n  <line xmlns=\"http://www.w3.org/2000/svg\" x1=\"0\" y1=\"-12\" x2=\"0\" y2=\"12\" stroke-width=\"1\"></line>\n  \t\t<circle xmlns=\"http://www.w3.org/2000/svg\" r=\"6\" cx=\"0\" cy=\"0\" stroke-width=\"1\" fill-opacity=\"0\"></circle>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"6\" y1=\"0\" x2=\"17\" y2=\"0\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"8\" y1=\"4\" x2=\"12\" y2=\"-4\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"12\" y1=\"4\" x2=\"16\" y2=\"-4\" stroke-width=\"1\"></line>\n</symbol>",
+            "width": "60",
+            "height": "60"
+          },
+          "deviceBind": {
+            "deviceId": "",
+            "dataKey": "",
+            "targetAttr": "",
+            "nameTargetAttr": "",
+            "unit": ""
+          }
+        }
+      ],
+      "events": [],
+      "tag": "group",
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "sys-line-JXP8hrvmkV",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 304.00001525878906,
+        "top": 249.47500228881836,
+        "width": 1082.9999542236328,
+        "height": 2.0000076293945312,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 3,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": -0.0000152587890625,
+            "y": 2.0000038146972656
+          },
+          {
+            "x": 1082.999984741211,
+            "y": 0.000003814697265625
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 18,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "隔离开关-RzB711U6s9",
+      "title": "隔离开关",
+      "type": "svg",
+      "binfo": {
+        "left": 1621.3999633789062,
+        "top": 410.1999816894531,
+        "width": 59,
+        "height": 59,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "stroke": "#FF0000"
+      },
+      "tag": "隔离开关",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "sys-line-JDoE9bz3yy",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 1650.4000244140625,
+        "top": 466.9124755859375,
+        "width": 0.9999847412109375,
+        "height": 121.00006103515625,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 3,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0,
+            "y": 0.0000152587890625
+          },
+          {
+            "x": 1,
+            "y": 121.00001525878906
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 16,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "group-zfeSyStJez",
+      "title": "组合",
+      "type": "group",
+      "binfo": {
+        "left": 1557.7249755859375,
+        "top": 490.800048828125,
+        "width": 188.2030487060547,
+        "height": 105.39066314697266,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {},
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "children": [
+        {
+          "id": "电力-电流互感器-NICo9aJrh8",
+          "title": "电力-电流互感器",
+          "type": "svg",
+          "binfo": {
+            "width": 55.79080717443343,
+            "height": 99.62931901621317,
+            "left": 0.0016539545932710803,
+            "top": 0.000007239156015756747,
+            "angle": 0
+          },
+          "resize": true,
+          "rotate": true,
+          "lock": false,
+          "active": false,
+          "hide": false,
+          "use_proportional_scaling": true,
+          "props": {
+            "stroke": {
+              "type": "color",
+              "val": "#FF0000",
+              "title": "边框色"
+            }
+          },
+          "tag": "电力-电流互感器",
+          "common_animations": {
+            "val": "",
+            "delay": "delay-0s",
+            "speed": "slow",
+            "repeat": "infinite"
+          },
+          "events": [],
+          "symbol": {
+            "symbol_id": "电力-电流互感器",
+            "symbol_str": "<symbol viewBox=\"-30 -30 60 60\" id=\"电力-电流互感器\">\n  <line xmlns=\"http://www.w3.org/2000/svg\" x1=\"0\" y1=\"-12\" x2=\"0\" y2=\"12\" stroke-width=\"1\"></line>\n  \t\t<circle xmlns=\"http://www.w3.org/2000/svg\" r=\"6\" cx=\"0\" cy=\"0\" stroke-width=\"1\" fill-opacity=\"0\"></circle>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"6\" y1=\"0\" x2=\"17\" y2=\"0\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"8\" y1=\"4\" x2=\"12\" y2=\"-4\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"12\" y1=\"4\" x2=\"16\" y2=\"-4\" stroke-width=\"1\"></line>\n</symbol>",
+            "width": "60",
+            "height": "60"
+          },
+          "deviceBind": {
+            "deviceId": "",
+            "dataKey": "",
+            "targetAttr": "",
+            "nameTargetAttr": "",
+            "unit": ""
+          }
+        },
+        {
+          "id": "电力-电流互感器-QNotm44tKE",
+          "title": "电力-电流互感器",
+          "type": "svg",
+          "binfo": {
+            "width": 55.79080717443343,
+            "height": 99.62931901621317,
+            "left": 44.20920093318713,
+            "top": 0.3795417107501105,
+            "angle": 0
+          },
+          "resize": true,
+          "rotate": true,
+          "lock": false,
+          "active": false,
+          "hide": false,
+          "use_proportional_scaling": true,
+          "props": {
+            "stroke": {
+              "type": "color",
+              "val": "#FF0000",
+              "title": "边框色"
+            }
+          },
+          "tag": "电力-电流互感器",
+          "common_animations": {
+            "val": "",
+            "delay": "delay-0s",
+            "speed": "slow",
+            "repeat": "infinite"
+          },
+          "events": [],
+          "symbol": {
+            "symbol_id": "电力-电流互感器",
+            "symbol_str": "<symbol viewBox=\"-30 -30 60 60\" id=\"电力-电流互感器\">\n  <line xmlns=\"http://www.w3.org/2000/svg\" x1=\"0\" y1=\"-12\" x2=\"0\" y2=\"12\" stroke-width=\"1\"></line>\n  \t\t<circle xmlns=\"http://www.w3.org/2000/svg\" r=\"6\" cx=\"0\" cy=\"0\" stroke-width=\"1\" fill-opacity=\"0\"></circle>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"6\" y1=\"0\" x2=\"17\" y2=\"0\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"8\" y1=\"4\" x2=\"12\" y2=\"-4\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"12\" y1=\"4\" x2=\"16\" y2=\"-4\" stroke-width=\"1\"></line>\n</symbol>",
+            "width": "60",
+            "height": "60"
+          },
+          "deviceBind": {
+            "deviceId": "",
+            "dataKey": "",
+            "targetAttr": "",
+            "nameTargetAttr": "",
+            "unit": ""
+          }
+        },
+        {
+          "id": "电力-电流互感器-m0CNCLuone",
+          "title": "电力-电流互感器",
+          "type": "svg",
+          "binfo": {
+            "width": 55.79080717443343,
+            "height": 99.62931901621317,
+            "left": 21.806515689259225,
+            "top": 0.000007239156015756747,
+            "angle": 0
+          },
+          "resize": true,
+          "rotate": true,
+          "lock": false,
+          "active": false,
+          "hide": false,
+          "use_proportional_scaling": true,
+          "props": {
+            "stroke": {
+              "type": "color",
+              "val": "#FF0000",
+              "title": "边框色"
+            }
+          },
+          "tag": "电力-电流互感器",
+          "common_animations": {
+            "val": "",
+            "delay": "delay-0s",
+            "speed": "slow",
+            "repeat": "infinite"
+          },
+          "events": [],
+          "symbol": {
+            "symbol_id": "电力-电流互感器",
+            "symbol_str": "<symbol viewBox=\"-30 -30 60 60\" id=\"电力-电流互感器\">\n  <line xmlns=\"http://www.w3.org/2000/svg\" x1=\"0\" y1=\"-12\" x2=\"0\" y2=\"12\" stroke-width=\"1\"></line>\n  \t\t<circle xmlns=\"http://www.w3.org/2000/svg\" r=\"6\" cx=\"0\" cy=\"0\" stroke-width=\"1\" fill-opacity=\"0\"></circle>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"6\" y1=\"0\" x2=\"17\" y2=\"0\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"8\" y1=\"4\" x2=\"12\" y2=\"-4\" stroke-width=\"1\"></line>\n  \t\t<line xmlns=\"http://www.w3.org/2000/svg\" x1=\"12\" y1=\"4\" x2=\"16\" y2=\"-4\" stroke-width=\"1\"></line>\n</symbol>",
+            "width": "60",
+            "height": "60"
+          },
+          "deviceBind": {
+            "deviceId": "",
+            "dataKey": "",
+            "targetAttr": "",
+            "nameTargetAttr": "",
+            "unit": ""
+          }
+        }
+      ],
+      "events": [],
+      "tag": "group",
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "sys-line-VU6nY38Wtl",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 1389.75,
+        "top": 487.3125,
+        "width": 261.00006103515625,
+        "height": 0.9999847412109375,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 3,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": 0.000030517578125,
+            "y": 0.9999771118164062
+          },
+          {
+            "x": 261.0000305175781,
+            "y": -0.00002288818359375
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 18,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "逆变器-RteaBvPLpD",
+      "title": "逆变器",
+      "type": "svg",
+      "binfo": {
+        "left": 1618.7999877929688,
+        "top": 577.75,
+        "width": 64,
+        "height": 48,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "fill": "#FF0000"
+      },
+      "tag": "逆变器",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "sys-line-Hqjw2UzWxd",
+      "title": "自由连线",
+      "type": "sys-line",
+      "binfo": {
+        "left": 1650.2000427246094,
+        "top": 618.8999938964844,
+        "width": 0.999908447265625,
+        "height": 165.99998474121094,
+        "angle": 0
+      },
+      "resize": false,
+      "rotate": false,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "props": {
+        "stroke": "#ff2d20",
+        "stroke-width": 3,
+        "marker-start": false,
+        "marker-end": false,
+        "point_position": [
+          {
+            "x": -0.00006103515625,
+            "y": -0.000030517578125
+          },
+          {
+            "x": 0.99993896484375,
+            "y": 165.99996948242188
+          }
+        ],
+        "ani_type": "none",
+        "ani_dur": 16,
+        "ani_color": "#ff2d20",
+        "ani_reverse": false,
+        "ani_play": false,
+        "bind_anchors": {
+          "start": null,
+          "end": null
+        }
+      },
+      "tag": "sys-line",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "text-vue-fb2nQWa84r",
+      "title": "文字",
+      "type": "vue",
+      "binfo": {
+        "left": 244.4000244140625,
+        "top": 237.0124969482422,
+        "width": 50,
+        "height": 50,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "text": "N",
+        "fontFamily": "黑体",
+        "fontSize": 22,
+        "fill": "#FFF700",
+        "vertical": false
+      },
+      "tag": "text-vue",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "props.text.val",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "text-vue-lX4Jybmcse",
+      "title": "文字",
+      "type": "vue",
+      "binfo": {
+        "left": 317.8000183105469,
+        "top": 237.67501068115234,
+        "width": 50,
+        "height": 50,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {
+        "text": "R",
+        "fontFamily": "黑体",
+        "fontSize": 22,
+        "fill": "#FFF700",
+        "vertical": false
+      },
+      "tag": "text-vue",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "props.text.val",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    },
+    {
+      "id": "text-vue-KiUpa5WfFS",
+      "title": "文字",
+      "type": "vue",
+      "binfo": {
+        "left": 345.63751220703125,
+        "top": 281,
+        "width": 109,
+        "height": 54,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": false,
+      "props": {
+        "text": "ATS",
+        "fontFamily": "黑体",
+        "fontSize": 28,
+        "fill": "#FFF700",
+        "vertical": false
+      },
+      "tag": "text-vue",
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "events": [],
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "props.text.val",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
+    }
+  ],
+  "deviceApiConfig": {
+    "deviceListUrl": "/api/devices",
+    "deviceListPath": "",
+    "deviceIdPath": "id",
+    "deviceNamePath": "name",
+    "fieldListUrl": "/api/device/fields",
+    "fieldListPath": "",
+    "fieldKeyPath": "key",
+    "fieldNamePath": "name",
+    "fieldUnitPath": "unit",
+    "realtimeUrl": "/api/device/realtime?ids={ids}",
+    "realtimeDataPath": "data",
+    "refreshInterval": 5000
+  }
+}

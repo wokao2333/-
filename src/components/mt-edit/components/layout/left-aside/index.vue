@@ -182,7 +182,6 @@ const uploadRef = ref();
 const disable_classify = useLocalStorage<string[]>('mt-disable-classify', []);
 // 上传的文件也存到本地储存中
 const local_file = useLocalStorage<ILeftAsideConfigItem[]>('mt-local-file', []);
-leftAsideProps.leftAsideConfig.set('本地文件', local_file.value);
 const treeRef = ref();
 const is_show_tooltip: Record<string, boolean> = reactive({});
 const active_names = ref([]);

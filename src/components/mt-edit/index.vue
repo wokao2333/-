@@ -33,6 +33,7 @@
           @on-preview-click="onPreviewClick"
           @on-thumbnail-click="onThumbnailClick"
           @on-draw-line-click="onDrawLineClick"
+          @on-data-source-click="emits('onDataSourceClick')"
         ></header-panel>
       </el-header>
       <el-container class="h-[calc(100%-45px-40px)]">
@@ -46,6 +47,7 @@
         <el-main
           class="dark:bg-myMainDarkBgColor"
           @mousedown="mainPanelRef?.beginListenerKeyDown()"
+          style="padding: 0"
         >
           <main-panel
             ref="mainPanelRef"
@@ -143,7 +145,8 @@ const emits = defineEmits([
   'onReturnClick',
   'onSaveClick',
   'onThumbnailClick',
-  'onImportSuccess'
+  'onImportSuccess',
+  'onDataSourceClick'
 ]);
 const slots = useSlots();
 const mainPanelRef = ref<InstanceType<typeof MainPanel>>();
@@ -254,6 +257,9 @@ const onDrawLineClick = (val: boolean) => {
 };
 const setImportJson = (exportJson: IExportJson) => {
   const { canvasCfg, gridCfg, importDoneJson } = useExportJsonToDoneJson(exportJson);
+  // 画布框架固定不变，重置视口状态（transform_origin、drag_offset），仅保留内容 scale
+  canvasCfg.transform_origin = { x: 0, y: 0 };
+  canvasCfg.drag_offset = { x: 0, y: 0 };
   globalStore.canvasCfg = canvasCfg;
   globalStore.gridCfg = gridCfg;
   globalStore.setGlobalStoreDoneJson(importDoneJson);

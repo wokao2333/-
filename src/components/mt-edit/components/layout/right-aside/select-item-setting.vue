@@ -64,19 +64,19 @@
             <select-item-props-setting v-model:propsInfo="item_props"></select-item-props-setting>
           </el-form>
         </el-collapse-item>
-        <el-collapse-item title="动画配置" name="2">
+        <!-- <el-collapse-item title="动画配置" name="2">
           <select-item-animate-setting
             v-model:common-animates="item_common_animations"
           ></select-item-animate-setting>
-        </el-collapse-item>
+        </el-collapse-item> -->
       </el-collapse>
     </el-tab-pane>
-    <el-tab-pane label="事件" name="event">
+    <!-- <el-tab-pane label="事件" name="event">
       <select-item-event-setting
         :done-json="selectItemSettingProps.doneJson"
         v-model:item-events="item_events"
       ></select-item-event-setting>
-    </el-tab-pane>
+    </el-tab-pane> -->
     <el-tab-pane label="绑定" name="bind_device">
       <slot v-if="hasDeviceBindSlot" name="deviceBind" :item="selectItemSettingProps.itemJson" />
       <el-empty v-else description="请传递插槽进行设备绑定页面显示" />

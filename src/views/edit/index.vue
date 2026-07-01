@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, shallowRef } from 'vue';
+import { computed, reactive, ref, shallowRef } from 'vue';
 import type { IExportJson } from '@/components/mt-edit/components/types';
 import { useGenThumbnail } from '@/components/mt-edit/composables/thumbnail';
 import { MtEdit } from '@/export';
@@ -7,27 +7,27 @@ import { useRouter } from 'vue-router';
 import {
   ElAlert,
   ElButton,
-  ElCollapse,
-  ElCollapseItem,
+  ElDialog,
   ElForm,
   ElFormItem,
+  ElIcon,
   ElInput,
-  ElInputNumber,
   ElMessage,
   ElOption,
   ElSelect,
-  ElText
+  ElText,
+  ElUpload
 } from 'element-plus';
+import { Upload } from '@element-plus/icons-vue';
 import {
   attachDeviceApiConfig,
   canBindDeviceValue,
   ensureDeviceBind,
-  fetchDeviceFields,
-  fetchDevices,
   getDeviceNameTargetOptions,
   getDeviceTargetOptions,
   loadDeviceApiConfig,
   normalizeDeviceApiConfig,
+  parseDeviceBindingData,
   resetDeviceApiConfig,
   saveDeviceApiConfig,
   setValueByPath,
@@ -39,31 +39,67 @@ import {
   type DeviceInfo
 } from '@/composables/useDeviceBinding';
 
+import { VAceEditor } from 'vue3-ace-editor';
+
 const router = useRouter();
 const devices = ref<DeviceInfo[]>([]);
 const deviceFields = ref<DeviceField[]>([]);
+const deviceFieldsMap = ref<Record<string, DeviceField[]>>({});
 const deviceOptionsLoading = shallowRef(false);
 const deviceOptionsError = shallowRef('');
-const sourcePanelActiveNames = ref<string[]>([]);
+const dataSourceVisible = ref(false);
 const apiConfig = reactive<DeviceApiConfig>(loadDeviceApiConfig());
+const bindingJsonText = ref('');
+const bindingJsonParsed = shallowRef(false);
 
-const fieldListNeedsDevice = computed(() => apiConfig.fieldListUrl.includes('{deviceId}'));
-
-const saveCurrentApiConfig = () => {
-  saveDeviceApiConfig(apiConfig);
-  ElMessage.success('数据源配置已保存');
-};
-
-const resetCurrentApiConfig = () => {
-  Object.assign(apiConfig, resetDeviceApiConfig());
-  saveDeviceApiConfig(apiConfig);
+const clearBindingJson = () => {
   devices.value = [];
   deviceFields.value = [];
-  ElMessage.success('已恢复默认接口配置');
+  deviceFieldsMap.value = {};
+  bindingJsonText.value = '';
+  bindingJsonParsed.value = false;
+  ElMessage.success('已清空数据');
 };
 
-const loadDeviceFields = async (deviceId = '') => {
-  deviceFields.value = await fetchDeviceFields(apiConfig, deviceId);
+const parseBindingJson = () => {
+  if (!bindingJsonText.value.trim()) {
+    ElMessage.warning('请先粘贴或导入 JSON 数据');
+    return;
+  }
+
+  try {
+    const parsed = parseDeviceBindingData(JSON.parse(bindingJsonText.value));
+
+    devices.value = parsed.devices;
+    deviceFieldsMap.value = parsed.fieldsMap;
+    deviceFields.value = Object.values(parsed.fieldsMap).flat();
+    bindingJsonParsed.value = true;
+    deviceOptionsError.value = '';
+
+    ElMessage.success(
+      `已解析 ${parsed.devices.length} 个设备，共 ${deviceFields.value.length} 个属性`
+    );
+  } catch (error) {
+    deviceOptionsError.value = 'JSON 解析失败，请检查数据格式';
+    ElMessage.error(deviceOptionsError.value);
+    console.error(error);
+  }
+};
+
+const handleJsonFileUpload = (file: File) => {
+  const reader = new FileReader();
+
+  reader.onload = (event) => {
+    bindingJsonText.value = (event.target?.result as string) || '';
+    ElMessage.success('文件已加载，请点击"解析数据"按钮');
+  };
+
+  reader.onerror = () => {
+    ElMessage.error('文件读取失败');
+  };
+
+  reader.readAsText(file);
+  return false; // 阻止 el-upload 默认上传
 };
 
 const loadDeviceOptions = async () => {
@@ -71,18 +107,10 @@ const loadDeviceOptions = async () => {
   deviceOptionsError.value = '';
 
   try {
-    devices.value = await fetchDevices(apiConfig);
-
-    if (fieldListNeedsDevice.value) {
-      deviceFields.value = [];
-    } else {
-      await loadDeviceFields();
-    }
-
+    parseBindingJson();
     saveDeviceApiConfig(apiConfig);
-    ElMessage.success(`已加载 ${devices.value.length} 个设备`);
   } catch (error) {
-    deviceOptionsError.value = '设备列表或属性列表加载失败，请检查接口地址和路径映射';
+    deviceOptionsError.value = '设备数据解析失败，请检查 JSON 格式';
     ElMessage.error(deviceOptionsError.value);
     console.error(error);
   } finally {
@@ -109,22 +137,14 @@ const onDeviceChange = async (item: DeviceBindableItem) => {
   bind.unit = '';
 
   if (!bind.deviceId) {
+    deviceFields.value = Object.values(deviceFieldsMap.value).flat();
     return;
   }
 
-  try {
-    if (fieldListNeedsDevice.value) {
-      deviceOptionsLoading.value = true;
-      await loadDeviceFields(bind.deviceId);
-    }
-
-    setDefaultField(item);
-  } catch (error) {
-    ElMessage.error('设备属性加载失败，请检查属性接口配置');
-    console.error(error);
-  } finally {
-    deviceOptionsLoading.value = false;
-  }
+  // 从解析的 fieldsMap 中按 deviceId 筛选字段
+  const fields = deviceFieldsMap.value[bind.deviceId] || [];
+  deviceFields.value = fields;
+  setDefaultField(item);
 };
 
 const onDeviceFieldChange = (item: DeviceBindableItem) => {
@@ -176,177 +196,107 @@ const onThumbnailClick = () => {
   useGenThumbnail();
 };
 
-onMounted(() => {
-  loadDeviceOptions();
-});
+/* 页面挂载时不自动加载，改为用户在对话框中手动导入 JSON */
+
 </script>
 
 <template>
   <div class="edit-page">
-    <div class="device-source-panel">
-      <el-collapse v-model="sourcePanelActiveNames">
-        <el-collapse-item name="deviceSource">
-          <template #title>
-            <div class="source-title">
-              <span>数据源配置</span>
-              <el-text size="small" type="info">
-                {{ devices.length }} 个设备 / {{ deviceFields.length }} 个属性
-              </el-text>
-            </div>
-          </template>
-          <el-form label-width="110px" label-position="left" size="small">
-            <div class="source-grid">
-              <el-form-item label="设备列表接口">
-                <el-input v-model="apiConfig.deviceListUrl" placeholder="/api/devices" />
-              </el-form-item>
-              <el-form-item label="设备列表路径">
-                <el-input
-                  v-model="apiConfig.deviceListPath"
-                  placeholder="例如 data.records，空为根数组"
-                />
-              </el-form-item>
-              <el-form-item label="设备ID路径">
-                <el-input v-model="apiConfig.deviceIdPath" placeholder="id / device_id" />
-              </el-form-item>
-              <el-form-item label="设备名称路径">
-                <el-input v-model="apiConfig.deviceNamePath" placeholder="name / device_name" />
-              </el-form-item>
-              <el-form-item label="属性列表接口">
-                <el-input
-                  v-model="apiConfig.fieldListUrl"
-                  placeholder="/api/device/fields 或 /api/devices/{deviceId}/fields"
-                />
-              </el-form-item>
-              <el-form-item label="属性列表路径">
-                <el-input v-model="apiConfig.fieldListPath" placeholder="例如 data，空为根数组" />
-              </el-form-item>
-              <el-form-item label="属性key路径">
-                <el-input v-model="apiConfig.fieldKeyPath" placeholder="key" />
-              </el-form-item>
-              <el-form-item label="属性名称路径">
-                <el-input v-model="apiConfig.fieldNamePath" placeholder="name" />
-              </el-form-item>
-              <el-form-item label="属性单位路径">
-                <el-input v-model="apiConfig.fieldUnitPath" placeholder="unit" />
-              </el-form-item>
-              <el-form-item label="实时数据接口">
-                <el-input
-                  v-model="apiConfig.realtimeUrl"
-                  placeholder="/api/device/realtime?ids={ids}"
-                />
-              </el-form-item>
-              <el-form-item label="实时数据路径">
-                <el-input v-model="apiConfig.realtimeDataPath" placeholder="data" />
-              </el-form-item>
-              <el-form-item label="刷新间隔">
-                <el-input-number
-                  v-model="apiConfig.refreshInterval"
-                  :min="1000"
-                  :step="1000"
-                  controls-position="right"
-                />
-              </el-form-item>
-            </div>
-            <div class="source-actions">
-              <el-button type="primary" :loading="deviceOptionsLoading" @click="loadDeviceOptions">
-                加载设备
+    <el-dialog v-model="dataSourceVisible" title="数据源配置" width="960px" :close-on-click-modal="false"
+      @closed="deviceFields = Object.values(deviceFieldsMap).flat()">
+      <template #header>
+        <div class="source-dialog-header">
+          <span>数据源配置</span>
+          <el-text size="small" type="info" class="ml-12px">
+            {{ devices.length }} 个设备 / {{ deviceFields.length }} 个属性
+          </el-text>
+        </div>
+      </template>
+      <div class="source-body">
+        <!-- JSON 导入区域 -->
+        <div class="source-upload-area">
+          <div class="source-upload-row">
+            <el-upload :auto-upload="false" :show-file-list="false" accept=".json"
+              :on-change="(file: any) => handleJsonFileUpload(file.raw)">
+              <el-button type="primary" plain>
+                <el-icon class="mr-4px">
+                  <Upload />
+                </el-icon>
+                导入 JSON 文件
               </el-button>
-              <el-button @click="saveCurrentApiConfig">保存配置</el-button>
-              <el-button @click="resetCurrentApiConfig">恢复默认</el-button>
-              <el-text v-if="fieldListNeedsDevice" size="small" type="info">
-                属性接口包含 {deviceId}，选择设备后会加载该设备属性。
-              </el-text>
-            </div>
-          </el-form>
-        </el-collapse-item>
-      </el-collapse>
-    </div>
+            </el-upload>
+            <el-button type="success" :disabled="!bindingJsonText.trim()" @click="parseBindingJson">
+              解析数据
+            </el-button>
+            <el-text v-if="bindingJsonParsed" type="success" size="small">
+              ✓ 已解析
+            </el-text>
+            <el-text v-else-if="bindingJsonText.trim()" type="warning" size="small">
+              待解析
+            </el-text>
+          </div>
+          <div class="source-editor-wrapper">
+            <v-ace-editor v-model:value="bindingJsonText" lang="json" theme="monokai" style="height: 320px" :options="{
+              useWorker: true,
+              enableBasicAutocompletion: true,
+              enableSnippets: true,
+              enableLiveAutocompletion: true
+            }" />
+          </div>
+          <el-text size="small" type="info">
+            支持粘贴后端返回的 JSON 数据或导入 .json 文件，格式：{ "code": 200, "data": [{ "deviceId": "...", "deviceName": "...", "points":
+            [...]
+            }] }
+          </el-text>
+        </div>
+
+      </div>
+      <template #footer>
+        <el-button type="danger" plain :disabled="!bindingJsonText.trim() && !bindingJsonParsed"
+          @click="clearBindingJson">
+          清空数据
+        </el-button>
+        <el-button type="primary" @click="dataSourceVisible = false">确定</el-button>
+      </template>
+    </el-dialog>
     <div class="editor-shell">
-      <mt-edit
-        :use-thumbnail="true"
-        :export-extra="exportExtra"
-        @on-preview-click="onPreviewClick"
-        @on-import-success="onImportSuccess"
-        @on-return-click="onReturnClick"
-        @on-save-click="onSaveClick"
-        @on-thumbnail-click="onThumbnailClick"
-      >
+      <mt-edit :use-thumbnail="true" :export-extra="exportExtra" @on-preview-click="onPreviewClick"
+        @on-import-success="onImportSuccess" @on-return-click="onReturnClick" @on-save-click="onSaveClick"
+        @on-thumbnail-click="onThumbnailClick" @on-data-source-click="dataSourceVisible = true">
         <template #deviceBind="{ item }">
           <el-form label-width="64px" label-position="left">
-            <el-alert
-              v-if="deviceOptionsError"
-              :title="deviceOptionsError"
-              type="error"
-              :closable="false"
-              class="mb-10px"
-            />
-            <el-alert
-              v-if="!canBindDeviceValue(item)"
-              title="当前图元本身不展示数值，请选中文本、按钮或键值对组件绑定。卡片通常作为容器使用。"
-              type="info"
-              :closable="false"
-              class="mb-10px"
-            />
+            <el-alert v-if="deviceOptionsError" :title="deviceOptionsError" type="error" :closable="false"
+              class="mb-10px" />
+            <el-alert v-if="!canBindDeviceValue(item)" title="当前图元本身不展示数值，请选中文本、按钮或键值对组件绑定。卡片通常作为容器使用。" type="info"
+              :closable="false" class="mb-10px" />
             <el-form-item label="设备">
-              <el-select
-                v-model="getDeviceBind(item).deviceId"
-                :loading="deviceOptionsLoading"
-                filterable
-                clearable
-                placeholder="选择设备"
-                @change="onDeviceChange(item)"
-              >
-                <el-option
-                  v-for="device in devices"
-                  :key="device.id"
-                  :label="`${device.name} (${device.id})`"
-                  :value="device.id"
-                />
+              <el-select v-model="getDeviceBind(item).deviceId" :loading="deviceOptionsLoading" filterable clearable
+                placeholder="选择设备" @change="onDeviceChange(item)">
+                <el-option v-for="device in devices" :key="device.id" :label="`${device.name} (${device.id})`"
+                  :value="device.id" />
               </el-select>
             </el-form-item>
             <el-form-item label="属性">
-              <el-select
-                v-model="getDeviceBind(item).dataKey"
-                :loading="deviceOptionsLoading"
-                filterable
-                clearable
-                placeholder="选择属性"
-                @change="onDeviceFieldChange(item)"
-              >
-                <el-option
-                  v-for="field in deviceFields"
-                  :key="field.key"
-                  :label="`${field.name}${field.unit ? ` (${field.unit})` : ''}`"
-                  :value="field.key"
-                />
+              <el-select v-model="getDeviceBind(item).dataKey" :loading="deviceOptionsLoading" filterable clearable
+                placeholder="选择属性" @change="onDeviceFieldChange(item)">
+                <el-option v-for="field in deviceFields" :key="field.key"
+                  :label="`${field.name}${field.unit ? ` (${field.unit})` : ''}`" :value="field.key" />
               </el-select>
             </el-form-item>
             <el-form-item label="单位">
               <el-input v-model="getDeviceBind(item).unit" placeholder="可选" />
             </el-form-item>
             <el-form-item v-if="getDeviceNameTargetOptions(item).length" label="键名写到">
-              <el-select
-                v-model="getDeviceBind(item).nameTargetAttr"
-                clearable
-                placeholder="选择键名写入属性"
-                @change="onDeviceFieldChange(item)"
-              >
-                <el-option
-                  v-for="target in getDeviceNameTargetOptions(item)"
-                  :key="target.value"
-                  :label="target.label"
-                  :value="target.value"
-                />
+              <el-select v-model="getDeviceBind(item).nameTargetAttr" clearable placeholder="选择键名写入属性"
+                @change="onDeviceFieldChange(item)">
+                <el-option v-for="target in getDeviceNameTargetOptions(item)" :key="target.value" :label="target.label"
+                  :value="target.value" />
               </el-select>
             </el-form-item>
             <el-form-item v-if="canBindDeviceValue(item)" label="值写到">
               <el-select v-model="getDeviceBind(item).targetAttr" placeholder="选择写入属性">
-                <el-option
-                  v-for="target in getDeviceTargetOptions(item)"
-                  :key="target.value"
-                  :label="target.label"
-                  :value="target.value"
-                />
+                <el-option v-for="target in getDeviceTargetOptions(item)" :key="target.value" :label="target.label"
+                  :value="target.value" />
               </el-select>
             </el-form-item>
             <el-text size="small" type="info">
@@ -368,35 +318,49 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.device-source-panel {
-  flex: 0 0 auto;
-  border-bottom: 1px solid #dcdfe6;
-  background: #ffffff;
+.source-dialog-header {
+  display: flex;
+  align-items: center;
 }
 
-.source-title {
+.source-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.source-upload-area {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.source-upload-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 12px;
 }
 
-.source-grid {
+.source-editor-wrapper {
+  border: 1px solid var(--el-border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.mr-4px {
+  margin-right: 4px;
+}
+
+.source-grid-simple {
   display: grid;
-  grid-template-columns: repeat(3, minmax(260px, 1fr));
+  grid-template-columns: repeat(3, minmax(200px, 1fr));
   column-gap: 16px;
-  padding: 0 12px;
 }
 
-.source-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 12px 8px;
-}
 
 .editor-shell {
   flex: 1 1 auto;
   min-height: 0;
+  height: 100%;
 }
 </style>

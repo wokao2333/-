@@ -32,7 +32,7 @@ export default defineConfig(({ mode }) => {
       }),
       codeInspectorPlugin({
         bundler: 'vite',
-        editor: '/Applications/Antigravity IDE.app/Contents/Resources/app/bin/antigravity-ide'
+        editor: '/Applications/CodeBuddy CN.app/Contents/Resources/app/bin/code'
       })
     ],
 

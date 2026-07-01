@@ -1,11 +1,6 @@
 <template>
-  <div style="height: 100vh">
-    <el-scrollbar
-      ref="elScrollbarRef"
-      class="w-1/1 h-1/1"
-      :max-height="canvas_cfg.height"
-      @scroll="onScroll"
-    >
+  <div class="preview-shell" ref="previewShellRef">
+    <div class="preview-canvas-wrapper" :style="wrapperStyle">
       <div
         ref="canvasAreaRef"
         :class="`canvasArea ${mtPreviewProps.canDrag ? 'cursor-grab' : ''} `"
@@ -23,25 +18,17 @@
           :show-popover="mtPreviewProps.showPopover"
         ></render-core>
       </div>
-      <drag-canvas
-        ref="dragCanvasRef"
-        :scale-ratio="canvas_cfg.scale"
-        @drag-canvas-mouse-down="dragCanvasMouseDown"
-        @drag-canvas-mouse-move="dragCanvasMouseMove"
-        @drag-canvas-mouse-up="dragCanvasMouseUp"
-      ></drag-canvas>
-    </el-scrollbar>
+    </div>
   </div>
 </template>
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import RenderCore from '@/components/mt-edit/components/render-core/index.vue';
 import type { IExportJson } from '../mt-edit/components/types';
 import { useExportJsonToDoneJson } from '../mt-edit/composables';
 import type { IDoneJson } from '../mt-edit/store/types';
 import { getItemAttr, previewCompareVal, setItemAttr } from '../mt-edit/utils';
-import { ElScrollbar, ElMessage, ElMessageBox } from 'element-plus';
-import DragCanvas from '@/components/mt-edit/components/drag-canvas/index.vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 type MtPreviewProps = {
   exportJson?: IExportJson;
   canZoom?: boolean;
@@ -55,6 +42,7 @@ const mtPreviewProps = withDefaults(defineProps<MtPreviewProps>(), {
 });
 const emits = defineEmits(['onEventCallBack']);
 const canvasAreaRef = ref();
+const previewShellRef = ref<HTMLDivElement>();
 const canvas_cfg = ref({
   width: 1920,
   height: 1080,
@@ -79,37 +67,53 @@ const grid_cfg = ref({
   size: 10
 });
 const done_json = ref<IDoneJson[]>([]);
-const elScrollbarRef = ref<InstanceType<typeof ElScrollbar>>();
-const dragCanvasRef = ref<InstanceType<typeof DragCanvas>>();
-const scroll_info = reactive({
-  begin_left: 0,
-  begin_top: 0,
-  left: 0,
-  top: 0
-});
-const onScroll = ({ scrollLeft, scrollTop }: { scrollLeft: number; scrollTop: number }) => {
-  scroll_info.left = scrollLeft;
-  scroll_info.top = scrollTop;
-};
-const onMouseDown = (e: MouseEvent) => {
-  if (mtPreviewProps.canDrag) {
-    dragCanvasRef.value?.onMouseDown(e);
-  }
-};
-const dragCanvasMouseDown = () => {
-  scroll_info.begin_left = scroll_info.left;
-  scroll_info.begin_top = scroll_info.top;
-};
-const dragCanvasMouseMove = (move_x: number, move_y: number) => {
-  let new_left = scroll_info.begin_left - move_x;
-  let new_top = scroll_info.begin_top - move_y;
-  elScrollbarRef.value?.setScrollLeft(new_left);
-  elScrollbarRef.value?.setScrollTop(new_top);
-};
+const userScale = ref(1); // 用户手动缩放的比例（Ctrl+滚轮）
+
 /**
- * 画布拖动结束事件
+ * 计算自适应缩放比例，使画布铺满整个视口
  */
-const dragCanvasMouseUp = () => {};
+const fitScale = ref(1);
+const calcFitScale = () => {
+  const canvasW = canvas_cfg.value.width;
+  const canvasH = canvas_cfg.value.height;
+  const viewW = window.innerWidth;
+  const viewH = window.innerHeight;
+
+  if (canvasW === 0 || canvasH === 0) return;
+
+  // 计算宽高方向各自需要缩放到视口大小的比例
+  const scaleX = viewW / canvasW;
+  const scaleY = viewH / canvasH;
+
+  // 取较小的比例，确保画布完整显示在视口中
+  fitScale.value = Math.min(scaleX, scaleY);
+};
+
+/**
+ * 最终画布缩放比例 = 自适应比例 * 用户缩放比例
+ */
+const effectiveScale = computed(() => {
+  return fitScale.value * userScale.value;
+});
+
+/**
+ * wrapper 居中样式：使画布在视口中居中
+ */
+const wrapperStyle = computed(() => {
+  const canvasW = canvas_cfg.value.width * effectiveScale.value;
+  const canvasH = canvas_cfg.value.height * effectiveScale.value;
+  const viewW = window.innerWidth;
+  const viewH = window.innerHeight;
+
+  const offsetX = (viewW - canvasW) / 2;
+  const offsetY = (viewH - canvasH) / 2;
+
+  return {
+    paddingLeft: `${Math.max(0, offsetX)}px`,
+    paddingTop: `${Math.max(0, offsetY)}px`
+  };
+});
+
 const setItemAttrByID = (id: string, key: string, val: any) => {
   return setItemAttr(id, key, val, done_json.value);
 };
@@ -126,14 +130,13 @@ const onMouseWheel = (e: any) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.deltaY > 0) {
-      canvas_cfg.value.scale = (canvas_cfg.value.scale * 10 - 1) / 10;
+      userScale.value = Math.max(0.1, (userScale.value * 10 - 1) / 10);
     } else if (e.deltaY < 0) {
-      canvas_cfg.value.scale = (canvas_cfg.value.scale * 10 + 1) / 10;
+      userScale.value = Math.min(5, (userScale.value * 10 + 1) / 10);
     }
   }
 };
 const setItemAttrByIDAsync = (id: string, key: string, val: any) => {
-  // 通过改变属性的事件去设置值时 需要转换成宏任务 不然多个事件判断会有问题
   setTimeout(() => {
     setItemAttrByID(id, key, val);
   }, 0);
@@ -146,6 +149,11 @@ const setItemAttrByIDAsync = (id: string, key: string, val: any) => {
 (window as any).$previewCompareVal = previewCompareVal;
 (window as any).$mtEventCallBack = (type: string, item_id: string, ...args: any[]) =>
   emits('onEventCallBack', type, item_id, ...args);
+
+const handleResize = () => {
+  calcFitScale();
+};
+
 onMounted(() => {
   if (mtPreviewProps.exportJson) {
     const { canvasCfg, gridCfg, importDoneJson } = useExportJsonToDoneJson(
@@ -155,12 +163,20 @@ onMounted(() => {
     grid_cfg.value = gridCfg;
     done_json.value = importDoneJson;
   }
+  calcFitScale();
+  window.addEventListener('resize', handleResize);
 });
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize);
+});
+
 const setImportJson = (exportJson: IExportJson) => {
   const { canvasCfg, gridCfg, importDoneJson } = useExportJsonToDoneJson(exportJson);
   canvas_cfg.value = canvasCfg;
   grid_cfg.value = gridCfg;
   done_json.value = importDoneJson;
+  calcFitScale();
   return true;
 };
 defineExpose({
@@ -170,9 +186,22 @@ defineExpose({
 });
 </script>
 <style scoped>
+.preview-shell {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #1a1a2e;
+}
+
+.preview-canvas-wrapper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
 .canvasArea {
   position: relative;
-  transform: v-bind('`scale(${canvas_cfg.scale})`');
+  transform: v-bind('`scale(${effectiveScale})`');
   transform-origin: left top;
   width: v-bind('canvas_cfg.width + "px"');
   height: v-bind('canvas_cfg.height + "px"');

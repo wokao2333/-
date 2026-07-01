@@ -1,5 +1,7 @@
 import { reactive } from 'vue';
 import type { IConfig, ILeftAsideConfigItem } from './types';
+import { svgToSymbol } from '../utils';
+
 const sysComponentItems: ILeftAsideConfigItem[] = [
   {
     id: 'sys-line',
@@ -361,49 +363,48 @@ const sysComponentItems: ILeftAsideConfigItem[] = [
       speed: 'slow',
       repeat: 'infinite'
     }
-  },
-  {
-    id: 'sys-button-vue',
-    title: '按钮',
-    type: 'vue',
-    thumbnail: `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIj48cGF0aCBmaWxsPSJjdXJyZW50Q29sb3IiIGQ9Ik0yIDhhMyAzIDAgMCAxIDMtM2gxMGEzIDMgMCAwIDEgMyAzdjNhMyAzIDAgMCAxLTMgM0g1YTMgMyAwIDAgMS0zLTNWOFptNyAxLjVhLjUuNSAwIDAgMCAuNS41SDE0YS41LjUgMCAwIDAgMC0xSDkuNWEuNS41IDAgMCAwLS41LjVabS0xIDBhMS41IDEuNSAwIDEgMC0zIDBhMS41IDEuNSAwIDAgMCAzIDBaIi8+PC9zdmc+`,
+  }
+];
+
+// 系统组件中追加的电气 stroke 图标
+const sysSvgIconNames = new Set([
+  '光伏板',
+  '逆变器',
+  '风机',
+  '电网',
+  '电碳表',
+  '电表',
+  '储能电池',
+  '柴发',
+  '储能pcs'
+]);
+const sysSvgModules = import.meta.glob('../../../assets/svgs/electrical/stroke/*.svg', {
+  eager: true,
+  as: 'raw'
+});
+for (const key in sysSvgModules) {
+  const name = key.split('/').pop()!.split('.')[0];
+  if (!sysSvgIconNames.has(name)) continue;
+  // 去掉原图标中的显式 fill，让 <use> 的 fill 能控制内部填充色
+  const svg = (sysSvgModules[key] as string).replace(/fill="(?!none)[^"]*"/g, '');
+  const { symbol_str, width, height } = svgToSymbol(svg, name);
+  sysComponentItems.push({
+    id: name,
+    title: name,
+    type: 'svg',
+    thumbnail: 'data:image/svg+xml;utf8,' + encodeURIComponent(svg),
+    svg,
+    symbol: {
+      symbol_id: name,
+      symbol_str,
+      width,
+      height
+    },
     props: {
-      text: {
-        title: '按钮文本',
-        type: 'input',
-        val: '按钮文本'
-      },
-      type: {
-        title: '按钮类型',
-        type: 'select',
-        val: '',
-        options: [
-          {
-            value: '',
-            label: '默认'
-          },
-          {
-            value: 'primary',
-            label: '主要'
-          },
-          {
-            value: 'success',
-            label: '成功'
-          },
-          {
-            value: 'warning',
-            label: '警告'
-          },
-          {
-            value: 'danger',
-            label: '危险'
-          }
-        ]
-      },
-      round: {
-        title: '圆角',
-        type: 'switch',
-        val: false
+      fill: {
+        type: 'color',
+        val: '#FF0000',
+        title: '填充色'
       }
     },
     common_animations: {
@@ -412,8 +413,9 @@ const sysComponentItems: ILeftAsideConfigItem[] = [
       speed: 'slow',
       repeat: 'infinite'
     }
-  }
-];
+  });
+}
+
 export const configStore: IConfig = reactive({
   sysComponent: sysComponentItems,
   lineRenderOffset: 10
