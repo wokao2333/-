@@ -54,7 +54,9 @@ export const useExportJsonToDoneJson = (json: IExportJson) => {
       props = { ...props, ...objectDeepClone(find_props) };
     }
     for (const key in m.props) {
-      props[key].val = m.props[key];
+      if (props[key]) {
+        props[key].val = m.props[key];
+      }
     }
     if (find_item?.symbol) {
       symbol = find_item.symbol;

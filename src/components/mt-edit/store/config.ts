@@ -207,7 +207,7 @@ const sysComponentItems: ILeftAsideConfigItem[] = [
       fill: {
         title: '文字颜色',
         type: 'color',
-        val: '#FFF700'
+        val: '#fff'
       },
       vertical: {
         title: '竖排展示',
@@ -301,11 +301,6 @@ const sysComponentItems: ILeftAsideConfigItem[] = [
     type: 'vue',
     thumbnail: `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxZW0iIGhlaWdodD0iMWVtIiB2aWV3Qm94PSIwIDAgMjAgMjAiPjxwYXRoIGZpbGw9ImN1cnJlbnRDb2xvciIgZD0iTTMgNmEzIDMgMCAwIDEgMy0zaDhhMyAzIDAgMCAxIDMgM3Y4YTMgMyAwIDAgMS0zIDNINmEzIDMgMCAwIDEtMy0zem0zLTJhMiAyIDAgMCAwLTIgMnYzLjVoNS41VjR6bTMuNSA2LjVINFYxNGEyIDIgMCAwIDAgMiAyaDMuNXptMSAwVjE2SDE0YTIgMiAwIDAgMCAyLTJ2LTMuNXptNS41LTFWNmEyIDIgMCAwIDAtMi0yaC0zLjV2NS41eiIvPjwvc3ZnPg==`,
     props: {
-      border: {
-        title: '边框',
-        type: 'switch',
-        val: true
-      },
       fontFamily: {
         title: '字体',
         type: 'select',
@@ -322,7 +317,7 @@ const sysComponentItems: ILeftAsideConfigItem[] = [
         ]
       },
       fontSize: {
-        title: '文字大小',
+        title: '默认文字大小',
         type: 'number',
         val: 18
       },
@@ -330,6 +325,16 @@ const sysComponentItems: ILeftAsideConfigItem[] = [
         title: '键名',
         type: 'input',
         val: '键名'
+      },
+      labelFontSize: {
+        title: '键名字体大小',
+        type: 'number',
+        val: 14
+      },
+      labelColor: {
+        title: '键名颜色',
+        type: 'color',
+        val: ''
       },
       labelWidth: {
         title: '键名宽度',
@@ -341,20 +346,50 @@ const sysComponentItems: ILeftAsideConfigItem[] = [
         type: 'input',
         val: '键值'
       },
+      valueFontSize: {
+        title: '键值字体大小',
+        type: 'number',
+        val: 18
+      },
+      valueColor: {
+        title: '键值颜色',
+        type: 'color',
+        val: '#fff'
+      },
       valueWidth: {
         title: '键值宽度',
         type: 'number',
         val: 50
       },
-      color: {
-        title: '文字颜色',
-        type: 'color',
-        val: '#FFF700'
+      unit: {
+        title: '单位',
+        type: 'input',
+        val: '单位'
       },
-      borderColor: {
-        title: '边框颜色',
+      unitFontSize: {
+        title: '单位字体大小',
+        type: 'number',
+        val: 14
+      },
+      unitColor: {
+        title: '单位颜色',
         type: 'color',
-        val: '#000000'
+        val: ''
+      },
+      unitWidth: {
+        title: '单位宽度',
+        type: 'number',
+        val: 50
+      },
+      unitGap: {
+        title: '单位左间距',
+        type: 'number',
+        val: 4
+      },
+      color: {
+        title: '默认文字颜色',
+        type: 'color',
+        val: '#fff'
       }
     },
     common_animations: {

@@ -9,7 +9,11 @@ import {
   collectDeviceBindings,
   fetchDeviceRealtime,
   formatDeviceValue,
+  getPhaseValueColor,
+  getRealtimePointUnit,
   getValueByPath,
+  kvUnitTargetAttr,
+  kvValueColorTargetAttr,
   normalizeDeviceApiConfig,
   type DeviceApiConfig,
   type DeviceBindingExportJson
@@ -58,10 +62,11 @@ const refreshDeviceData = async (
       bindings.map((item) => item.bind.deviceId)
     );
 
-    bindings.forEach(({ itemId, bind }) => {
+    bindings.forEach(({ itemId, itemTag, bind }) => {
       const deviceData = response.data[bind.deviceId];
       const rawValue = getValueByPath(deviceData, bind.dataKey);
-      const displayValue = formatDeviceValue(rawValue, bind.unit);
+      const displayValue = formatDeviceValue(rawValue);
+      const displayUnit = getRealtimePointUnit(rawValue, bind.unit);
 
       if (bind.nameTargetAttr) {
         MtPreviewRef.value?.setItemAttrByID(
@@ -71,6 +76,15 @@ const refreshDeviceData = async (
         );
       }
       MtPreviewRef.value?.setItemAttrByID(itemId, bind.targetAttr, displayValue);
+
+      if (itemTag === 'kv-vue') {
+        MtPreviewRef.value?.setItemAttrByID(itemId, kvUnitTargetAttr, displayUnit);
+        MtPreviewRef.value?.setItemAttrByID(
+          itemId,
+          kvValueColorTargetAttr,
+          getPhaseValueColor(bind.fieldName || bind.dataKey)
+        );
+      }
     });
 
     realtimeErrorShown = false;

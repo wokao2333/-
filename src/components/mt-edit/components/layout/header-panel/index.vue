@@ -57,6 +57,14 @@
           </el-tooltip>
         </el-button-group>
         <el-divider direction="vertical"></el-divider>
+        <el-tooltip content="复位画布位置/大小" placement="bottom" effect="dark">
+          <el-button text circle size="small" @click="emits('onResetCanvasClick')">
+            <el-icon :size="20">
+              <svg-analysis name="rotate"></svg-analysis>
+            </el-icon>
+          </el-button>
+        </el-tooltip>
+        <el-divider direction="vertical"></el-divider>
         <el-tooltip content="删除 (Delete)" placement="bottom" effect="dark">
           <el-button
             text
@@ -78,23 +86,7 @@
             </el-icon>
           </el-button>
         </el-tooltip>
-        <el-divider direction="vertical"></el-divider>
-        <el-button-group>
-          <el-tooltip content="导入数据模型" placement="bottom" effect="dark">
-            <el-button text circle size="small" @click="onImportClick">
-              <el-icon :size="20">
-                <svg-analysis name="import-json"></svg-analysis>
-              </el-icon>
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="导出数据模型" placement="bottom" effect="dark">
-            <el-button text circle size="small" @click="onExportClick">
-              <el-icon :size="20">
-                <svg-analysis name="export-json"></svg-analysis>
-              </el-icon>
-            </el-button>
-          </el-tooltip>
-        </el-button-group>
+
         <el-divider direction="vertical"></el-divider>
         <el-popover
           placement="bottom"
@@ -234,13 +226,13 @@
         }}</el-tag>
       </div>
       <div class="flex items-center mr-20px">
-        <el-tooltip content="返回" placement="bottom" effect="dark">
+        <!-- <el-tooltip content="返回" placement="bottom" effect="dark">
           <el-button text circle size="small" @click="emits('onReturnClick')">
             <el-icon :size="20">
               <svg-analysis name="return"></svg-analysis>
             </el-icon>
           </el-button>
-        </el-tooltip>
+        </el-tooltip> -->
         <el-divider direction="vertical"></el-divider>
         <el-tooltip content="保存" placement="bottom" effect="dark">
           <el-button text circle size="small" @click="emits('onSaveClick')">
@@ -267,6 +259,14 @@
           <el-button text circle size="small" @click="emits('onPreviewClick')">
             <el-icon :size="20">
               <svg-analysis name="preview"></svg-analysis>
+            </el-icon>
+          </el-button>
+        </el-tooltip>
+        <el-divider direction="vertical"></el-divider>
+        <el-tooltip content="发布" placement="bottom" effect="dark">
+          <el-button text circle size="small" @click="emits('onPublishClick')">
+            <el-icon :size="20">
+              <Promotion />
             </el-icon>
           </el-button>
         </el-tooltip>
@@ -330,7 +330,7 @@
 </template>
 <script setup lang="ts">
 import { useDark, useToggle, useFullscreen } from '@vueuse/core';
-import { Connection } from '@element-plus/icons-vue';
+import { Connection, Promotion } from '@element-plus/icons-vue';
 import {
   ElIcon,
   ElDivider,
@@ -372,19 +372,19 @@ const emits = defineEmits([
   'onGroupClick',
   'onUngroupClick',
   'onDeleteClick',
-  'onExportClick',
   'onTreeClick',
   'alignSelected',
   'update:lockState',
   'onRedoClick',
   'onUndoClick',
-  'onImportClick',
+  'onResetCanvasClick',
   'onPreviewClick',
   'onReturnClick',
   'onSaveClick',
   'onDrawLineClick',
   'onThumbnailClick',
-  'onDataSourceClick'
+  'onDataSourceClick',
+  'onPublishClick'
 ]);
 const isDark = useDark({
   selector: '#mt-edit'
@@ -402,9 +402,7 @@ const onUngroupClick = () => {
 const onDeleteClick = () => {
   emits('onDeleteClick');
 };
-const onExportClick = () => {
-  emits('onExportClick');
-};
+
 const onTreeClick = () => {
   emits('onTreeClick');
 };
@@ -424,9 +422,7 @@ const alignSelected = (
 const changeLockState = () => {
   emits('update:lockState', !headerPanelProps.lockState);
 };
-const onImportClick = () => {
-  emits('onImportClick');
-};
+
 const onDrawLineClick = () => {
   drawline_selected.value = !drawline_selected.value;
   emits('onDrawLineClick', drawline_selected.value);

@@ -180,6 +180,8 @@ export interface IGlobalStore {
   done_json: IDoneJson[];
   selected_items_id: string[];
   canvasCfg: IGlobalStoreCanvasCfg;
+  // 导入/初始加载时的画布配置快照，用于复位时恢复
+  initialCanvasCfg: IGlobalStoreCanvasCfg | null;
   gridCfg: IGlobalStoreGridCfg;
   guideCfg: {
     x: {

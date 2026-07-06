@@ -230,6 +230,7 @@ import type { MouseTouchEvent } from '@/components/mt-dzr/utils/types';
 import type { IDoneJson, IGlobalStoreCanvasCfg, IGlobalStoreGridCfg } from '../../store/types';
 import {
   alignToGrid,
+  getCanvasBinfoFromClientRect,
   getCenterXY,
   getRealityXY,
   getRectCenterCoordinate,
@@ -420,10 +421,14 @@ const onMouseDown = (
       .querySelector(`#${lineRenderProps.itemJson.id} g .real`)!
       .getBoundingClientRect();
     const canvas_area_bounding_info = lineRenderProps.canvasDom!.getBoundingClientRect();
-    const new_left =
-      (itemRect?.left - canvas_area_bounding_info?.left) / lineRenderProps.canvasCfg.scale;
-    const new_top =
-      (itemRect?.top - canvas_area_bounding_info?.top) / lineRenderProps.canvasCfg.scale;
+    const canvas_binfo = getCanvasBinfoFromClientRect(
+      itemRect,
+      canvas_area_bounding_info,
+      lineRenderProps.canvasCfg.scale,
+      lineRenderProps.canvasCfg.transform_origin
+    );
+    const new_left = canvas_binfo.left;
+    const new_top = canvas_binfo.top;
     const move_x = new_left - lineRenderProps.itemJson.binfo.left;
     const move_y = new_top - lineRenderProps.itemJson.binfo.top;
     lineRenderEmits('setIntention', 'none');
@@ -433,8 +438,8 @@ const onMouseDown = (
         ...lineRenderProps.itemJson.binfo,
         left: new_left,
         top: new_top,
-        width: itemRect?.width / lineRenderProps.canvasCfg.scale,
-        height: itemRect?.height / lineRenderProps.canvasCfg.scale
+        width: canvas_binfo.width,
+        height: canvas_binfo.height
       },
       props: {
         ...lineRenderProps.itemJson.props,

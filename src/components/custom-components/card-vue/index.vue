@@ -36,6 +36,9 @@ const props = defineProps({
 </script>
 <style lang="less">
 .custom-card {
+  .el-card {
+    border-radius: 0 !important;
+  }
   .el-card.is-always-shadow {
     box-shadow: v-bind('`0 0 10px ${$props.boxShadow}`') !important;
   }

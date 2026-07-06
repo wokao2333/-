@@ -3,7 +3,9 @@
     <div class="preview-canvas-wrapper" :style="wrapperStyle">
       <div
         ref="canvasAreaRef"
-        :class="`canvasArea ${mtPreviewProps.canDrag ? 'cursor-grab' : ''} `"
+        :class="`canvasArea ${
+          mtPreviewProps.canDrag ? (is_dragging_canvas ? 'cursor-grabbing' : 'cursor-grab') : ''
+        } `"
         @mousedown="onMouseDown"
         @wheel="onMouseWheel"
       >
@@ -43,6 +45,7 @@ const mtPreviewProps = withDefaults(defineProps<MtPreviewProps>(), {
 const emits = defineEmits(['onEventCallBack']);
 const canvasAreaRef = ref();
 const previewShellRef = ref<HTMLDivElement>();
+const is_dragging_canvas = ref(false);
 const canvas_cfg = ref({
   width: 1920,
   height: 1080,
@@ -136,6 +139,43 @@ const onMouseWheel = (e: any) => {
     }
   }
 };
+let removePreviewDragListeners: (() => void) | null = null;
+const stopPreviewCanvasDrag = () => {
+  removePreviewDragListeners?.();
+  removePreviewDragListeners = null;
+  is_dragging_canvas.value = false;
+};
+const onMouseDown = (e: MouseEvent) => {
+  if (!mtPreviewProps.canDrag || e.button !== 0) {
+    return;
+  }
+  e.preventDefault();
+  stopPreviewCanvasDrag();
+
+  is_dragging_canvas.value = true;
+  const start_x = e.clientX;
+  const start_y = e.clientY;
+  const start_offset = { ...canvas_cfg.value.drag_offset };
+  const onMouseMove = (moveEvent: MouseEvent) => {
+    canvas_cfg.value = {
+      ...canvas_cfg.value,
+      drag_offset: {
+        x: start_offset.x + moveEvent.clientX - start_x,
+        y: start_offset.y + moveEvent.clientY - start_y
+      }
+    };
+  };
+  const onMouseUp = () => {
+    stopPreviewCanvasDrag();
+  };
+
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
+  removePreviewDragListeners = () => {
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+  };
+};
 const setItemAttrByIDAsync = (id: string, key: string, val: any) => {
   setTimeout(() => {
     setItemAttrByID(id, key, val);
@@ -169,6 +209,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
+  stopPreviewCanvasDrag();
 });
 
 const setImportJson = (exportJson: IExportJson) => {
@@ -205,6 +246,8 @@ defineExpose({
   transform-origin: left top;
   width: v-bind('canvas_cfg.width + "px"');
   height: v-bind('canvas_cfg.height + "px"');
+  left: v-bind('canvas_cfg.drag_offset.x + "px"');
+  top: v-bind('canvas_cfg.drag_offset.y + "px"');
   background-color: v-bind('canvas_cfg.color');
   background-image: v-bind('"url("+canvas_cfg.img+")"');
 }

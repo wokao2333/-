@@ -229,6 +229,54 @@ export function getRealityXY(
 
   return { realityX, realityY };
 }
+export type CanvasTransformOrigin = {
+  x: number;
+  y: number;
+};
+export const getCanvasPointFromOffset = (
+  realityX: number,
+  realityY: number,
+  scale = 1,
+  transformOrigin: CanvasTransformOrigin = { x: 0, y: 0 }
+) => {
+  const safe_scale = Number.isFinite(scale) && scale !== 0 ? scale : 1;
+
+  return {
+    x: transformOrigin.x + (realityX - transformOrigin.x) / safe_scale,
+    y: transformOrigin.y + (realityY - transformOrigin.y) / safe_scale
+  };
+};
+export const getCanvasXY = (
+  e: DragEvent | TouchEvent | MouseEvent,
+  canvas_dom_rect: DOMRect | undefined,
+  scale = 1,
+  transformOrigin: CanvasTransformOrigin = { x: 0, y: 0 }
+) => {
+  const { realityX, realityY } = getRealityXY(e, canvas_dom_rect);
+
+  return getCanvasPointFromOffset(realityX, realityY, scale, transformOrigin);
+};
+export const getCanvasBinfoFromClientRect = (
+  item_rect: DOMRect,
+  canvas_dom_rect: DOMRect,
+  scale = 1,
+  transformOrigin: CanvasTransformOrigin = { x: 0, y: 0 }
+) => {
+  const safe_scale = Number.isFinite(scale) && scale !== 0 ? scale : 1;
+  const { x, y } = getCanvasPointFromOffset(
+    item_rect.left - canvas_dom_rect.left,
+    item_rect.top - canvas_dom_rect.top,
+    safe_scale,
+    transformOrigin
+  );
+
+  return {
+    left: x,
+    top: y,
+    width: item_rect.width / safe_scale,
+    height: item_rect.height / safe_scale
+  };
+};
 export const blobToBase64 = (file: Blob) => {
   return new Promise(function (resolve, reject) {
     const reader = new FileReader();

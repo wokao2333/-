@@ -43,7 +43,7 @@ for (const key in electrical_stroke_modules_files) {
   const rawSvg = electrical_stroke_modules_files[key] as string;
   // 画布 symbol 用去掉显式黑色填充的版本，使 <use> 能统一着色为红色
   let symbolSvg = rawSvg;
-  if (name === '隔离开关 copy') {
+  if (name === '隔离开关 copy' || name === '开关手车') {
     symbolSvg = rawSvg.replace(/fill="#000000"/g, '').replace(/fill-opacity="1"/g, '');
   }
   electrical_register_config.push({
@@ -78,7 +78,6 @@ leftAsideStore.registerConfig(
   '电气符号',
   electrical_register_config.filter((item: any) => electrical_keep_list.has(item.title))
 );
-
 </script>
 
 <template>

@@ -13,7 +13,7 @@
     :useProportionalScaling="item.use_proportional_scaling !== false"
     :show-ghost-dom="renderCoreProps.showGhostDom"
     :hide="item.hide"
-    :disabled="renderCoreProps.preivewMode"
+    :disabled="renderCoreProps.preivewMode || renderCoreProps.canvasDragActive"
     :adsorp_diff="globalStore.adsorp_diff"
     @mousedown="onMouseDown(item, $event)"
     @update:model-value="onUpdateModelValue(item.id, $event)"
@@ -26,9 +26,9 @@
     @on-rotate-move="onRotateMove($event)"
     @on-rotate-done="onRotateDone(item)"
     @on-right-click="onRightClick($event, item)"
-    :class="`${item.type == 'sys-line' ? 'pointer-events-none' : ''} ${getCommonAni(
-      item
-    )} cursor-pointer`"
+    :class="`${item.type == 'sys-line' ? 'pointer-events-none' : ''} ${getCommonAni(item)} ${
+      renderCoreProps.canvasDragActive ? 'cursor-grab' : 'cursor-pointer'
+    }`"
   >
     <el-popover
       v-if="renderCoreProps.preivewMode && renderCoreProps.showPopover"
@@ -122,6 +122,7 @@ type RenderCoreProps = {
   globalLock: boolean;
   preivewMode?: boolean;
   lineAppendEnable?: boolean;
+  canvasDragActive?: boolean;
   showPopover?: boolean;
 };
 const renderCoreProps = withDefaults(defineProps<RenderCoreProps>(), {
@@ -129,6 +130,7 @@ const renderCoreProps = withDefaults(defineProps<RenderCoreProps>(), {
   showGhostDom: true,
   preivewMode: false,
   lineAppendEnable: false,
+  canvasDragActive: false,
   showPopover: true
 });
 const renderCoreEmits = defineEmits([

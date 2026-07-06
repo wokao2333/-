@@ -22,18 +22,18 @@
           @on-group-click="mainPanelRef?.createGroupItem"
           @on-ungroup-click="mainPanelRef?.onUngroup"
           @on-delete-click="onDeleteClick"
-          @on-export-click="onExportClick"
           @on-tree-click="done_json_tree_visiable = true"
           @align-selected="onAlignSelected"
           @on-redo-click="onRedoClick"
           @on-undo-click="onUndoClick"
-          @on-import-click="onImportClick"
+          @on-reset-canvas-click="onResetCanvasClick"
           @on-return-click="emits('onReturnClick')"
           @on-save-click="onSaveClick"
           @on-preview-click="onPreviewClick"
           @on-thumbnail-click="onThumbnailClick"
           @on-draw-line-click="onDrawLineClick"
           @on-data-source-click="emits('onDataSourceClick')"
+          @on-publish-click="onPublishClick"
         ></header-panel>
       </el-header>
       <el-container class="h-[calc(100%-45px-40px)]">
@@ -42,7 +42,17 @@
           class="dark:bg-myDarkBgColor cr-border mt-edit-aside h-1/1 select-none"
           @mousedown="mainPanelRef?.stopListenerKeyDown()"
         >
-          <left-aside :leftAsideConfig="leftAsideStore.config"></left-aside>
+          <el-tabs v-model="left_aside_active_tab" class="mt-edit-left-tabs h-1/1 select-none">
+            <el-tab-pane label="图元" name="graphic">
+              <left-aside :leftAsideConfig="leftAsideStore.config"></left-aside>
+            </el-tab-pane>
+            <el-tab-pane label="场站" name="station">
+              <slot v-if="hasStationAsideSlot" name="stationAside" />
+              <div v-else class="h-1/1 flex items-center justify-center p-10px">
+                <el-empty description="暂无场站内容" />
+              </div>
+            </el-tab-pane>
+          </el-tabs>
         </el-aside>
         <el-main
           class="dark:bg-myMainDarkBgColor"
@@ -73,28 +83,7 @@
         <footer-panel></footer-panel>
       </el-footer>
     </el-container>
-    <el-dialog
-      v-model="import_visible"
-      title="数据导入"
-      @close="mainPanelRef?.beginListenerKeyDown()"
-    >
-      <import-json ref="importJsonRef"></import-json>
-      <template #footer>
-        <el-button type="primary" @click="onImportYes">确定</el-button>
-      </template>
-    </el-dialog>
-    <el-dialog
-      v-model="export_visible"
-      title="数据导出"
-      @close="mainPanelRef?.beginListenerKeyDown()"
-    >
-      <export-json
-        :done-json="objectDeepClone(globalStore.done_json)"
-        :canvas-cfg="globalStore.canvasCfg"
-        :grid-cfg="globalStore.gridCfg"
-        :extra-json="mtEidtProps.exportExtra"
-      ></export-json>
-    </el-dialog>
+
     <el-drawer v-model="done_json_tree_visiable" title="图形结构树" direction="ltr" size="30%">
       <done-tree
         :done-json="globalStore.done_json"
@@ -121,14 +110,16 @@ import {
   ElDialog,
   ElDrawer,
   ElButton,
-  ElMessage
+  ElMessage,
+  ElTabs,
+  ElTabPane,
+  ElEmpty
 } from 'element-plus';
 import { globalStore } from '@/components/mt-edit/store/global';
 import { computed, reactive, ref, useSlots } from 'vue';
 import DoneTree from '@/components/mt-edit/components/done-tree/index.vue';
 import { cacheStore } from './store/cache';
-import ExportJson from '@/components/mt-edit/components/export-json/index.vue';
-import ImportJson from '@/components/mt-edit/components/import-json/index.vue';
+
 import { objectDeepClone } from './utils';
 import { genExportJson, useExportJsonToDoneJson } from './composables';
 import type { IExportJson } from './components/types';
@@ -146,17 +137,21 @@ const emits = defineEmits([
   'onSaveClick',
   'onThumbnailClick',
   'onImportSuccess',
-  'onDataSourceClick'
+  'onDataSourceClick',
+  'onPublishClick'
 ]);
 const slots = useSlots();
 const mainPanelRef = ref<InstanceType<typeof MainPanel>>();
-const importJsonRef = ref<InstanceType<typeof ImportJson>>();
+
 const aside_state = reactive({
   left_show: true,
   right_show: true
 });
 const hasDeviceBindSlot = computed(() => {
   return !!slots.deviceBind;
+});
+const hasStationAsideSlot = computed(() => {
+  return !!slots.stationAside;
 });
 const header_delete_enabled = computed(() => {
   return globalStore.selected_items_id.length > 0;
@@ -177,22 +172,15 @@ const header_align_enabled = computed(() => {
   );
   return selected_items.length > 1;
 });
-const import_visible = ref(false);
-const export_visible = ref(false);
+
 const done_json_tree_visiable = ref(false);
 const line_append_enable = ref(false);
+const left_aside_active_tab = ref('graphic');
 const onDeleteClick = () => {
   globalStore.deleteSelectedItems();
   cacheStore.addHistory(globalStore.done_json);
 };
-const onImportClick = () => {
-  import_visible.value = true;
-  mainPanelRef.value?.stopListenerKeyDown();
-};
-const onExportClick = () => {
-  export_visible.value = true;
-  mainPanelRef.value?.stopListenerKeyDown();
-};
+
 const onTreeUpdateSelectedItemsId = (id: string) => {
   globalStore.setSingleSelect(id);
 };
@@ -221,16 +209,10 @@ const onRedoClick = () => {
 const onUndoClick = () => {
   mainPanelRef.value?.onUndo();
 };
-const onImportYes = async () => {
-  const res = await importJsonRef.value?.onImport();
-  if (res) {
-    import_visible.value = false;
-    cacheStore.addHistory(globalStore.done_json);
-    emits('onImportSuccess', res);
-  } else {
-    ElMessage.error('导入失败,请检查数据格式');
-  }
+const onResetCanvasClick = () => {
+  mainPanelRef.value?.resetCanvasView();
 };
+
 const onPreviewClick = () => {
   // 获取导出json
   const { exportJson } = genExportJson(
@@ -249,6 +231,14 @@ const onSaveClick = () => {
   );
   emits('onSaveClick', exportJson);
 };
+const onPublishClick = () => {
+  const { exportJson } = genExportJson(
+    globalStore.canvasCfg,
+    globalStore.gridCfg,
+    globalStore.done_json
+  );
+  emits('onPublishClick', exportJson);
+};
 const onThumbnailClick = () => {
   emits('onThumbnailClick');
 };
@@ -257,10 +247,12 @@ const onDrawLineClick = (val: boolean) => {
 };
 const setImportJson = (exportJson: IExportJson) => {
   const { canvasCfg, gridCfg, importDoneJson } = useExportJsonToDoneJson(exportJson);
-  // 画布框架固定不变，重置视口状态（transform_origin、drag_offset），仅保留内容 scale
+  // 重置画布视口状态（缩放/平移），导入后回到默认画布视图
   canvasCfg.transform_origin = { x: 0, y: 0 };
   canvasCfg.drag_offset = { x: 0, y: 0 };
   globalStore.canvasCfg = canvasCfg;
+  // 保存导入时的初始画布配置快照，供复位功能使用
+  globalStore.initialCanvasCfg = objectDeepClone(canvasCfg);
   globalStore.gridCfg = gridCfg;
   globalStore.setGlobalStoreDoneJson(importDoneJson);
   cacheStore.history[0] = importDoneJson;
@@ -274,5 +266,24 @@ defineExpose({
 <style scoped>
 .mt-edit-aside {
   transition: width 0.3s;
+}
+
+.mt-edit-left-tabs {
+  display: flex;
+  flex-direction: column;
+}
+
+.mt-edit-left-tabs :deep(.el-tabs__header) {
+  margin: 0;
+  padding: 0 10px;
+}
+
+.mt-edit-left-tabs :deep(.el-tabs__content) {
+  flex: 1;
+  min-height: 0;
+}
+
+.mt-edit-left-tabs :deep(.el-tab-pane) {
+  height: 100%;
 }
 </style>

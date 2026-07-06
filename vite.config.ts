@@ -28,7 +28,6 @@ export default defineConfig(({ mode }) => {
         // 禁用压缩 否则想要修改无状态组件的stroke或者fill会影响到预设样式 例如stroke-width
         svgoOptions: false,
         customDomId: '___mt__edit__icons__dom__'
-
       }),
       codeInspectorPlugin({
         bundler: 'vite',

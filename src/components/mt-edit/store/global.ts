@@ -3,6 +3,7 @@ import type {
   GlobalStoreIntention,
   IDoneJson,
   IGlobalStore,
+  IGlobalStoreCanvasCfg,
   IGlobalStoreCreateItemInfo,
   IRealTimeData
 } from './types';
@@ -29,6 +30,8 @@ export const globalStore: IGlobalStore = reactive({
       y: 0
     }
   },
+  // 导入/初始加载时的画布配置快照，复位时恢复此状态
+  initialCanvasCfg: null as IGlobalStoreCanvasCfg | null,
   gridCfg: {
     enabled: false,
     align: true,

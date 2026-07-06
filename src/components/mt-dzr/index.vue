@@ -146,7 +146,7 @@ const mt_dzr_vmodel = computed({
 });
 const onMouseDown = (de: MouseTouchEvent) => {
   MtDzrEmits('mousedown', de);
-  if (MtDzrProps.lock || MtDzrProps.disabled) {
+  if (de.defaultPrevented || MtDzrProps.lock || MtDzrProps.disabled) {
     return;
   }
   //记录最开始点击时鼠标位置和组件的位置

@@ -3,7 +3,9 @@
     <div
       id="mtCanvasArea"
       ref="canvasAreaRef"
-      :class="`canvasArea  ${globalStore.intention == 'runDragCanvas' ? 'cursor-grab' : ''}`"
+      :class="`canvasArea  ${
+        is_space_pressed || globalStore.intention == 'runDragCanvas' ? 'cursor-grab' : ''
+      }`"
       @drop="onDrop"
       @dragover="onDragOver"
       @touchstart="onDrop($event, true)"
@@ -24,6 +26,7 @@
           :canvas-dom="canvasAreaRef"
           :global-lock="globalStore.lock"
           :line-append-enable="mainPanelProps.lineAppendEnable"
+          :canvas-drag-active="is_space_pressed"
           @on-mouse-down="onRenderCoreMouseDown"
           @on-item-move="onItemMove"
           @on-move-mouse-up="onMoveMouseUp"
@@ -38,6 +41,7 @@
           v-show="globalStore.intention === 'beginMulSelect'"
           ref="selectedAreaRef"
           :scale-ratio="globalStore.canvasCfg.scale"
+          :transform-origin="globalStore.canvasCfg.transform_origin"
           :target-dom="canvasAreaRef"
           @selected-area-mouse-up="onSelectedAreaMouseUp"
         ></selected-area>
@@ -90,6 +94,8 @@ import PatternGrid from '@/components/mt-edit/components/pattern-grid/index.vue'
 import { computed, ref, reactive, onMounted, onUnmounted } from 'vue';
 import {
   alignToGrid,
+  getCanvasBinfoFromClientRect,
+  getCanvasXY,
   getRealityXY,
   randomString,
   objectDeepClone,
@@ -132,8 +138,7 @@ const canvasAreaRef = ref();
 const selectedAreaRef = ref<InstanceType<typeof SelectedArea>>();
 const dragCanvasRef = ref<InstanceType<typeof DragCanvas>>();
 const dragLineRenderRef = ref<InstanceType<typeof DrawLineRender>>();
-// 是否需要重新计算画布缩放中心点
-const is_need_recal_center = ref(true);
+const is_space_pressed = ref(false);
 let is_listen_keydown = false; // 是否已经监听了键盘事件
 // 画布初始偏移坐标
 const init_drag_offset = reactive(globalStore.canvasCfg.drag_offset);
@@ -150,6 +155,39 @@ const done_json = computed({
   }
 });
 const sys_line_init = configStore.sysComponent.find((f) => f.type == 'sys-line')!;
+const getNumberPropDefault = (config: ILeftAsideConfigItem, key: string, fallback: number) => {
+  const value = Number(config.props[key]?.val);
+
+  return Number.isFinite(value) ? value : fallback;
+};
+const getCreateItemSize = (config: ILeftAsideConfigItem) => {
+  if (config.id === 'kv-vue') {
+    return {
+      width:
+        getNumberPropDefault(config, 'labelWidth', 50) +
+        getNumberPropDefault(config, 'valueWidth', 50) +
+        getNumberPropDefault(config, 'unitWidth', 50) +
+        getNumberPropDefault(config, 'unitGap', 4),
+      height: 40
+    };
+  }
+  // SVG 类型组件使用其原始宽高比例，但限制最大初始尺寸为 100px
+  if ((config.type === 'svg' || config.type === 'custom-svg') && config.symbol) {
+    const w = Number(config.symbol.width) || 50;
+    const h = Number(config.symbol.height) || 50;
+    const MAX_SIZE = 100;
+    if (w > MAX_SIZE || h > MAX_SIZE) {
+      const ratio = Math.min(MAX_SIZE / w, MAX_SIZE / h);
+      return { width: Math.max(w * ratio, 20), height: Math.max(h * ratio, 20) };
+    }
+    return { width: Math.max(w, 20), height: Math.max(h, 20) };
+  }
+
+  return {
+    width: 50,
+    height: 50
+  };
+};
 const draw_line_init_data: IDoneJson = {
   id: sys_line_init.id + '-' + randomString(),
   title: sys_line_init.title,
@@ -204,12 +242,17 @@ const onDrop = (e: DragEvent | TouchEvent, isTouch?: boolean) => {
     }
     if (mainPanelProps.lineAppendEnable) {
       globalStore.setIntention('drawSysLineStart');
-      const { realityX, realityY } = getRealityXY(e, canvasAreaRef.value?.getBoundingClientRect());
+      const { x, y } = getCanvasXY(
+        e,
+        canvasAreaRef.value?.getBoundingClientRect(),
+        globalStore.canvasCfg.scale,
+        globalStore.canvasCfg.transform_origin
+      );
       draw_line_data.value = {
         ...objectDeepClone(draw_line_init_data),
         binfo: {
-          left: alignToGrid(realityX / globalStore.canvasCfg.scale, grid_align_size.value),
-          top: alignToGrid(realityY / globalStore.canvasCfg.scale, grid_align_size.value),
+          left: alignToGrid(x, grid_align_size.value),
+          top: alignToGrid(y, grid_align_size.value),
           width: 0,
           height: 0,
           angle: 0
@@ -245,17 +288,23 @@ const onDrop = (e: DragEvent | TouchEvent, isTouch?: boolean) => {
   const is_vertical_line = deep_find_cfg.id === 'sys-line';
   // 竖线
   const is_horizontal_line = deep_find_cfg.id === 'sys-line-vertical';
+  const create_item_size = getCreateItemSize(deep_find_cfg);
   //根据配置创建图形
-  const { realityX, realityY } = getRealityXY(e, canvasAreaRef.value?.getBoundingClientRect());
+  const { x, y } = getCanvasXY(
+    e,
+    canvasAreaRef.value?.getBoundingClientRect(),
+    globalStore.canvasCfg.scale,
+    globalStore.canvasCfg.transform_origin
+  );
   const create_item: IDoneJson = {
     id: deep_find_cfg.id + '-' + randomString(),
     title: deep_find_cfg.title,
     type: deep_find_cfg.type,
     binfo: {
-      left: alignToGrid(realityX / globalStore.canvasCfg.scale, grid_align_size.value),
-      top: alignToGrid(realityY / globalStore.canvasCfg.scale, grid_align_size.value),
-      width: is_vertical_line ? 100 : is_horizontal_line ? 0 : 50,
-      height: is_horizontal_line ? 100 : is_vertical_line ? 0 : 50,
+      left: alignToGrid(x, grid_align_size.value),
+      top: alignToGrid(y, grid_align_size.value),
+      width: is_vertical_line ? 100 : is_horizontal_line ? 0 : create_item_size.width,
+      height: is_horizontal_line ? 100 : is_vertical_line ? 0 : create_item_size.height,
       angle: 0
     },
     resize: is_line ? false : true,
@@ -287,6 +336,10 @@ const onDragOver = (e: DragEvent) => {
 };
 const onRenderCoreMouseDown = (item: IDoneJson, e: MouseEvent) => {
   beginListenerKeyDown();
+  if (is_space_pressed.value && e.button === 0) {
+    startCanvasDrag(e);
+    return;
+  }
   if (globalStore.lock) {
     return;
   }
@@ -328,6 +381,10 @@ const onRenderCoreMouseDown = (item: IDoneJson, e: MouseEvent) => {
 };
 const onMouseDown = (e: MouseEvent) => {
   beginListenerKeyDown();
+  if (is_space_pressed.value && e.button === 0) {
+    startCanvasDrag(e);
+    return;
+  }
   globalStore.cancelAllSelect();
   // 锁定状态或者右键点击进行画布拖动
   if (globalStore.lock || e.button == 2) {
@@ -337,12 +394,17 @@ const onMouseDown = (e: MouseEvent) => {
   }
   if (mainPanelProps.lineAppendEnable) {
     globalStore.setIntention('drawSysLineStart');
-    const { realityX, realityY } = getRealityXY(e, canvasAreaRef.value?.getBoundingClientRect());
+    const { x, y } = getCanvasXY(
+      e,
+      canvasAreaRef.value?.getBoundingClientRect(),
+      globalStore.canvasCfg.scale,
+      globalStore.canvasCfg.transform_origin
+    );
     draw_line_data.value = {
       ...objectDeepClone(draw_line_init_data),
       binfo: {
-        left: alignToGrid(realityX / globalStore.canvasCfg.scale, grid_align_size.value),
-        top: alignToGrid(realityY / globalStore.canvasCfg.scale, grid_align_size.value),
+        left: alignToGrid(x, grid_align_size.value),
+        top: alignToGrid(y, grid_align_size.value),
         width: 0,
         height: 0,
         angle: 0
@@ -365,10 +427,16 @@ const onSelectedAreaMouseUp = (area_binfo: IAreaBinfo) => {
     const canvas_area_bounding_info = canvasAreaRef.value?.getBoundingClientRect();
     let { left, top, width, height } = m.binfo;
     if (bounding_info && canvas_area_bounding_info) {
-      left = (bounding_info.left - canvas_area_bounding_info.left) / globalStore.canvasCfg.scale;
-      top = (bounding_info.top - canvas_area_bounding_info.top) / globalStore.canvasCfg.scale;
-      width = bounding_info.width / globalStore.canvasCfg.scale;
-      height = bounding_info.height / globalStore.canvasCfg.scale;
+      const canvas_binfo = getCanvasBinfoFromClientRect(
+        bounding_info,
+        canvas_area_bounding_info,
+        globalStore.canvasCfg.scale,
+        globalStore.canvasCfg.transform_origin
+      );
+      left = canvas_binfo.left;
+      top = canvas_binfo.top;
+      width = canvas_binfo.width;
+      height = canvas_binfo.height;
     }
     // 左右是否包含
     const contain_x = area_binfo.left < left && area_binfo.left + area_binfo.width > left + width;
@@ -744,6 +812,11 @@ const dragCanvasMouseDown = () => {
   init_drag_offset.x = globalStore.canvasCfg.drag_offset.x;
   init_drag_offset.y = globalStore.canvasCfg.drag_offset.y;
 };
+const startCanvasDrag = (e: MouseEvent | TouchEvent) => {
+  e.preventDefault();
+  globalStore.setIntention('beginDragCanvas');
+  dragCanvasRef.value?.onMouseDown(e);
+};
 /**
  * 画布拖动移动事件
  * @param move_x
@@ -1002,9 +1075,14 @@ const onContextMenuClick = (key: ContextMenuInfoType, e: MouseEvent) => {
       if (cacheStore.copy.length < 1) {
         return;
       }
-      const { realityX, realityY } = getRealityXY(e, canvasAreaRef.value?.getBoundingClientRect());
-      const left = alignToGrid(realityX / globalStore.canvasCfg.scale, 1);
-      const top = alignToGrid(realityY / globalStore.canvasCfg.scale, 1);
+      const { x, y } = getCanvasXY(
+        e,
+        canvasAreaRef.value?.getBoundingClientRect(),
+        globalStore.canvasCfg.scale,
+        globalStore.canvasCfg.transform_origin
+      );
+      const left = alignToGrid(x, 1);
+      const top = alignToGrid(y, 1);
       // 找到top最小的那条数据的id
       let min_top_id = '';
       let min_top = Infinity;
@@ -1052,7 +1130,45 @@ const onContextMenuClick = (key: ContextMenuInfoType, e: MouseEvent) => {
   }
   globalStore.setIntention('none');
 };
+const isEditableShortcutTarget = (target: EventTarget | null) => {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  return Boolean(
+    target.isContentEditable ||
+      target.closest(
+        'input, textarea, select, [contenteditable="true"], .ace_editor, .monaco-editor'
+      )
+  );
+};
+const isSpaceDragShortcut = (e: KeyboardEvent) => {
+  return (
+    (e.code === 'Space' || e.key === ' ') &&
+    !e.ctrlKey &&
+    !e.metaKey &&
+    !e.altKey &&
+    !isEditableShortcutTarget(e.target)
+  );
+};
+const resetSpaceDragShortcut = () => {
+  is_space_pressed.value = false;
+  if (globalStore.intention === 'beginDragCanvas' || globalStore.intention === 'endDragCanvas') {
+    globalStore.setIntention('none');
+  }
+};
 const onKeydown = (e: KeyboardEvent) => {
+  if (isSpaceDragShortcut(e)) {
+    e.preventDefault();
+    if (!is_space_pressed.value) {
+      is_space_pressed.value = true;
+      if (globalStore.intention === 'none' || globalStore.intention === 'endDragCanvas') {
+        globalStore.setIntention('beginDragCanvas');
+      }
+    }
+    return;
+  }
+
   // 全选
   if (e.ctrlKey && e.key.toLocaleLowerCase() === 'a') {
     e.preventDefault();
@@ -1169,31 +1285,40 @@ const onKeydown = (e: KeyboardEvent) => {
     cacheStore.addHistory(globalStore.done_json);
   }
 };
+const onKeyup = (e: KeyboardEvent) => {
+  if (!isSpaceDragShortcut(e)) {
+    return;
+  }
+  e.preventDefault();
+  resetSpaceDragShortcut();
+};
 const onMouseWheel = (e: any) => {
   if (e.ctrlKey) {
     e.preventDefault();
     e.stopPropagation();
-    if (e.deltaY > 0) {
-      globalStore.canvasCfg.scale = (globalStore.canvasCfg.scale * 10 - 1) / 10;
-    } else if (e.deltaY < 0) {
-      globalStore.canvasCfg.scale = (globalStore.canvasCfg.scale * 10 + 1) / 10;
+    const old_scale = globalStore.canvasCfg.scale;
+    if (!Number.isFinite(old_scale) || old_scale <= 0) {
+      globalStore.canvasCfg.scale = 1;
     }
-    if (!is_need_recal_center.value) {
+    if (e.deltaY > 0) {
+      globalStore.canvasCfg.scale = Math.max(0.1, (globalStore.canvasCfg.scale * 10 - 1) / 10);
+    } else if (e.deltaY < 0) {
+      globalStore.canvasCfg.scale = Math.min(5, (globalStore.canvasCfg.scale * 10 + 1) / 10);
+    }
+    if (old_scale === globalStore.canvasCfg.scale) {
       return;
     }
-    const { realityX, realityY } = getRealityXY(e, canvasAreaRef.value.getBoundingClientRect());
-    const new_transform_origin_x = parseInt(realityX / globalStore.canvasCfg.scale + '');
-    const new_transform_origin_y = parseInt(realityY / globalStore.canvasCfg.scale + '');
-    if (
-      globalStore.canvasCfg.transform_origin.x !== new_transform_origin_x &&
-      globalStore.canvasCfg.transform_origin.y !== new_transform_origin_y
-    ) {
-      globalStore.canvasCfg.transform_origin = {
-        x: new_transform_origin_x,
-        y: new_transform_origin_y
-      };
-      is_need_recal_center.value = false;
-    }
+
+    const origin = globalStore.canvasCfg.transform_origin;
+    const mouseCanvasX =
+      origin.x + (e.clientX - globalStore.canvasCfg.drag_offset.x - origin.x) / old_scale;
+    const mouseCanvasY =
+      origin.y + (e.clientY - globalStore.canvasCfg.drag_offset.y - origin.y) / old_scale;
+
+    globalStore.canvasCfg.drag_offset = {
+      x: e.clientX - origin.x - (mouseCanvasX - origin.x) * globalStore.canvasCfg.scale,
+      y: e.clientY - origin.y - (mouseCanvasY - origin.y) * globalStore.canvasCfg.scale
+    };
   }
 };
 const beginListenerKeyDown = () => {
@@ -1202,6 +1327,7 @@ const beginListenerKeyDown = () => {
   }
   // 监听键盘事件
   document.addEventListener('keydown', onKeydown);
+  document.addEventListener('keyup', onKeyup);
   is_listen_keydown = true;
 };
 const stopListenerKeyDown = () => {
@@ -1209,11 +1335,35 @@ const stopListenerKeyDown = () => {
     return;
   }
   document.removeEventListener('keydown', onKeydown);
+  document.removeEventListener('keyup', onKeyup);
+  resetSpaceDragShortcut();
   is_listen_keydown = false;
 };
-const onCanvasMove = () => {
-  is_need_recal_center.value = true;
+const resetCanvasView = () => {
+  resetSpaceDragShortcut();
+  if (globalStore.intention === 'runDragCanvas') {
+    globalStore.setIntention('none');
+  }
+  // 如果有保存的初始画布配置快照（导入/初始加载时），直接恢复到该状态
+  if (globalStore.initialCanvasCfg) {
+    const initial = globalStore.initialCanvasCfg;
+    globalStore.canvasCfg.scale = initial.scale;
+    globalStore.canvasCfg.transform_origin = {
+      x: initial.transform_origin.x,
+      y: initial.transform_origin.y
+    };
+    globalStore.canvasCfg.drag_offset = {
+      x: initial.drag_offset.x,
+      y: initial.drag_offset.y
+    };
+    return;
+  }
+  // 没有初始快照时，退化为重置到默认状态
+  globalStore.canvasCfg.scale = 1;
+  globalStore.canvasCfg.transform_origin = { x: 0, y: 0 };
+  globalStore.canvasCfg.drag_offset = { x: 0, y: 0 };
 };
+const onCanvasMove = () => {};
 /**
  * 绘制线结束事件
  * @param line_item 绘制好的线
@@ -1229,9 +1379,11 @@ const onDrawLineEnd = (line_item: IDoneJson) => {
 };
 onMounted(() => {
   beginListenerKeyDown();
+  window.addEventListener('blur', resetSpaceDragShortcut);
 });
 onUnmounted(() => {
   stopListenerKeyDown();
+  window.removeEventListener('blur', resetSpaceDragShortcut);
 });
 defineExpose({
   createGroupItem,
@@ -1239,6 +1391,7 @@ defineExpose({
   onAlignSelected,
   onRedo,
   onUndo,
+  resetCanvasView,
   beginListenerKeyDown,
   stopListenerKeyDown
 });
@@ -1248,6 +1401,10 @@ defineExpose({
   position: relative;
   width: v-bind('globalStore.canvasCfg.width + "px"');
   height: v-bind('globalStore.canvasCfg.height + "px"');
+  transform: v-bind('`scale(${globalStore.canvasCfg.scale})`');
+  transform-origin: v-bind(
+    '`${globalStore.canvasCfg.transform_origin.x}px ${globalStore.canvasCfg.transform_origin.y}px`'
+  );
   background-color: v-bind('globalStore.canvasCfg.color');
   background-image: v-bind('"url("+globalStore.canvasCfg.img+")"');
   left: v-bind('globalStore.canvasCfg.drag_offset.x + "px"');
@@ -1258,10 +1415,6 @@ defineExpose({
   position: relative;
   width: 100%;
   height: 100%;
-  transform: v-bind('`scale(${globalStore.canvasCfg.scale})`');
-  transform-origin: v-bind(
-    '`${globalStore.canvasCfg.transform_origin.x}px ${globalStore.canvasCfg.transform_origin.y}px`'
-  );
 }
 
 #guide-x {

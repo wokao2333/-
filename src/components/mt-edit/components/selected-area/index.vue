@@ -4,16 +4,18 @@
 
 <script setup lang="ts">
 import { ref, unref } from 'vue';
-import { getRealityXY } from '@/components/mt-edit/utils';
+import { getCanvasXY, type CanvasTransformOrigin } from '@/components/mt-edit/utils';
 import type { MouseTouchEvent } from '../types';
 import type { IAreaBinfo } from './types';
 type SelectedAreaProps = {
   scaleRatio: number;
   targetDom: HTMLElement | null;
+  transformOrigin: CanvasTransformOrigin;
 };
 const selectedAreaProps = withDefaults(defineProps<SelectedAreaProps>(), {
   scaleRatio: 1,
-  targetDom: null
+  targetDom: null,
+  transformOrigin: () => ({ x: 0, y: 0 })
 });
 const emits = defineEmits(['selectedAreaMouseUp']);
 const area_binfo = ref<IAreaBinfo>({
@@ -24,31 +26,26 @@ const area_binfo = ref<IAreaBinfo>({
 });
 
 const onMouseDown = (de: MouseTouchEvent) => {
-  // 鼠标按下的位置
-  const { realityX, realityY } = getRealityXY(
+  const canvasRect = selectedAreaProps.targetDom?.getBoundingClientRect();
+  // 鼠标按下时在画布逻辑坐标系中的位置
+  const startPoint = getCanvasXY(
     de,
-    selectedAreaProps.targetDom?.getBoundingClientRect()
+    canvasRect,
+    selectedAreaProps.scaleRatio,
+    selectedAreaProps.transformOrigin
   );
-  // 记录最开始点击时鼠标位置
-  const d_x = de instanceof MouseEvent ? de.clientX : de.touches[0].pageX;
-  const d_y = de instanceof MouseEvent ? de.clientY : de.touches[0].pageY;
   const onMouseMove = (e: MouseTouchEvent) => {
-    // 记录鼠标移动的位置
-    const m_x = e instanceof MouseEvent ? e.clientX : e.touches[0].pageX;
-    const m_y = e instanceof MouseEvent ? e.clientY : e.touches[0].pageY;
-    // 移动的距离
-    const move_x = (m_x - d_x) / selectedAreaProps.scaleRatio;
-    const move_y = (m_y - d_y) / selectedAreaProps.scaleRatio;
-    let left = realityX / selectedAreaProps.scaleRatio,
-      top = realityY / selectedAreaProps.scaleRatio;
-    let width = Math.abs(move_x),
-      height = Math.abs(move_y);
-    if (move_x < 0) {
-      left = realityX / selectedAreaProps.scaleRatio - width;
-    }
-    if (move_y < 0) {
-      top = realityY / selectedAreaProps.scaleRatio - height;
-    }
+    const currentPoint = getCanvasXY(
+      e,
+      canvasRect,
+      selectedAreaProps.scaleRatio,
+      selectedAreaProps.transformOrigin
+    );
+    const left = Math.min(startPoint.x, currentPoint.x);
+    const top = Math.min(startPoint.y, currentPoint.y);
+    const width = Math.abs(currentPoint.x - startPoint.x);
+    const height = Math.abs(currentPoint.y - startPoint.y);
+
     area_binfo.value = {
       width,
       height,

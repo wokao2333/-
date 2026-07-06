@@ -2527,6 +2527,627 @@
         "nameTargetAttr": "",
         "unit": ""
       }
+    },
+    {
+      "id": "group-Y3HSd48wJt",
+      "title": "组合",
+      "type": "group",
+      "binfo": {
+        "left": 894.7999877929688,
+        "top": 705.7999877929688,
+        "width": 147.6093292236328,
+        "height": 129.28123474121094,
+        "angle": 0
+      },
+      "resize": true,
+      "rotate": true,
+      "lock": false,
+      "active": false,
+      "hide": false,
+      "use_proportional_scaling": true,
+      "props": {},
+      "common_animations": {
+        "val": "",
+        "delay": "delay-0s",
+        "speed": "slow",
+        "repeat": "infinite"
+      },
+      "children": [
+        {
+          "id": "card-vue-7NHYXgvZ0L",
+          "title": "卡片",
+          "type": "vue",
+          "binfo": {
+            "width": 55.55204432625488,
+            "height": 30.940298551502938,
+            "left": 23.039059410930125,
+            "top": 0,
+            "angle": 0
+          },
+          "resize": true,
+          "rotate": true,
+          "lock": false,
+          "active": false,
+          "hide": false,
+          "use_proportional_scaling": false,
+          "props": {
+            "borderColor": {
+              "title": "边框颜色",
+              "type": "color",
+              "val": "#35c94a"
+            },
+            "shadow": {
+              "title": "阴影显示时机",
+              "type": "select",
+              "val": "always",
+              "options": [
+                {
+                  "label": "总是显示",
+                  "value": "always"
+                },
+                {
+                  "label": "鼠标悬浮",
+                  "value": "hover"
+                },
+                {
+                  "label": "不显示",
+                  "value": "never"
+                }
+              ]
+            },
+            "backGroundColor": {
+              "title": "背景颜色",
+              "type": "color",
+              "val": "rgba(2, 28, 15, 0.34)"
+            },
+            "boxShadow": {
+              "title": "阴影颜色",
+              "type": "color",
+              "val": "rgba(53, 201, 74, 0.18)"
+            }
+          },
+          "tag": "card-vue",
+          "common_animations": {
+            "val": "",
+            "delay": "delay-0s",
+            "speed": "slow",
+            "repeat": "infinite"
+          },
+          "events": [],
+          "deviceBind": {
+            "deviceId": "",
+            "dataKey": "",
+            "targetAttr": "",
+            "nameTargetAttr": "",
+            "unit": ""
+          }
+        },
+        {
+          "id": "kv-vue-SGcs6NCN0q",
+          "title": "键值对",
+          "type": "vue",
+          "binfo": {
+            "width": 99.58720141413984,
+            "height": 30.166791087715367,
+            "left": 0.19582942454948843,
+            "top": 0.7614037054850503,
+            "angle": 0
+          },
+          "resize": true,
+          "rotate": true,
+          "lock": false,
+          "active": false,
+          "hide": false,
+          "use_proportional_scaling": true,
+          "props": {
+            "fontFamily": {
+              "title": "字体",
+              "type": "select",
+              "val": "黑体",
+              "options": [
+                {
+                  "value": "黑体",
+                  "label": "黑体"
+                },
+                {
+                  "value": "宋体",
+                  "label": "宋体"
+                }
+              ]
+            },
+            "fontSize": {
+              "title": "默认文字大小",
+              "type": "number",
+              "val": 18
+            },
+            "label": {
+              "title": "键名",
+              "type": "input",
+              "val": "Ua"
+            },
+            "labelFontSize": {
+              "title": "键名字体大小",
+              "type": "number",
+              "val": 18
+            },
+            "labelColor": {
+              "title": "键名颜色",
+              "type": "color",
+              "val": ""
+            },
+            "labelWidth": {
+              "title": "键名宽度",
+              "type": "number",
+              "val": 50
+            },
+            "value": {
+              "title": "键值",
+              "type": "input",
+              "val": "键值"
+            },
+            "valueFontSize": {
+              "title": "键值字体大小",
+              "type": "number",
+              "val": 26
+            },
+            "valueColor": {
+              "title": "键值颜色",
+              "type": "color",
+              "val": "#FFF700"
+            },
+            "valueWidth": {
+              "title": "键值宽度",
+              "type": "number",
+              "val": 50
+            },
+            "unit": {
+              "title": "单位",
+              "type": "input",
+              "val": "V"
+            },
+            "unitFontSize": {
+              "title": "单位字体大小",
+              "type": "number",
+              "val": 14
+            },
+            "unitColor": {
+              "title": "单位颜色",
+              "type": "color",
+              "val": ""
+            },
+            "unitWidth": {
+              "title": "单位宽度",
+              "type": "number",
+              "val": 50
+            },
+            "unitGap": {
+              "title": "单位左间距",
+              "type": "number",
+              "val": 23
+            },
+            "color": {
+              "title": "默认文字颜色",
+              "type": "color",
+              "val": "#fff"
+            }
+          },
+          "tag": "kv-vue",
+          "common_animations": {
+            "val": "",
+            "delay": "delay-0s",
+            "speed": "slow",
+            "repeat": "infinite"
+          },
+          "events": [],
+          "deviceBind": {
+            "deviceId": "24",
+            "dataKey": "PhV_phsA",
+            "targetAttr": "props.value.val",
+            "nameTargetAttr": "props.label.val",
+            "unit": "V",
+            "fieldName": "Ua"
+          }
+        },
+        {
+          "id": "card-vue-85FcjdP2Lh",
+          "title": "卡片",
+          "type": "vue",
+          "binfo": {
+            "width": 55.55204432625488,
+            "height": 30.940298551502938,
+            "left": 23.26136260850913,
+            "top": 34.95283311153929,
+            "angle": 0
+          },
+          "resize": true,
+          "rotate": true,
+          "lock": false,
+          "active": false,
+          "hide": false,
+          "use_proportional_scaling": false,
+          "props": {
+            "borderColor": {
+              "title": "边框颜色",
+              "type": "color",
+              "val": "#35c94a"
+            },
+            "shadow": {
+              "title": "阴影显示时机",
+              "type": "select",
+              "val": "always",
+              "options": [
+                {
+                  "label": "总是显示",
+                  "value": "always"
+                },
+                {
+                  "label": "鼠标悬浮",
+                  "value": "hover"
+                },
+                {
+                  "label": "不显示",
+                  "value": "never"
+                }
+              ]
+            },
+            "backGroundColor": {
+              "title": "背景颜色",
+              "type": "color",
+              "val": "rgba(2, 28, 15, 0.34)"
+            },
+            "boxShadow": {
+              "title": "阴影颜色",
+              "type": "color",
+              "val": "rgba(53, 201, 74, 0.18)"
+            }
+          },
+          "tag": "card-vue",
+          "common_animations": {
+            "val": "",
+            "delay": "delay-0s",
+            "speed": "slow",
+            "repeat": "infinite"
+          },
+          "events": [],
+          "deviceBind": {
+            "deviceId": "",
+            "dataKey": "",
+            "targetAttr": "",
+            "nameTargetAttr": "",
+            "unit": ""
+          }
+        },
+        {
+          "id": "kv-vue-iXpcQ7sZW6",
+          "title": "键值对",
+          "type": "vue",
+          "binfo": {
+            "width": 99.58720141413984,
+            "height": 30.166791087715367,
+            "left": 0.41810677892952297,
+            "top": 35.71426632399241,
+            "angle": 0
+          },
+          "resize": true,
+          "rotate": true,
+          "lock": false,
+          "active": false,
+          "hide": false,
+          "use_proportional_scaling": true,
+          "props": {
+            "fontFamily": {
+              "title": "字体",
+              "type": "select",
+              "val": "黑体",
+              "options": [
+                {
+                  "value": "黑体",
+                  "label": "黑体"
+                },
+                {
+                  "value": "宋体",
+                  "label": "宋体"
+                }
+              ]
+            },
+            "fontSize": {
+              "title": "默认文字大小",
+              "type": "number",
+              "val": 18
+            },
+            "label": {
+              "title": "键名",
+              "type": "input",
+              "val": "Ub"
+            },
+            "labelFontSize": {
+              "title": "键名字体大小",
+              "type": "number",
+              "val": 18
+            },
+            "labelColor": {
+              "title": "键名颜色",
+              "type": "color",
+              "val": ""
+            },
+            "labelWidth": {
+              "title": "键名宽度",
+              "type": "number",
+              "val": 50
+            },
+            "value": {
+              "title": "键值",
+              "type": "input",
+              "val": "键值"
+            },
+            "valueFontSize": {
+              "title": "键值字体大小",
+              "type": "number",
+              "val": 26
+            },
+            "valueColor": {
+              "title": "键值颜色",
+              "type": "color",
+              "val": "#00FF00"
+            },
+            "valueWidth": {
+              "title": "键值宽度",
+              "type": "number",
+              "val": 50
+            },
+            "unit": {
+              "title": "单位",
+              "type": "input",
+              "val": "V"
+            },
+            "unitFontSize": {
+              "title": "单位字体大小",
+              "type": "number",
+              "val": 14
+            },
+            "unitColor": {
+              "title": "单位颜色",
+              "type": "color",
+              "val": ""
+            },
+            "unitWidth": {
+              "title": "单位宽度",
+              "type": "number",
+              "val": 50
+            },
+            "unitGap": {
+              "title": "单位左间距",
+              "type": "number",
+              "val": 23
+            },
+            "color": {
+              "title": "默认文字颜色",
+              "type": "color",
+              "val": "#fff"
+            }
+          },
+          "tag": "kv-vue",
+          "common_animations": {
+            "val": "",
+            "delay": "delay-0s",
+            "speed": "slow",
+            "repeat": "infinite"
+          },
+          "events": [],
+          "deviceBind": {
+            "deviceId": "24",
+            "dataKey": "PhV_phsB",
+            "targetAttr": "props.value.val",
+            "nameTargetAttr": "props.label.val",
+            "unit": "V",
+            "fieldName": "Ub"
+          }
+        },
+        {
+          "id": "card-vue-oLyfog5NrF",
+          "title": "卡片",
+          "type": "vue",
+          "binfo": {
+            "width": 55.55204432625488,
+            "height": 30.940298551502938,
+            "left": 22.848530426490314,
+            "top": 69.05970144849705,
+            "angle": 0
+          },
+          "resize": true,
+          "rotate": true,
+          "lock": false,
+          "active": false,
+          "hide": false,
+          "use_proportional_scaling": false,
+          "props": {
+            "borderColor": {
+              "title": "边框颜色",
+              "type": "color",
+              "val": "#35c94a"
+            },
+            "shadow": {
+              "title": "阴影显示时机",
+              "type": "select",
+              "val": "always",
+              "options": [
+                {
+                  "label": "总是显示",
+                  "value": "always"
+                },
+                {
+                  "label": "鼠标悬浮",
+                  "value": "hover"
+                },
+                {
+                  "label": "不显示",
+                  "value": "never"
+                }
+              ]
+            },
+            "backGroundColor": {
+              "title": "背景颜色",
+              "type": "color",
+              "val": "rgba(2, 28, 15, 0.34)"
+            },
+            "boxShadow": {
+              "title": "阴影颜色",
+              "type": "color",
+              "val": "rgba(53, 201, 74, 0.18)"
+            }
+          },
+          "tag": "card-vue",
+          "common_animations": {
+            "val": "",
+            "delay": "delay-0s",
+            "speed": "slow",
+            "repeat": "infinite"
+          },
+          "events": [],
+          "deviceBind": {
+            "deviceId": "",
+            "dataKey": "",
+            "targetAttr": "",
+            "nameTargetAttr": "",
+            "unit": ""
+          }
+        },
+        {
+          "id": "kv-vue-bt6HAiFGIe",
+          "title": "键值对",
+          "type": "vue",
+          "binfo": {
+            "width": 99.58720141413984,
+            "height": 30.166791087715367,
+            "left": 0.005300440109678536,
+            "top": 69.82110515398212,
+            "angle": 0
+          },
+          "resize": true,
+          "rotate": true,
+          "lock": false,
+          "active": false,
+          "hide": false,
+          "use_proportional_scaling": true,
+          "props": {
+            "fontFamily": {
+              "title": "字体",
+              "type": "select",
+              "val": "黑体",
+              "options": [
+                {
+                  "value": "黑体",
+                  "label": "黑体"
+                },
+                {
+                  "value": "宋体",
+                  "label": "宋体"
+                }
+              ]
+            },
+            "fontSize": {
+              "title": "默认文字大小",
+              "type": "number",
+              "val": 18
+            },
+            "label": {
+              "title": "键名",
+              "type": "input",
+              "val": "Uc"
+            },
+            "labelFontSize": {
+              "title": "键名字体大小",
+              "type": "number",
+              "val": 18
+            },
+            "labelColor": {
+              "title": "键名颜色",
+              "type": "color",
+              "val": ""
+            },
+            "labelWidth": {
+              "title": "键名宽度",
+              "type": "number",
+              "val": 50
+            },
+            "value": {
+              "title": "键值",
+              "type": "input",
+              "val": "键值"
+            },
+            "valueFontSize": {
+              "title": "键值字体大小",
+              "type": "number",
+              "val": 26
+            },
+            "valueColor": {
+              "title": "键值颜色",
+              "type": "color",
+              "val": "#FF0000"
+            },
+            "valueWidth": {
+              "title": "键值宽度",
+              "type": "number",
+              "val": 50
+            },
+            "unit": {
+              "title": "单位",
+              "type": "input",
+              "val": "V"
+            },
+            "unitFontSize": {
+              "title": "单位字体大小",
+              "type": "number",
+              "val": 14
+            },
+            "unitColor": {
+              "title": "单位颜色",
+              "type": "color",
+              "val": ""
+            },
+            "unitWidth": {
+              "title": "单位宽度",
+              "type": "number",
+              "val": 50
+            },
+            "unitGap": {
+              "title": "单位左间距",
+              "type": "number",
+              "val": 23
+            },
+            "color": {
+              "title": "默认文字颜色",
+              "type": "color",
+              "val": "#fff"
+            }
+          },
+          "tag": "kv-vue",
+          "common_animations": {
+            "val": "",
+            "delay": "delay-0s",
+            "speed": "slow",
+            "repeat": "infinite"
+          },
+          "events": [],
+          "deviceBind": {
+            "deviceId": "24",
+            "dataKey": "PhV_phsC",
+            "targetAttr": "props.value.val",
+            "nameTargetAttr": "props.label.val",
+            "unit": "V",
+            "fieldName": "Uc"
+          }
+        }
+      ],
+      "events": [],
+      "tag": "group",
+      "deviceBind": {
+        "deviceId": "",
+        "dataKey": "",
+        "targetAttr": "",
+        "nameTargetAttr": "",
+        "unit": ""
+      }
     }
   ],
   "deviceApiConfig": {

@@ -8,6 +8,7 @@ export interface DeviceInfo {
 export interface DeviceField {
   key: string;
   name: string;
+  displayName: string;
   unit: string;
 }
 
@@ -63,10 +64,19 @@ export interface DeviceRealtimeResponse {
 export interface DeviceBindingRecord {
   itemId: string;
   itemTitle?: string;
+  itemTag?: string;
   bind: DeviceBindInfo;
 }
 
 export const deviceApiConfigStorageKey = 'maotu-device-api-config';
+export const kvUnitTargetAttr = 'props.unit.val';
+export const kvValueColorTargetAttr = 'props.valueColor.val';
+export const defaultKvValueColor = '#fff';
+export const phaseValueColors = {
+  a: '#FFF700',
+  b: '#00FF00',
+  c: '#FF0000'
+} as const;
 
 export const defaultDeviceApiConfig: DeviceApiConfig = {
   deviceListUrl: '/api/devices',
@@ -103,6 +113,49 @@ export const deviceNameTargetOptions: DeviceTargetOption[] = [
     tags: ['kv-vue']
   }
 ];
+
+export const getDeviceUnitTargetAttr = (item: DeviceBindableItem) => {
+  return item.tag === 'kv-vue' ? kvUnitTargetAttr : '';
+};
+
+export const getDeviceValueColorTargetAttr = (item: DeviceBindableItem) => {
+  return item.tag === 'kv-vue' ? kvValueColorTargetAttr : '';
+};
+
+export const getPhaseValueColor = (fieldName = '') => {
+  const normalizedName = fieldName.trim().toLowerCase();
+
+  // 适配短 displayName（如 Ua/Ia/Ub），末尾 a/b/c 即为相序标识
+  const shortMatch = normalizedName.match(/[abc]$/);
+  if (shortMatch && normalizedName.length <= 4) {
+    switch (shortMatch[0]) {
+      case 'a':
+        return phaseValueColors.a;
+      case 'b':
+        return phaseValueColors.b;
+      case 'c':
+        return phaseValueColors.c;
+    }
+  }
+
+  if (!/(电压|电流|功率)/.test(normalizedName)) {
+    return defaultKvValueColor;
+  }
+
+  if (/(^|[^a-z])a\s*相/.test(normalizedName)) {
+    return phaseValueColors.a;
+  }
+
+  if (/(^|[^a-z])b\s*相/.test(normalizedName)) {
+    return phaseValueColors.b;
+  }
+
+  if (/(^|[^a-z])c\s*相/.test(normalizedName)) {
+    return phaseValueColors.c;
+  }
+
+  return defaultKvValueColor;
+};
 
 export const normalizeDeviceApiConfig = (
   config?: Partial<DeviceApiConfig> | null
@@ -210,6 +263,10 @@ const valueToString = (value: unknown, fallback = '') => {
   }
 
   return String(value);
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
 };
 
 const toRecordList = (value: unknown): Record<string, unknown>[] => {
@@ -395,7 +452,7 @@ export const ensureDeviceBind = (item: DeviceBindableItem) => {
 export const syncDeviceFieldMeta = (bind: DeviceBindInfo, fields: DeviceField[]) => {
   const field = fields.find((item) => item.key === bind.dataKey);
 
-  bind.fieldName = field?.name || '';
+  bind.fieldName = field?.displayName || field?.name || '';
   bind.unit = field?.unit || '';
 };
 
@@ -413,27 +470,46 @@ export const collectDeviceBindings = (
       {
         itemId: item.id,
         itemTitle: item.title,
+        itemTag: item.tag,
         bind
       }
     ];
   });
 };
 
-export const formatDeviceValue = (value: unknown, unit = '') => {
-  if (value === null || value === undefined) {
+export const getRealtimePointValue = (value: unknown) => {
+  if (isRecord(value) && 'value' in value) {
+    return value.value;
+  }
+
+  return value;
+};
+
+export const getRealtimePointUnit = (value: unknown, fallback = '') => {
+  if (isRecord(value) && typeof value.unit === 'string') {
+    return value.unit;
+  }
+
+  return fallback;
+};
+
+export const formatDeviceValue = (value: unknown) => {
+  const displayValue = getRealtimePointValue(value);
+
+  if (displayValue === null || displayValue === undefined) {
     return '';
   }
 
-  return `${value}${unit}`;
+  return String(displayValue);
 };
 
 /** 后端返回的设备数据项 */
 export interface BackendDeviceItem {
   deviceType: number;
   deviceTypeName: string;
-  deviceId: string;
+  deviceId: string | number;
   deviceName: string;
-  points: { code: string; name: string }[];
+  points: { code: string | number; name: string; displayName?: string; unit?: string }[];
 }
 
 /** 后端返回的完整 JSON 结构 */
@@ -465,29 +541,38 @@ export const parseDeviceBindingData = (raw: unknown): ParsedDeviceBindingData =>
   const fieldsMap: Record<string, DeviceField[]> = {};
 
   for (const item of response.data) {
-    if (!item.deviceId) continue;
+    const deviceId = valueToString(item.deviceId);
+
+    if (!deviceId) continue;
 
     devices.push({
-      id: item.deviceId,
-      name: item.deviceName || item.deviceId
+      id: deviceId,
+      name: valueToString(item.deviceName, deviceId)
     });
 
-    const fields: DeviceField[] = (item.points || []).map((point) => ({
-      key: point.code,
-      name: point.name || point.code,
-      unit: ''
-    }));
+    const fields: DeviceField[] = (item.points || [])
+      .map((point) => {
+        const key = valueToString(point.code);
+
+        return {
+          key,
+          name: valueToString(point.name, key),
+          displayName: valueToString(point.displayName),
+          unit: valueToString(point.unit)
+        };
+      })
+      .filter((field) => field.key);
 
     // 合并同名设备的点位（去重）
-    if (fieldsMap[item.deviceId]) {
-      const existingKeys = new Set(fieldsMap[item.deviceId].map((f) => f.key));
+    if (fieldsMap[deviceId]) {
+      const existingKeys = new Set(fieldsMap[deviceId].map((f) => f.key));
       for (const field of fields) {
         if (!existingKeys.has(field.key)) {
-          fieldsMap[item.deviceId].push(field);
+          fieldsMap[deviceId].push(field);
         }
       }
     } else {
-      fieldsMap[item.deviceId] = fields;
+      fieldsMap[deviceId] = fields;
     }
   }
 
