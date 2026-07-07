@@ -27,7 +27,7 @@
                   @click="onLoadDiagram(station.id, diagram.id)"
                 />
                 <div class="mt-4px text-xs text-center truncate px-2px">
-                  {{  diagram.id }}
+                  {{ diagram.id }}
                 </div>
                 <div
                   class="absolute right-4px top-4px opacity-0 group-hover:opacity-100 transition-opacity"
@@ -66,7 +66,9 @@
         <el-table-column label="操作" width="140" align="center" fixed="right">
           <template #default="{ row }">
             <el-button text type="primary" size="small" @click="onEditClick(row)">编辑</el-button>
-            <el-button text type="danger" size="small" @click="onDelStationConfirm(row.id)">删除</el-button>
+            <el-button text type="danger" size="small" @click="onDelStationConfirm(row.id)"
+              >删除</el-button
+            >
           </template>
         </el-table-column>
       </el-table>
@@ -290,7 +292,6 @@ const onDeleteDiagramClick = (stationId: string, diagramId: string) => {
     })
     .catch(() => {});
 };
-
 </script>
 <style scoped>
 #mt-station-aside :deep(.el-collapse-item__header),

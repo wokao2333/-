@@ -21,7 +21,8 @@ const realtimeData = new Map();
 let currentUpdatedAt = new Date().toISOString();
 
 const round = (value, precision = 1) => Number(value.toFixed(precision));
-const randomBetween = (min, max, precision = 1) => round(min + Math.random() * (max - min), precision);
+const randomBetween = (min, max, precision = 1) =>
+  round(min + Math.random() * (max - min), precision);
 
 const createDeviceSnapshot = () => ({
   temperature: randomBetween(22, 36, 1),

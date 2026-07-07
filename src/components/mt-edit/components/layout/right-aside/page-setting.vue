@@ -1,9 +1,12 @@
 <template>
   <el-tabs v-model="activeName" class="select-none">
+    <!-- 页面设置面板 -->
     <el-tab-pane label="页面" name="page">
       <el-form label-width="70px" label-position="left">
+        <!-- 1. 画布尺寸配置 -->
         <el-form-item label="画布尺寸" size="small">
           <el-select v-model="canvas_size" placeholder="请设置画布尺寸">
+            <!-- 自定义画布宽高输入框 -->
             <el-option-group label="自定义">
               <div class="flex justify-between">
                 <el-input-number
@@ -21,6 +24,7 @@
                 ></el-input-number>
               </div>
             </el-option-group>
+            <!-- 预设画布尺寸分组列表（如PC端、移动端） -->
             <el-option-group
               v-for="group in canvas_size_options"
               :key="group.label"
@@ -35,14 +39,18 @@
             </el-option-group>
           </el-select>
         </el-form-item>
+
+        <!-- 2. 缩放倍数配置 -->
         <el-form-item label="缩放倍数" size="small">
           <el-select v-model="canvas_size_scale" placeholder="请设置缩放比例" size="small">
+            <!-- 预设的缩放比例选项 -->
             <el-option
               v-for="item in canvas_size_scale_options"
               :key="item.value"
               :label="item.label"
               :value="item.value"
             />
+            <!-- 自定义缩放比例输入框 -->
             <div class="flex justify-between px-10px ct-border pt-10px">
               <el-text>自定义:</el-text>
               <el-input-number
@@ -55,9 +63,13 @@
             </div>
           </el-select>
         </el-form-item>
+
+        <!-- 3. 背景颜色选择器 -->
         <el-form-item label="背景颜色" size="small">
           <el-color-picker v-model="canvas_bg_color"></el-color-picker>
         </el-form-item>
+
+        <!-- 4. 背景图片上传 -->
         <el-form-item label="背景图片" size="small">
           <el-upload
             ref="canvasBgImgUploadRef"
@@ -72,6 +84,7 @@
             @mouseleave="show_clear_bg_img = false"
           >
             <div class="flex justify-center items-center relative">
+              <!-- 已有背景图时展示图片缩略图，否则展示上传按钮 -->
               <img
                 class="w-40px h-40px absolute left-0"
                 v-if="rightAsideProps.canvasCfg.img"
@@ -82,6 +95,7 @@
                   <svg-analysis name="upload"></svg-analysis>
                 </el-icon>
               </el-button>
+              <!-- 鼠标悬浮在已有背景图上时显示删除/清除按钮 -->
               <div
                 v-if="rightAsideProps.canvasCfg.img && show_clear_bg_img"
                 class="absolute w-40px h-40px left-0 opacity-80 bg-light-300 flex justify-center items-center"
@@ -94,18 +108,26 @@
             </div>
           </el-upload>
         </el-form-item>
+
+        <!-- 5. 辅助功能开关：参考线 -->
         <el-form-item label="参考线" size="small">
           <el-switch v-model="canvas_guide"></el-switch>
         </el-form-item>
+
+        <!-- 6. 辅助功能开关：吸附 -->
         <el-form-item label="吸附" size="small">
           <el-switch v-model="canvas_adsorp"></el-switch>
         </el-form-item>
+
+        <!-- 7. 网格开关与配置 -->
         <el-form-item label="网格" size="small">
           <el-switch v-model="grid_enabled"></el-switch>
         </el-form-item>
+        <!-- 仅在启用网格时展示网格对齐开关 -->
         <el-form-item label="网格对齐" size="small" v-if="grid_enabled">
           <el-switch v-model="grid_align"></el-switch>
         </el-form-item>
+        <!-- 仅在启用网格时展示网格大小输入框 -->
         <el-form-item label="网格大小" size="small" v-if="grid_enabled">
           <el-input-number v-model="grid_size" :min="1"></el-input-number>
         </el-form-item>
@@ -120,7 +142,6 @@ import {
   ElTabPane,
   ElForm,
   ElFormItem,
-  ElInput,
   ElInputNumber,
   ElSelect,
   ElOption,
@@ -138,14 +159,29 @@ import {
 import { computed, ref } from 'vue';
 import SvgAnalysis from '@/components/mt-edit/components/svg-analysis/index.vue';
 import { blobToBase64 } from '@/components/mt-edit/utils';
+
+// 定义属性接口，接收父组件传递的画布配置与网格配置
 type RightAsideProps = {
-  canvasCfg: IGlobalStoreCanvasCfg;
-  gridCfg: IGlobalStoreGridCfg;
+  canvasCfg: IGlobalStoreCanvasCfg; // 画布配置，包括宽高、缩放比、背景颜色、背景图、吸附、参考线等
+  gridCfg: IGlobalStoreGridCfg; // 网格配置，包括是否启用、对齐、网格大小等
 };
+
+// 使用 withDefaults 声明 Props，这里设置为空对象作为默认值
 const rightAsideProps = withDefaults(defineProps<RightAsideProps>(), {});
+
+// 定义事件分发器，用于更新画布配置与网格配置，实现双向绑定
 const emits = defineEmits(['update:canvasCfg', 'update:gridCfg']);
+
+// 当前激活的标签页名称，默认为 "page"
 const activeName = ref('page');
+
+// 画布背景图片上传组件的引用
 const canvasBgImgUploadRef = ref();
+
+/**
+ * 画布尺寸的计算属性（格式化为 "宽*高"）
+ * 用于 Select 下拉选择器展示和选择预设尺寸
+ */
 const canvas_size = computed({
   get: () => {
     return `${rightAsideProps.canvasCfg.width}*${rightAsideProps.canvasCfg.height}`;
@@ -159,6 +195,8 @@ const canvas_size = computed({
     });
   }
 });
+
+// 画布宽度计算属性，供自定义宽度输入框双向绑定
 const canvas_size_width = computed({
   get: () => {
     return rightAsideProps.canvasCfg.width;
@@ -170,6 +208,8 @@ const canvas_size_width = computed({
     });
   }
 });
+
+// 画布高度计算属性，供自定义高度输入框双向绑定
 const canvas_size_height = computed({
   get: () => {
     return rightAsideProps.canvasCfg.height;
@@ -181,6 +221,8 @@ const canvas_size_height = computed({
     });
   }
 });
+
+// 画布预设尺寸选项，按 PC端 和 移动端 进行分组
 const canvas_size_options = [
   {
     label: 'pc端',
@@ -221,6 +263,8 @@ const canvas_size_options = [
     ]
   }
 ];
+
+// 自定义画布缩放比例输入框的计算属性
 const canvas_size_scale_input = computed({
   get: () => {
     return rightAsideProps.canvasCfg.scale;
@@ -232,6 +276,8 @@ const canvas_size_scale_input = computed({
     });
   }
 });
+
+// 画布缩放比例下拉选择器的计算属性
 const canvas_size_scale = computed({
   get: () => {
     return rightAsideProps.canvasCfg.scale;
@@ -243,6 +289,8 @@ const canvas_size_scale = computed({
     });
   }
 });
+
+// 预设的画布缩放比例选项
 const canvas_size_scale_options = [
   {
     value: 0.5,
@@ -261,6 +309,8 @@ const canvas_size_scale_options = [
     label: 2
   }
 ];
+
+// 画布背景颜色计算属性，供颜色选择器双向绑定
 const canvas_bg_color = computed({
   get: () => {
     return rightAsideProps.canvasCfg.color;
@@ -272,8 +322,14 @@ const canvas_bg_color = computed({
     });
   }
 });
+
+// 是否显示清除背景图按钮的标识（当鼠标悬浮在上传图片区域时为 true）
 const show_clear_bg_img = ref(false);
+
+// 背景图片文件上传列表
 const bg_img_list = ref<UploadUserFile[]>([]);
+
+// 网格是否启用的计算属性
 const grid_enabled = computed({
   get: () => {
     return rightAsideProps.gridCfg.enabled;
@@ -285,6 +341,8 @@ const grid_enabled = computed({
     });
   }
 });
+
+// 网格对齐是否启用的计算属性
 const grid_align = computed({
   get: () => {
     return rightAsideProps.gridCfg.align;
@@ -296,6 +354,8 @@ const grid_align = computed({
     });
   }
 });
+
+// 网格大小的计算属性
 const grid_size = computed({
   get: () => {
     return rightAsideProps.gridCfg.size;
@@ -307,19 +367,28 @@ const grid_size = computed({
     });
   }
 });
+
+/**
+ * 当背景图片选择发生变化时的回调
+ * @param e 上传的图片文件对象
+ * 负责进行图片类型校验和大小校验（最大 1MB），并通过 FileReader 将图片转为 Base64 格式
+ */
 const onBgImgChange = (e: UploadFile) => {
   show_clear_bg_img.value = false;
+  // 仅支持上传图片类型文件
   if (!e.raw!.type.includes('image/')) {
     ElMessage.error('只能上传图片!');
     canvasBgImgUploadRef.value.clearFiles();
     bg_img_list.value = [];
     return false;
   } else if (e.raw!.size / 1024 / 1024 > 1) {
+    // 限制图片大小不能超过 1MB
     ElMessage.error('不能上传超过1MB的图像!');
     canvasBgImgUploadRef.value.clearFiles();
     bg_img_list.value = [];
     return false;
   }
+  // 将 Blob 转换为 Base64 格式，更新全局画布的背景图片
   blobToBase64(e.raw!).then((base64) => {
     emits('update:canvasCfg', {
       ...rightAsideProps.canvasCfg,
@@ -328,6 +397,10 @@ const onBgImgChange = (e: UploadFile) => {
   });
 };
 
+/**
+ * 清除背景图片
+ * 调用上传组件方法清空文件队列，同时将画布配置中的背景图地址设置为空
+ */
 const clearBgImg = () => {
   canvasBgImgUploadRef.value.clearFiles();
   emits('update:canvasCfg', {
@@ -335,6 +408,8 @@ const clearBgImg = () => {
     img: ''
   });
 };
+
+// 画布元素吸附功能是否启用的计算属性
 const canvas_adsorp = computed({
   get: () => {
     return rightAsideProps.canvasCfg.adsorp;
@@ -346,6 +421,8 @@ const canvas_adsorp = computed({
     });
   }
 });
+
+// 画布参考线是否启用的计算属性
 const canvas_guide = computed({
   get: () => {
     return rightAsideProps.canvasCfg.guide;

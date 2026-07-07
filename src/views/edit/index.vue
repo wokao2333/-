@@ -401,7 +401,10 @@ const onPreviewClick = async (exportJson: IExportJson) => {
         ElMessage.warning('当前场站未配置 IP 地址，无法获取实时数据');
       } else {
         try {
-          const realtimeDataMap: Record<string, Record<string, { value: unknown; unit?: string }>> = {};
+          const realtimeDataMap: Record<
+            string,
+            Record<string, { value: unknown; unit?: string }>
+          > = {};
           for (const [deviceId, group] of groupEntries) {
             const data = await fetchBatchPointData(baseUrl, deviceId, Array.from(group.dataKeys));
             realtimeDataMap[deviceId] = data;
@@ -584,7 +587,12 @@ const onSaveDiagram = async (exportJson: IExportJson) => {
   }
   const diagramId = drawingDiagram.value.diagramId;
   const existingDiagram = station.diagrams.find((f) => f.id === diagramId);
-  const diagramName = `一次接线图 ${new Date().toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
+  const diagramName = `一次接线图 ${new Date().toLocaleString('zh-CN', {
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })}`;
   const diagram: StationDiagram = {
     id: diagramId,
     name: existingDiagram?.name ?? diagramName,
