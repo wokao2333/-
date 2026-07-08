@@ -561,6 +561,58 @@ const onLoadDiagram = (stationId: string, diagramId: string) => {
   ElMessage.success('一次图加载成功');
 };
 
+const onExportStations = async () => {
+  try {
+    const list = await stationDB.loadAll();
+    const payload = {
+      type: 'maotu-stations-package',
+      version: 1,
+      exportedAt: Date.now(),
+      stations: list
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    a.download = `场站工程包_${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(
+      d.getHours(),
+    )}${pad(d.getMinutes())}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    ElMessage.success(`已导出场站工程包（${list.length} 个场站）`);
+  } catch (e) {
+    console.error('导出场站工程包失败', e);
+    ElMessage.error('导出场站工程包失败');
+  }
+};
+
+const onImportStations = async (file: File) => {
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    const list = Array.isArray(data) ? data : data?.stations;
+    if (!Array.isArray(list)) {
+      ElMessage.error('文件格式不正确，未找到场站数据');
+      return;
+    }
+    let count = 0;
+    for (const item of list) {
+      if (!item || typeof item.id !== 'string' || !Array.isArray(item.diagrams)) {
+        continue;
+      }
+      await stationDB.save(item as Station);
+      count++;
+    }
+    stations.value = await stationDB.loadAll();
+    ElMessage.success(`已导入 ${count} 个场站工程包`);
+  } catch (e) {
+    console.error('导入场站工程包失败', e);
+    ElMessage.error('导入失败，文件格式不正确');
+  }
+};
+
 const onAddDiagram = (stationId: string) => {
   drawingDiagram.value = { stationId, diagramId: 'diagram-' + randomString() };
   currentStationId.value = stationId;
@@ -593,12 +645,15 @@ const onSaveDiagram = async (exportJson: IExportJson) => {
     hour: '2-digit',
     minute: '2-digit'
   })}`;
+  const now = Date.now();
   const diagram: StationDiagram = {
     id: diagramId,
     name: existingDiagram?.name ?? diagramName,
     thumbnail,
     exportJson: exportJson as unknown as Record<string, unknown>,
-    createTime: existingDiagram?.createTime ?? Date.now()
+    createTime: existingDiagram?.createTime ?? now,
+    // 最新更新时间：首次创建时取创建时间，更新时刷新为当前修改时间
+    updateTime: now
   };
   if (existingDiagram) {
     const idx = station.diagrams.findIndex((f) => f.id === diagramId);
@@ -713,6 +768,8 @@ const onThumbnailClick = () => {
             @load-diagram="onLoadDiagram"
             @delete-station="onDeleteStation"
             @delete-diagram="onDeleteDiagram"
+            @export-stations="onExportStations"
+            @import-stations="onImportStations"
           />
         </template>
         <template #deviceBind="{ item }">

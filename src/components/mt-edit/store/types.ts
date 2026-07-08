@@ -229,6 +229,12 @@ export interface ICache {
 // 杂项配置
 export interface IConfig {
   sysComponent: ILeftAsideConfigItem[];
+  newEnergy: ILeftAsideConfigItem[];
+  storage: ILeftAsideConfigItem[];
+  load: ILeftAsideConfigItem[];
+  grid: ILeftAsideConfigItem[];
+  comm: ILeftAsideConfigItem[];
+  sysPrimitive: ILeftAsideConfigItem[];
   lineRenderOffset: number; //因为连线是使用svg进行渲染的，所以需要一个偏移量和div的画布进行重叠
 }
 /**

@@ -83,18 +83,6 @@
                 @node-click="onNodeClick"
               ></el-tree>
             </el-scrollbar>
-            <el-upload
-              ref="uploadRef"
-              class="w-24px h-24px"
-              v-model:file-list="up_img_list"
-              :auto-upload="false"
-              :limit="1"
-              :show-file-list="false"
-              :on-change="onUpLoadChange"
-              accept="image/*"
-            >
-              <el-button type="primary">本地上传</el-button>
-            </el-upload>
           </div>
         </div>
 
@@ -106,8 +94,6 @@
                 v-for="item in leftAsideProps.leftAsideConfig.get(selected_node_key)"
                 :key="item.id"
                 class="w-160px h-160px flex flex-wrap justify-center items-center cursor-pointer relative"
-                @mouseenter="show_del_local_file = item.id"
-                @mouseleave="show_del_local_file = null"
               >
                 <el-tooltip
                   :effect="isDark ? 'dark' : 'light'"
@@ -122,12 +108,6 @@
                     />
                     <div class="w-60px h-60px flex justify-center items-center">
                       <el-text truncated>{{ item.title }}</el-text>
-                    </div>
-                    <div
-                      v-if="selected_node_key == '本地文件' && show_del_local_file == item.id"
-                      class="absolute w-160px h-160px left-0 top-0 opacity-80 bg-light-300 flex justify-center items-center"
-                    >
-                      <el-button type="danger" @click="onDelLocalFile(item)">删除</el-button>
                     </div>
                   </div>
                 </el-tooltip>
@@ -153,11 +133,7 @@ import {
   ElDialog,
   ElCheckbox,
   ElDivider,
-  ElTree,
-  ElUpload,
-  type UploadUserFile,
-  ElMessage,
-  type UploadFile
+  ElTree
 } from 'element-plus';
 import SvgAnalysis from '@/components/mt-edit/components/svg-analysis/index.vue';
 import { useDark, useLocalStorage } from '@vueuse/core';
@@ -167,7 +143,6 @@ import type {
   ILeftAsideConfigItemPublic
 } from '@/components/mt-edit/store/types';
 import { globalStore } from '@/components/mt-edit/store/global';
-import { blobToBase64 } from '@/components/mt-edit/utils';
 type LeftAsideProps = {
   leftAsideConfig: ILeftAsideConfig;
 };
@@ -177,18 +152,13 @@ const leftAsideProps = withDefaults(defineProps<LeftAsideProps>(), {
 const isDark = useDark({
   selector: '#mt-edit'
 });
-const uploadRef = ref();
 // 从本地储存中查被禁用的类别
 const disable_classify = useLocalStorage<string[]>('mt-disable-classify', []);
-// 上传的文件也存到本地储存中
-const local_file = useLocalStorage<ILeftAsideConfigItem[]>('mt-local-file', []);
 const treeRef = ref();
 const is_show_tooltip: Record<string, boolean> = reactive({});
-const active_names = ref([]);
+const active_names = ref<string[]>([]);
 const search_str = ref();
 const manage_dialog_visiable = ref(false);
-const up_img_list = ref<UploadUserFile[]>([]);
-const show_del_local_file = ref<null | string>(null);
 const classify_list = computed(() =>
   [...leftAsideProps.leftAsideConfig.keys()].map((m) => {
     return { label: m };
@@ -197,6 +167,8 @@ const classify_list = computed(() =>
 const checked_keys = ref<string[]>(
   classify_list.value.filter((f) => !disable_classify.value.includes(f.label)).map((m) => m.label)
 );
+// 默认展开全部分类
+active_names.value = [...checked_keys.value];
 const selected_node_key = ref();
 const check_all = computed({
   get: () => {
@@ -255,53 +227,6 @@ const handleCheckChange = (data: { label: string }, checked: boolean, indetermin
 };
 const onNodeClick = ({ label }: { label: string }) => {
   selected_node_key.value = label;
-};
-const onUpLoadChange = (e: UploadFile) => {
-  if (!e.raw!.type.includes('image/')) {
-    ElMessage.error('只能上传图片!');
-    uploadRef.value.clearFiles();
-    up_img_list.value = [];
-    return false;
-  } else if (e.raw!.size / 1024 / 1024 > 1) {
-    ElMessage.error('不能上传超过1MB的图像!');
-    uploadRef.value.clearFiles();
-    up_img_list.value = [];
-    return false;
-  }
-  blobToBase64(e.raw!).then((base64) => {
-    const id = e.name.split('.')[0];
-    const config: ILeftAsideConfigItem = {
-      id: id,
-      title: id,
-      type: 'img',
-      thumbnail: base64 as string,
-      props: {},
-      common_animations: {
-        val: '',
-        delay: 'delay-0s',
-        speed: 'slow',
-        repeat: 'infinite'
-      }
-    };
-    const find_index = local_file.value.findIndex((f) => f.id == id);
-    if (find_index != -1) {
-      ElMessage.info('存在同名文件,已覆盖!');
-      local_file.value.splice(find_index, 1);
-    }
-    local_file.value.push(config);
-    leftAsideProps.leftAsideConfig.set('本地文件', local_file.value);
-    uploadRef.value.clearFiles();
-    up_img_list.value = [];
-    selected_node_key.value = '本地文件';
-    treeRef.value?.setCurrentKey('本地文件');
-  });
-};
-const onDelLocalFile = ({ id }: ILeftAsideConfigItem) => {
-  const find_index = local_file.value.findIndex((f) => f.id == id);
-  if (find_index != -1) {
-    local_file.value.splice(find_index, 1);
-  }
-  leftAsideProps.leftAsideConfig.set('本地文件', local_file.value);
 };
 </script>
 <style>

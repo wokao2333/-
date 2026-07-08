@@ -75,7 +75,7 @@ const electrical_keep_list = new Set([
   '开关手车'
 ]);
 leftAsideStore.registerConfig(
-  '电气符号',
+  '电网及一次设备',
   electrical_register_config.filter((item: any) => electrical_keep_list.has(item.title))
 );
 </script>

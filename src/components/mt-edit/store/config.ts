@@ -401,18 +401,61 @@ const sysComponentItems: ILeftAsideConfigItem[] = [
   }
 ];
 
+// 将“键值对”从系统组件移动到“系统图元”分类
+const sysPrimitiveItems: ILeftAsideConfigItem[] = [];
+const kvIndex = sysComponentItems.findIndex((i) => i.id === 'kv-vue');
+if (kvIndex !== -1) {
+  sysPrimitiveItems.push(sysComponentItems.splice(kvIndex, 1)[0]);
+}
+
 // 系统组件中追加的电气 stroke 图标
 const sysSvgIconNames = new Set([
   '光伏板',
   '逆变器',
   '风机',
+  '变压器',
+  '并网点',
   '电网',
   '电碳表',
   '电表',
   '储能电池',
   '柴发',
-  '储能pcs'
+  '储能pcs',
+  '风机变流器',
+  '光伏并网柜',
+  '光伏阵列',
+  '储能柜',
+  'BMS',
+  '配电箱',
+  '充电桩',
+  '多功能电表',
+  '微网控制单元',
+  '通信网关',
+  '交换机'
 ]);
+// 属于“新能源”分类的电气图标
+const newEnergyIconNames = new Set([
+  '光伏板',
+  '逆变器',
+  '风机',
+  '柴发',
+  '风机变流器',
+  '光伏并网柜',
+  '光伏阵列'
+]);
+const newEnergyItems: ILeftAsideConfigItem[] = [];
+// 属于“储能”分类的电气图标
+const storageIconNames = new Set(['储能电池', '储能pcs', '储能柜', 'BMS']);
+const storageItems: ILeftAsideConfigItem[] = [];
+// 属于“负荷”分类的电气图标
+const loadIconNames = new Set(['电表', '电碳表', '配电箱', '充电桩', '多功能电表']);
+const loadItems: ILeftAsideConfigItem[] = [];
+// 属于“电网及一次设备”分类的电气图标
+const gridIconNames = new Set(['变压器', '并网点', '电网']);
+const gridItems: ILeftAsideConfigItem[] = [];
+// 属于“通信辅助”分类的电气图标
+const commIconNames = new Set(['微网控制单元', '通信网关', '交换机']);
+const commItems: ILeftAsideConfigItem[] = [];
 const sysSvgModules = import.meta.glob('../../../assets/svgs/electrical/stroke/*.svg', {
   eager: true,
   as: 'raw'
@@ -421,9 +464,23 @@ for (const key in sysSvgModules) {
   const name = key.split('/').pop()!.split('.')[0];
   if (!sysSvgIconNames.has(name)) continue;
   // 去掉原图标中的显式 fill，让 <use> 的 fill 能控制内部填充色
-  const svg = (sysSvgModules[key] as string).replace(/fill="(?!none)[^"]*"/g, '');
+  // 同时移除根 svg 上的 fill="none"，避免内部元素继承透明填充
+  const svg = (sysSvgModules[key] as string)
+    .replace(/<svg\b([^>]*)\s+fill="none"\s*([^>]*)>/g, '<svg$1 $2>')
+    .replace(/fill="(?!none)[^"]*"/g, '');
   const { symbol_str, width, height } = svgToSymbol(svg, name);
-  sysComponentItems.push({
+  (newEnergyIconNames.has(name)
+    ? newEnergyItems
+    : storageIconNames.has(name)
+      ? storageItems
+      : loadIconNames.has(name)
+        ? loadItems
+        : gridIconNames.has(name)
+          ? gridItems
+          : commIconNames.has(name)
+            ? commItems
+            : sysComponentItems
+  ).push({
     id: name,
     title: name,
     type: 'svg',
@@ -453,5 +510,11 @@ for (const key in sysSvgModules) {
 
 export const configStore: IConfig = reactive({
   sysComponent: sysComponentItems,
+  newEnergy: newEnergyItems,
+  storage: storageItems,
+  load: loadItems,
+  grid: gridItems,
+  comm: commItems,
+  sysPrimitive: sysPrimitiveItems,
   lineRenderOffset: 10
 });

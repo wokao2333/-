@@ -14,18 +14,22 @@
                 <el-text truncated class="max-w-140px">{{ station.name }}</el-text>
               </div>
             </template>
-            <div class="flex flex-wrap gap-10px">
+            <div class="grid grid-cols-2 gap-10px">
               <div
                 v-for="diagram in station.diagrams"
                 :key="diagram.id"
-                class="w-[calc(50%-5px)] relative group"
+                class="relative group"
               >
-                <el-image
-                  :src="diagram.thumbnail"
-                  fit="contain"
-                  class="w-1/1 h-80px border-2 border-transparent rounded cursor-pointer transition-all box-border hover:border-blue-500"
+                <div
+                  class="w-1/1 h-50px border-2 border-transparent rounded cursor-pointer transition-all box-border hover:border-blue-500 flex items-center justify-center bg-gray-50 overflow-hidden"
                   @click="onLoadDiagram(station.id, diagram.id)"
-                />
+                >
+                  <img
+                    :src="diagram.thumbnail"
+                    class="max-w-1/1 max-h-1/1 object-cover"
+                    alt="diagram thumbnail"
+                  />
+                </div>
                 <div class="mt-4px text-xs text-center truncate px-2px">
                   {{ diagram.id }}
                 </div>
@@ -39,7 +43,7 @@
                 </div>
               </div>
               <div
-                class="w-[calc(50%-5px)] h-80px border border-dashed border-gray-400 rounded flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:text-blue-500 transition-all"
+                class="h-80px border border-dashed border-gray-400 rounded flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:text-blue-500 transition-all"
                 @click="onAddDiagram(station.id)"
               >
                 <el-icon :size="20"><Plus /></el-icon>
@@ -56,8 +60,21 @@
 
     <!-- 管理场站弹窗 -->
     <el-dialog v-model="manageVisible" title="管理场站" width="680px" destroy-on-close>
-      <div class="mb-12px flex justify-end">
+      <div class="mb-12px flex justify-end gap-8px">
+        <el-button type="primary" size="small" @click="onExportClick">
+          <el-icon class="mr-4px"><Download /></el-icon>导出场站工程包
+        </el-button>
+        <el-button type="primary" size="small" @click="onImportClick">
+          <el-icon class="mr-4px"><Upload /></el-icon>导入场站工程包
+        </el-button>
         <el-button type="primary" size="small" @click="onAddStationClick">添加场站</el-button>
+        <input
+          ref="fileInputRef"
+          type="file"
+          accept=".json,application/json"
+          class="hidden"
+          @change="onFileChange"
+        />
       </div>
       <el-table :data="stationAsideProps.stations" border stripe max-height="400px">
         <el-table-column prop="name" label="场站名称" width="140" show-overflow-tooltip />
@@ -143,7 +160,6 @@ import {
   ElForm,
   ElFormItem,
   ElIcon,
-  ElImage,
   ElInput,
   ElMessageBox,
   ElRow,
@@ -155,7 +171,7 @@ import {
   type FormInstance,
   type FormRules
 } from 'element-plus';
-import { Plus, Delete } from '@element-plus/icons-vue';
+import { Plus, Delete, Download, Upload } from '@element-plus/icons-vue';
 import type { Station, StationForm } from './types';
 import { randomString } from '@/components/mt-edit/utils';
 
@@ -172,12 +188,15 @@ const emits = defineEmits<{
   loadDiagram: [stationId: string, diagramId: string];
   deleteStation: [stationId: string];
   deleteDiagram: [stationId: string, diagramId: string];
+  exportStations: [];
+  importStations: [file: File];
 }>();
 
 const dialog_visible = ref(false);
 const manageVisible = ref(false);
 const editingStationId = ref<string | null>(null);
 const formRef = ref<FormInstance>();
+const fileInputRef = ref<HTMLInputElement>();
 const active_names = ref<string[]>([]);
 const form = reactive<StationForm>({
   name: '',
@@ -207,6 +226,24 @@ const resetForm = () => {
 const onAddStationClick = () => {
   resetForm();
   dialog_visible.value = true;
+};
+
+const onExportClick = () => {
+  emits('exportStations');
+};
+
+const onImportClick = () => {
+  fileInputRef.value?.click();
+};
+
+const onFileChange = (e: Event) => {
+  const target = e.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (file) {
+    emits('importStations', file);
+  }
+  // 重置以便同一文件可重复选择
+  target.value = '';
 };
 
 const onEditClick = (station: Station) => {

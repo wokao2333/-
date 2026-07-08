@@ -2,11 +2,11 @@
   <div class="flex justify-between" style="width: 100%">
     <div class="flex items-center justify-between w-200px">
       <div class="flex items-center">
-        <el-image class="w-45px h-45px pl-20px" :src="lxLogo" />
-        <el-text
-          class="pl-10px animate__animated animate__bounceIn animate__slow animate__1 animate__delay-0s"
-          >LX</el-text
-        >
+        <el-image class="w-45px h-45px pl-10px" :src="lxLogo" />
+        <div class="pl-8px flex flex-col leading-tight whitespace-nowrap animate__animated animate__bounceIn animate__slow animate__1 animate__delay-0s">
+          <span class="text-14px font-bold">砺行能源</span>
+          <span class="text-12px text-gray-500">一次接线图组态工具</span>
+        </div>
       </div>
       <el-tooltip
         :content="headerPanelProps.leftAside ? '折叠左侧栏' : '展开左侧栏'"
@@ -338,7 +338,6 @@ import {
   ElButton,
   ElButtonGroup,
   ElImage,
-  ElText,
   ElTag,
   ElTooltip
 } from 'element-plus';
