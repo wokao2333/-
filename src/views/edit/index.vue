@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, shallowRef } from 'vue';
 import type { IExportJson } from '@/components/mt-edit/components/types';
+import type { IDoneJson, ILeftAsideConfigItem } from '@/components/mt-edit/store/types';
 import { useGenThumbnail } from '@/components/mt-edit/composables/thumbnail';
 import { MtEdit } from '@/export';
 import { useRouter } from 'vue-router';
@@ -8,13 +9,18 @@ import { globalStore } from '@/components/mt-edit/store/global';
 import { cacheStore } from '@/components/mt-edit/store/cache';
 import { genCanvasDataUrl } from '@/components/mt-edit/composables/canvas-thumbnail';
 import { useExportJsonToDoneJson } from '@/components/mt-edit/composables';
-import { randomString } from '@/components/mt-edit/utils';
+import { randomString, objectDeepClone } from '@/components/mt-edit/utils';
 import StationAside from '@/components/mt-edit/components/layout/station-aside/index.vue';
 import type {
   Station,
-  StationDiagram
+  StationDiagram,
+  AddDiagramPayload
 } from '@/components/mt-edit/components/layout/station-aside/types';
 import { useStationDB } from '@/composables/useStationDB';
+import { useMcuDB } from '@/composables/useMcuDB';
+import { configStore } from '@/components/mt-edit/store/config';
+import { useDeviceTemplateDB } from '@/composables/useDeviceTemplateDB';
+import type { DevicePointRow, DeviceTypeRow } from '@/database';
 import {
   ElAlert,
   ElButton,
@@ -31,6 +37,7 @@ import {
 import {
   attachDeviceApiConfig,
   canBindDeviceValue,
+  collectDeviceBindingStats,
   ensureDeviceBind,
   getDeviceNameTargetOptions,
   getDeviceTargetOptions,
@@ -48,7 +55,8 @@ import {
   type DeviceBindInfo,
   type DeviceBindingExportJson,
   type DeviceField,
-  type DeviceInfo
+  type DeviceInfo,
+  type DeviceListItem
 } from '@/composables/useDeviceBinding';
 
 const router = useRouter();
@@ -64,11 +72,106 @@ const allDeviceFields = computed(() => Object.values(deviceFieldsMap.value).flat
 const fetchingLoading = ref(false);
 const selectedStationForFetch = ref('');
 const parsedDeviceSourceName = ref('');
+// 设备列表（来自 EMS /business/microgrid/device/detail?deviceType=...），按当前选中的设备类型加载
+const deviceList = ref<DeviceListItem[]>([]);
+const deviceListLoading = ref(false);
+const deviceListError = ref('');
+const deviceListFetched = ref(false);
+const deviceListType = ref('');
 
 const stations = ref<Station[]>([]);
-const drawingDiagram = ref<{ stationId: string; diagramId: string } | null>(null);
+const drawingDiagram = ref<{
+  stationId: string;
+  diagramId: string;
+  name?: string;
+  remark?: string;
+} | null>(null);
 const currentStationId = ref<string>('');
 const stationDB = useStationDB();
+const mcuDB = useMcuDB();
+// 设备类型（与设备模板库一致的本地数据），用作绑定面板“设备”下拉框数据源
+const deviceTemplateDB = useDeviceTemplateDB();
+const deviceTypes = ref<DeviceTypeRow[]>([]);
+
+// 当前选中的场站/一次图上下文持久化键。
+// 由于 currentStationId / drawingDiagram 仅为组件内内存状态，组件被失活/重挂载
+// （如长时间无操作后 Electron 渲染进程重载、路由重渲染、标签页恢复）时会丢失，
+// 导致 fetchDeviceList 误判“请先进入场站”。此处将其安全持久化到 localStorage，
+// 仅在彻底退出/删除场站时显式清除，从而保证长时间无操作后仍能正常获取设备列表。
+const CURRENT_CONTEXT_STORAGE_KEY = 'maotu-current-context';
+
+const persistCurrentContext = () => {
+  const ctx = drawingDiagram.value;
+  if (!ctx?.stationId) return;
+  try {
+    localStorage.setItem(
+      CURRENT_CONTEXT_STORAGE_KEY,
+      JSON.stringify({
+        stationId: ctx.stationId,
+        diagramId: ctx.diagramId,
+        name: ctx.name,
+        remark: ctx.remark
+      })
+    );
+  } catch (e) {
+    console.error('持久化当前场站上下文失败', e);
+  }
+};
+
+const clearPersistedContext = () => {
+  try {
+    localStorage.removeItem(CURRENT_CONTEXT_STORAGE_KEY);
+  } catch (e) {
+    console.error('清除当前场站上下文失败', e);
+  }
+};
+
+// 组件重挂载（如页面刷新、失活恢复）后，从本地存储恢复“进入场站”状态，
+// 使设备列表获取不再提示“请先进入场站后再获取设备列表”。
+const restoreCurrentContext = () => {
+  try {
+    const raw = localStorage.getItem(CURRENT_CONTEXT_STORAGE_KEY);
+    if (!raw) return;
+    const ctx = JSON.parse(raw) as {
+      stationId: string;
+      diagramId: string;
+      name?: string;
+      remark?: string;
+    };
+    if (!ctx?.stationId) return;
+    const station = stations.value.find((f) => f.id === ctx.stationId);
+    if (!station) {
+      // 持久化的场站已不存在，清理无效上下文
+      clearPersistedContext();
+      return;
+    }
+    const diagram = station.diagrams.find((f) => f.id === ctx.diagramId);
+    if (diagram) {
+      // 持久化的一次图仍存在，完整恢复画布与场站上下文
+      onLoadDiagram(ctx.stationId, ctx.diagramId);
+    } else {
+      // 一次图已被删除，仅保留场站上下文（仍可用于获取设备列表）
+      currentStationId.value = ctx.stationId;
+    }
+  } catch (e) {
+    console.error('恢复当前场站上下文失败', e);
+  }
+};
+
+/** 当前正在编辑的一次接线图对象（用于读取最近更新时间） */
+const currentDiagram = computed(() => {
+  if (!drawingDiagram.value) return null;
+  const station = stations.value.find((f) => f.id === drawingDiagram.value!.stationId);
+  return station?.diagrams.find((f) => f.id === drawingDiagram.value!.diagramId) ?? null;
+});
+/** 传递给编辑器底部状态栏：当前接线图的最近更新时间 */
+const currentDiagramUpdateTime = computed(() => currentDiagram.value?.updateTime);
+/** 传递给编辑器底部状态栏：当前接线图所属场站的 IP 地址 */
+const currentStationIp = computed(() => {
+  if (!drawingDiagram.value) return '';
+  const station = stations.value.find((f) => f.id === drawingDiagram.value!.stationId);
+  return station?.ip ?? '';
+});
 
 onMounted(async () => {
   try {
@@ -76,6 +179,13 @@ onMounted(async () => {
     stations.value = data;
   } catch (e) {
     console.error('加载场站数据失败', e);
+  }
+  // 组件重挂载后，从本地存储恢复“进入场站”状态，避免场站上下文丢失
+  restoreCurrentContext();
+  try {
+    deviceTypes.value = await deviceTemplateDB.listDeviceTypes();
+  } catch (e) {
+    console.error('加载设备类型失败', e);
   }
 });
 
@@ -229,11 +339,11 @@ const getFieldsByDeviceId = (deviceId: string) => deviceFieldsMap.value[deviceId
 const getFieldsForItem = (item: DeviceBindableItem) => {
   const bind = ensureDeviceBind(item);
 
-  if (!bind.deviceId) {
+  if (!bind.deviceType) {
     return allDeviceFields.value;
   }
 
-  return getFieldsByDeviceId(bind.deviceId);
+  return getFieldsByDeviceId(bind.deviceType);
 };
 
 const syncDeviceBindMetaToItem = (item: DeviceBindableItem) => {
@@ -254,6 +364,13 @@ const syncDeviceBindMetaToItem = (item: DeviceBindableItem) => {
   }
 };
 
+// 只读展示该设备类型下所有被选中的测点（由模板预设 selected 决定），以纯文本形式列出名称与单位
+const getSelectedPointLabels = (item: DeviceBindableItem): string[] => {
+  const bind = ensureDeviceBind(item);
+  if (!bind.deviceType) return [];
+  return getFieldsForItem(item).map((f) => (f.unit ? `${f.name} (${f.unit})` : f.name));
+};
+
 const setDefaultField = (item: DeviceBindableItem) => {
   const bind = ensureDeviceBind(item);
   const fields = getFieldsForItem(item);
@@ -265,19 +382,417 @@ const setDefaultField = (item: DeviceBindableItem) => {
   }
 };
 
-const onDeviceChange = async (item: DeviceBindableItem) => {
+// 将图库配置项克隆为一个画布图元（IDoneJson）
+const cloneConfigToDoneJson = (
+  cfg: ILeftAsideConfigItem,
+  binfo: IDoneJson['binfo'],
+  overrides: Partial<IDoneJson> = {}
+): IDoneJson => ({
+  id: cfg.id + '-' + randomString(),
+  title: cfg.title,
+  type: cfg.type,
+  binfo,
+  resize: true,
+  rotate: true,
+  lock: false,
+  active: false,
+  hide: false,
+  use_proportional_scaling: true,
+  props: objectDeepClone(cfg.props),
+  tag: cfg.id,
+  common_animations: objectDeepClone(cfg.common_animations),
+  events: [],
+  ...overrides
+});
+
+// 测点面板参考 04kv-pv-storage-demo.json 中的 group/card/kv 层级。
+// 坐标先按参考 group 还原为像素，再按动态宽高换算回百分比，避免长 label 推动 value/card。
+const GROUP_W = 147.6093292236328;
+const GROUP_H = 129.28123474121094;
+const KV_W_PERCENT = 99.58720141413984;
+const KV_H_PERCENT = 30.166791087715367;
+const CARD_W_PERCENT = 55.55204432625488;
+const CARD_H_PERCENT = 30.940298551502938;
+const DEFAULT_LABEL_WIDTH = 50;
+const LABEL_FONT_SIZE = 18;
+const LABEL_FONT_FAMILY = '黑体';
+const LABEL_SAFE_GAP = 4;
+const LABEL_CARD_GAP = 4;
+const KV_INNER_PADDING_X = 10;
+const VALUE_COLUMN_LEFT_SHIFT = 18;
+const VALUE_FONT_SIZE = 26;
+const UNIT_GAP = 23;
+const PANEL_GAP = 20; // 面板距设备右侧 20px
+const ROW_REL_PERCENT = [
+  {
+    card: { left: 23.039059410930125, top: 0 },
+    kv: { left: 0.19582942454948843, top: 0.7614037054850503 }
+  },
+  {
+    card: { left: 23.26136260850913, top: 34.95283311153929 },
+    kv: { left: 0.41810677892952297, top: 35.71426632399241 }
+  },
+  {
+    card: { left: 22.848530426490314, top: 69.05970144849705 },
+    kv: { left: 0.005300440109678536, top: 69.82110515398212 }
+  }
+];
+const ROW_STEP_PERCENT = 34.95283311153929; // 行间距，用于第 4 行及以后的外推
+
+const percentToPx = (value: number, base: number) => (value / 100) * base;
+const pxToPercent = (value: number, base: number) => (value / base) * 100;
+const KV_W_PX = percentToPx(KV_W_PERCENT, GROUP_W);
+const KV_H_PX = percentToPx(KV_H_PERCENT, GROUP_H);
+const CARD_W_PX = percentToPx(CARD_W_PERCENT, GROUP_W);
+const CARD_H_PX = percentToPx(CARD_H_PERCENT, GROUP_H);
+const ROW_STEP_PX = percentToPx(ROW_STEP_PERCENT, GROUP_H);
+let textMeasureCanvas: HTMLCanvasElement | null = null;
+
+type PanelRowRelPx = {
+  card: { left: number; top: number };
+  kv: { left: number; top: number };
+};
+
+const rowRelPercentToPx = (rel: (typeof ROW_REL_PERCENT)[number]): PanelRowRelPx => ({
+  card: {
+    left: percentToPx(rel.card.left, GROUP_W),
+    top: percentToPx(rel.card.top, GROUP_H)
+  },
+  kv: {
+    left: percentToPx(rel.kv.left, GROUP_W),
+    top: percentToPx(rel.kv.top, GROUP_H)
+  }
+});
+
+// 根据行索引返回该行的像素定位（前 3 行来自参考 JSON，第 4 行起按行距外推）
+const getRowRelPx = (idx: number): PanelRowRelPx => {
+  if (idx < ROW_REL_PERCENT.length) return rowRelPercentToPx(ROW_REL_PERCENT[idx]);
+  const base = rowRelPercentToPx(ROW_REL_PERCENT[ROW_REL_PERCENT.length - 1]);
+  const step = idx - (ROW_REL_PERCENT.length - 1);
+  return {
+    card: { left: base.card.left, top: base.card.top + step * ROW_STEP_PX },
+    kv: { left: base.kv.left, top: base.kv.top + step * ROW_STEP_PX }
+  };
+};
+
+const measureTextWidth = (text: string, fontSize: number, fontFamily: string) => {
+  if (!text) return 0;
+  if (typeof document !== 'undefined') {
+    textMeasureCanvas ||= document.createElement('canvas');
+    const context = textMeasureCanvas.getContext('2d');
+    if (context) {
+      context.font = `${fontSize}px ${fontFamily}`;
+      return context.measureText(text).width;
+    }
+  }
+
+  return Array.from(text).reduce(
+    (sum, char) => sum + (/[^\x00-\xff]/.test(char) ? fontSize : fontSize * 0.56),
+    0
+  );
+};
+
+const getPointFieldName = (point: DevicePointRow) =>
+  point.displayName || point.pointName || point.innerId;
+
+const getPanelLabelTextWidth = (label: string) =>
+  Math.ceil(measureTextWidth(label, LABEL_FONT_SIZE, LABEL_FONT_FAMILY)) + LABEL_SAFE_GAP;
+
+const getPanelHeight = (rowCount: number) => {
+  const lastRel = getRowRelPx(rowCount - 1);
+  return Math.max(lastRel.card.top + CARD_H_PX, lastRel.kv.top + KV_H_PX);
+};
+
+// 在设备右侧 20px 处生成「卡片背景 + 各测点键值对」测点面板。
+// deviceId 为选中设备的真实唯一标识（来自 EMS 设备列表），deviceType 为设备类型名称。
+const buildDevicePointPanel = (
+  deviceItem: IDoneJson,
+  deviceId: string,
+  deviceType: string,
+  points: DevicePointRow[]
+): IDoneJson[] => {
+  const cardCfg = configStore.sysComponent.find((i) => i.id === 'card-vue');
+  const kvCfg = configStore.sysPrimitive.find((i) => i.id === 'kv-vue');
+  if (!cardCfg || !kvCfg || !points.length) return [];
+
+  const rows = points.map((point, idx) => {
+    const fieldName = getPointFieldName(point);
+    const rel = getRowRelPx(idx);
+    const labelTextWidth = getPanelLabelTextWidth(fieldName);
+    const valueLeft = rel.kv.left + KV_INNER_PADDING_X + DEFAULT_LABEL_WIDTH - VALUE_COLUMN_LEFT_SHIFT;
+    const labelTextRight = rel.card.left - LABEL_CARD_GAP;
+    const labelKvLeft = labelTextRight - labelTextWidth - KV_INNER_PADDING_X;
+    const labelKvWidth = labelTextWidth + KV_INNER_PADDING_X * 2;
+    const valueKvLeft = valueLeft - KV_INNER_PADDING_X;
+    const valueKvWidth = KV_W_PX - DEFAULT_LABEL_WIDTH;
+    return {
+      point,
+      fieldName,
+      labelTextWidth,
+      labelKvLeft,
+      labelKvWidth,
+      valueKvLeft,
+      valueKvWidth,
+      rel
+    };
+  });
+  const minLeft = Math.min(0, ...rows.map((row) => row.labelKvLeft));
+  const maxRight = Math.max(
+    GROUP_W,
+    ...rows.flatMap((row) => [
+      row.rel.card.left + CARD_W_PX,
+      row.valueKvLeft + row.valueKvWidth
+    ])
+  );
+  const panelWidth = Math.max(1, maxRight - minLeft);
+  const panelHeight = Math.max(1, getPanelHeight(rows.length));
+  const children: IDoneJson[] = [];
+  rows.forEach((row) => {
+    const { point, fieldName, labelTextWidth, labelKvLeft, labelKvWidth, valueKvLeft, valueKvWidth, rel } =
+      row;
+    const cardLeft = rel.card.left - minLeft;
+    const normalizedLabelKvLeft = labelKvLeft - minLeft;
+    const normalizedValueKvLeft = valueKvLeft - minLeft;
+
+    // 背景卡片锚定不动；label/value/unit 各自独立定位，互不挤压。
+    const card = cloneConfigToDoneJson(cardCfg, {
+      left: pxToPercent(cardLeft, panelWidth),
+      top: pxToPercent(rel.card.top, panelHeight),
+      width: pxToPercent(CARD_W_PX, panelWidth),
+      height: pxToPercent(CARD_H_PX, panelHeight),
+      angle: 0
+    });
+    card.use_proportional_scaling = false;
+    card.deviceBind = { deviceId: '', dataKey: '', targetAttr: '', nameTargetAttr: '', unit: '' };
+    children.push(card);
+
+    const labelKv = cloneConfigToDoneJson(kvCfg, {
+      left: pxToPercent(normalizedLabelKvLeft, panelWidth),
+      top: pxToPercent(rel.kv.top, panelHeight),
+      width: pxToPercent(labelKvWidth, panelWidth),
+      height: pxToPercent(KV_H_PX, panelHeight),
+      angle: 0
+    });
+    labelKv.props.fontFamily.val = LABEL_FONT_FAMILY;
+    labelKv.props.label.val = fieldName;
+    labelKv.props.labelWidth.val = labelTextWidth;
+    labelKv.props.labelFontSize.val = LABEL_FONT_SIZE;
+    labelKv.props.value.val = '';
+    labelKv.props.valueWidth.val = 0;
+    labelKv.props.unit.val = ' ';
+    labelKv.props.unitWidth.val = 0;
+    labelKv.props.unitGap.val = 0;
+    labelKv.deviceBind = { deviceId: '', dataKey: '', targetAttr: '', nameTargetAttr: '', unit: '' };
+    children.push(labelKv);
+
+    // value/unit 使用独立 kv，labelWidth 固定为 0，保证所有行的值和单位绝对位置一致。
+    const kv = cloneConfigToDoneJson(kvCfg, {
+      left: pxToPercent(normalizedValueKvLeft, panelWidth),
+      top: pxToPercent(rel.kv.top, panelHeight),
+      width: pxToPercent(valueKvWidth, panelWidth),
+      height: pxToPercent(KV_H_PX, panelHeight),
+      angle: 0
+    });
+    kv.props.fontFamily.val = LABEL_FONT_FAMILY;
+    kv.props.label.val = '';
+    kv.props.labelWidth.val = 0;
+    kv.props.labelFontSize.val = LABEL_FONT_SIZE; // 键名字号
+    kv.props.value.val = '键值';
+    kv.props.valueFontSize.val = VALUE_FONT_SIZE; // 键值字号（比键名大 8px）
+    kv.props.valueColor.val = getPhaseValueColor(fieldName); // 相序颜色：Ua=#FFF700, Ub=#00FF00, Uc=#FF0000
+    kv.props.unit.val = point.unit;
+    kv.props.unitGap.val = UNIT_GAP; // 单位左间距统一（不同单位间距离一致）
+    kv.deviceBind = {
+      deviceId,
+      dataKey: point.innerId,
+      targetAttr: 'props.value.val',
+      nameTargetAttr: '',
+      unit: point.unit,
+      fieldName,
+      deviceType
+    };
+    children.push(kv);
+  });
+
+  const panelLeft = deviceItem.binfo.left + deviceItem.binfo.width + PANEL_GAP;
+  const group: IDoneJson = {
+    // 基于设备图元 id 生成确定性面板 id，确保重新选择设备/加载旧图时总能定位并移除旧面板
+    id: 'device-panel-' + deviceItem.id,
+    title: '组合',
+    type: 'group',
+    binfo: {
+      left: panelLeft + minLeft,
+      top: deviceItem.binfo.top,
+      width: panelWidth,
+      height: panelHeight,
+      angle: 0
+    },
+    resize: true,
+    rotate: true,
+    lock: false,
+    active: false,
+    hide: false,
+    use_proportional_scaling: true,
+    props: {},
+    common_animations: { val: '', delay: 'delay-0s', speed: 'slow', repeat: 'infinite' },
+    children,
+    events: [],
+    tag: 'group',
+    deviceBind: { deviceId: '', dataKey: '', targetAttr: '', nameTargetAttr: '', unit: '' }
+  };
+
+  return [group];
+};
+
+// 为选中设备创建/刷新测点面板，先按确定性面板 id 移除该设备已有的面板（兼容从数据库加载的旧图），避免重复/残留旧面板
+const buildAndAddDevicePointPanel = (
+  deviceItem: IDoneJson,
+  deviceId: string,
+  deviceType: string,
+  points: DevicePointRow[]
+) => {
+  const panelId = 'device-panel-' + deviceItem.id;
+  let base = globalStore.done_json.filter((i) => i.id !== panelId);
+  if (!points.length) {
+    globalStore.setGlobalStoreDoneJson(base);
+    return;
+  }
+  const panel = buildDevicePointPanel(deviceItem, deviceId, deviceType, points);
+  globalStore.setGlobalStoreDoneJson([...base, ...panel]);
+  cacheStore.addHistory(globalStore.done_json);
+};
+
+const getEtypeForType = (typeName?: string): number | string | undefined => {
+  if (!typeName) return undefined;
+  const row = deviceTypes.value.find((dt) => dt.name === typeName);
+  return row?.typeCode;
+};
+
+// 依据已选设备类型（deviceType）加载该类型下的测点，并以键值对面板形式展示在设备右侧 20px 处。
+// 传入 buildAndAddDevicePointPanel 的 deviceId 为“已绑定的真实设备 deviceId”（拖出绑定后填充）。
+const rebuildDevicePanel = async (item: DeviceBindableItem) => {
   const bind = ensureDeviceBind(item);
+  const type = bind.deviceType;
 
-  bind.dataKey = '';
-  bind.fieldName = '';
-  bind.unit = '';
-
-  if (!bind.deviceId) {
-    syncDeviceBindMetaToItem(item);
+  if (!type) {
+    bind.dataKey = '';
+    bind.fieldName = '';
+    bind.unit = '';
+    buildAndAddDevicePointPanel(item as unknown as IDoneJson, bind.deviceId, bind.deviceType ?? '', []);
     return;
   }
 
+  // 1) 查询该设备类型绑定的测点作为“选中项”
+  const allPoints = await deviceTemplateDB.listPointsByDevice(type);
+  const selectedPoints =
+    allPoints.filter((p) => p.selected === 1).length > 0
+      ? allPoints.filter((p) => p.selected === 1)
+      : allPoints;
+
+  // 持久化“选中项”
+  try {
+    await deviceTemplateDB.saveSelection(type, selectedPoints.map((p) => p.id));
+  } catch (e) {
+    console.error('保存测点选中项失败', e);
+  }
+
+  // 供“属性”展示与绑定复用测点列表（按设备类型分组）
+  deviceFieldsMap.value[type] = selectedPoints.map((p) => ({
+    key: p.innerId,
+    name: p.pointName,
+    displayName: p.displayName,
+    unit: p.unit
+  }));
+
+  // 2~4) 以键值对形式循环展示，并定位在设备右侧 20px 处
+  buildAndAddDevicePointPanel(item as unknown as IDoneJson, bind.deviceId, bind.deviceType ?? '', selectedPoints);
+};
+
+const onDeviceChange = async (item: DeviceBindableItem) => {
+  const bind = ensureDeviceBind(item);
+
+  // 切换设备类型时，清空已绑定的具体设备及其设备列表，避免沿用上一个类型的设备
+  bind.deviceId = '';
+  bind.deviceTypeName = '';
+  bind.dataKey = '';
+  bind.fieldName = '';
+  bind.unit = '';
+  deviceList.value = [];
+  deviceListFetched.value = false;
+  deviceListError.value = '';
+  deviceListType.value = '';
+
+  await rebuildDevicePanel(item);
   setDefaultField(item);
+  syncDeviceBindMetaToItem(item);
+};
+
+// 点击设备列表中的具体设备后，将其真实 deviceId 绑定到当前一次接线图，
+// 并以真实 deviceId 重建测点面板（面板内各测点键值对的 deviceBind.deviceId 即为此真实 deviceId）
+const onDeviceSelect = async (item: DeviceBindableItem, dev: DeviceListItem) => {
+  const bind = ensureDeviceBind(item);
+  bind.deviceId = String(dev.deviceId);
+  bind.deviceTypeName = dev.deviceTypeName;
+  await rebuildDevicePanel(item);
+  syncDeviceBindMetaToItem(item);
+};
+
+// 选中设备类型后，点击“设备列表”触发：按该类型对应的 EMS etype 拉取该类型下的真实设备清单
+const fetchDeviceList = async (item: DeviceBindableItem) => {
+  const bind = ensureDeviceBind(item);
+  const typeName = bind.deviceType;
+  if (!typeName) {
+    ElMessage.warning('请先选择设备类型');
+    return;
+  }
+  if (!currentStationId.value) {
+    ElMessage.error('请先进入场站后再获取设备列表');
+    return;
+  }
+  const station = stations.value.find((f) => f.id === currentStationId.value);
+  const baseUrl = station ? buildStationBaseUrl(station) : null;
+  if (!baseUrl) return;
+
+  const etype = getEtypeForType(typeName);
+  if (etype === undefined) {
+    deviceListError.value = `未找到设备类型「${typeName}」对应的 EMS etype`;
+    ElMessage.error(deviceListError.value);
+    return;
+  }
+
+  deviceListLoading.value = true;
+  deviceListError.value = '';
+  try {
+    const url = `${baseUrl}/business/microgrid/device/detail?deviceType=${encodeURIComponent(String(etype))}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const json = await response.json();
+    if (json.code !== 200) {
+      throw new Error(json.msg || json.message || `code=${json.code}`);
+    }
+    const rawList = Array.isArray(json.data) ? json.data : [];
+    deviceList.value = rawList
+      .map((d: Record<string, unknown>) => ({
+        deviceType: d.deviceType as number | string,
+        deviceTypeName: String(d.deviceTypeName ?? ''),
+        deviceId: d.deviceId as string | number,
+        deviceName: String(d.deviceName ?? d.deviceId ?? '')
+      }))
+      .filter((d: DeviceListItem) => d.deviceId !== undefined && d.deviceId !== '');
+    deviceListFetched.value = true;
+    deviceListType.value = typeName;
+    if (!deviceList.value.length) {
+      ElMessage.info('该设备类型下暂无设备');
+    }
+  } catch (error: any) {
+    deviceListError.value = `获取设备列表失败: ${error?.message || String(error)}`;
+    ElMessage.error(deviceListError.value);
+    console.error('fetchDeviceList error', error);
+  } finally {
+    deviceListLoading.value = false;
+  }
 };
 
 const onDeviceFieldChange = (item: DeviceBindableItem) => {
@@ -319,18 +834,26 @@ interface BoundPointGroup {
   items: any[];
 }
 
-/** 从 exportJson 中提取已绑定设备及其测点，按 deviceId 分组 */
+/** 从 exportJson 中提取已绑定设备及其测点，按 deviceId 分组（递归包含嵌套的测点键值对） */
 const extractBoundPointGroups = (exportJson: IExportJson): Record<string, BoundPointGroup> => {
   const groups: Record<string, BoundPointGroup> = {};
-  for (const item of exportJson.json) {
-    const bind = (item as any).deviceBind as DeviceBindInfo | undefined;
-    if (!bind?.deviceId || !bind?.dataKey) continue;
-    if (!groups[bind.deviceId]) {
-      groups[bind.deviceId] = { dataKeys: new Set(), items: [] };
+  const visit = (items: IExportJson['json']) => {
+    for (const item of items) {
+      const bind = (item as any).deviceBind as DeviceBindInfo | undefined;
+      if (bind?.deviceId && bind?.dataKey) {
+        if (!groups[bind.deviceId]) {
+          groups[bind.deviceId] = { dataKeys: new Set(), items: [] };
+        }
+        groups[bind.deviceId].dataKeys.add(bind.dataKey);
+        groups[bind.deviceId].items.push(item);
+      }
+      const children = (item as any).children as IExportJson['json'] | undefined;
+      if (children?.length) {
+        visit(children);
+      }
     }
-    groups[bind.deviceId].dataKeys.add(bind.dataKey);
-    groups[bind.deviceId].items.push(item);
-  }
+  };
+  visit(exportJson.json);
   return groups;
 };
 
@@ -364,38 +887,51 @@ const fetchBatchPointData = async (
   return normalized;
 };
 
-/** 将实时数据写入 exportJson 对应项的 props */
+/** 将实时数据写入 exportJson 对应项的 props（递归包含嵌套的测点键值对） */
 const injectRealtimeData = (
   exportJson: IExportJson,
   realtimeDataMap: Record<string, Record<string, { value: unknown; unit?: string }>>
 ) => {
-  for (const item of exportJson.json) {
-    const bind = (item as any).deviceBind as DeviceBindInfo | undefined;
-    if (!bind?.deviceId || !bind?.dataKey || !bind?.targetAttr) continue;
-    const deviceData = realtimeDataMap[bind.deviceId];
-    if (!deviceData) continue;
-    const pointData = deviceData[bind.dataKey];
-    if (!pointData || pointData.value === undefined || pointData.value === null) continue;
-    // targetAttr 如 props.value.val，exportJson 中 props 为 { value: '...', unit: '...' }
-    const keys = bind.targetAttr.split('.');
-    if (keys.length >= 2 && keys[0] === 'props') {
-      (item.props as Record<string, unknown>)[keys[1]] = pointData.value;
-      if (pointData.unit && (item.props as Record<string, unknown>).unit !== undefined) {
-        (item.props as Record<string, unknown>).unit = pointData.unit;
+  const visit = (items: IExportJson['json']) => {
+    for (const item of items) {
+      const bind = (item as any).deviceBind as DeviceBindInfo | undefined;
+      if (bind?.deviceId && bind?.dataKey && bind?.targetAttr) {
+        const deviceData = realtimeDataMap[bind.deviceId];
+        if (deviceData) {
+          const pointData = deviceData[bind.dataKey];
+          if (pointData && pointData.value !== undefined && pointData.value !== null) {
+            // targetAttr 如 props.value.val，exportJson 中 props 为 { value: '...', unit: '...' }
+            const keys = bind.targetAttr.split('.');
+            if (keys.length >= 2 && keys[0] === 'props') {
+              (item.props as Record<string, unknown>)[keys[1]] = pointData.value;
+              if (pointData.unit && (item.props as Record<string, unknown>).unit !== undefined) {
+                (item.props as Record<string, unknown>).unit = pointData.unit;
+              }
+            }
+          }
+        }
+      }
+      const children = (item as any).children as IExportJson['json'] | undefined;
+      if (children?.length) {
+        visit(children);
       }
     }
-  }
+  };
+  visit(exportJson.json);
 };
 
-const onPreviewClick = async (exportJson: IExportJson) => {
+const onPreviewClick = async (
+  exportJson: IExportJson,
+  stationId: string | undefined = currentStationId.value
+) => {
   const groups = extractBoundPointGroups(exportJson);
   const groupEntries = Object.entries(groups);
 
   if (groupEntries.length > 0) {
-    if (!currentStationId.value) {
+    if (!stationId) {
       ElMessage.warning('未确定当前画布所属场站，无法获取实时数据，将以静态数据预览');
     } else {
-      const station = stations.value.find((f) => f.id === currentStationId.value);
+      const station = stations.value.find((f) => f.id === stationId);
       const baseUrl = station ? buildStationBaseUrl(station) : null;
       if (!baseUrl) {
         ElMessage.warning('当前场站未配置 IP 地址，无法获取实时数据');
@@ -426,6 +962,12 @@ const onPreviewClick = async (exportJson: IExportJson) => {
   window.open(routeUrl.href, '_blank');
 };
 
+// 场站详情列表中的“预览”：复用顶部“预览”按钮的完整逻辑，
+// 使用该行一次图自身的 exportJson 与其所属场站发起预览。
+const onPreviewDiagram = (stationId: string, diagram: StationDiagram) => {
+  onPreviewClick(diagram.exportJson as unknown as IExportJson, stationId);
+};
+
 const onSaveClick = async (exportJson: IExportJson) => {
   if (drawingDiagram.value) {
     await onSaveDiagram(exportJson);
@@ -434,9 +976,42 @@ const onSaveClick = async (exportJson: IExportJson) => {
   }
 };
 
+const markDiagramPublished = async (stationId: string, diagramId: string) => {
+  const stationIndex = stations.value.findIndex((item) => item.id === stationId);
+  if (stationIndex < 0) {
+    throw new Error('未找到当前场站信息');
+  }
+
+  const station = stations.value[stationIndex];
+  if (!station.diagrams.some((diagram) => diagram.id === diagramId)) {
+    throw new Error('未找到当前一次图记录，请先保存后再发布');
+  }
+
+  const updatedStation: Station = {
+    ...station,
+    diagrams: station.diagrams.map((diagram) => ({
+      ...diagram,
+      published: diagram.id === diagramId
+    }))
+  };
+
+  stations.value.splice(stationIndex, 1, updatedStation);
+  try {
+    await stationDB.save(updatedStation);
+  } catch (error) {
+    stations.value.splice(stationIndex, 1, station);
+    throw error;
+  }
+};
+
 const onPublishClick = async (exportJson: IExportJson) => {
   if (!currentStationId.value) {
     ElMessage.warning('未确定当前画布所属场站，无法发布');
+    return;
+  }
+  const diagramId = drawingDiagram.value?.diagramId;
+  if (!diagramId) {
+    ElMessage.warning('请先选择或保存一次接线图后再发布');
     return;
   }
   const station = stations.value.find((f) => f.id === currentStationId.value);
@@ -456,7 +1031,7 @@ const onPublishClick = async (exportJson: IExportJson) => {
 
   const requestBody = {
     clientIp: station.ip,
-    designName: drawingDiagram.value?.diagramId ?? '',
+    designName: diagramId,
     contentJson: JSON.stringify(withDeviceSourceConfig(exportJson)),
     remark: station.remark ?? ''
   };
@@ -473,6 +1048,72 @@ const onPublishClick = async (exportJson: IExportJson) => {
     const json = await response.json();
     if (json.code !== 200) {
       throw new Error(json.msg || `接口返回 code=${json.code}`);
+    }
+    try {
+      await markDiagramPublished(station.id, diagramId);
+    } catch (error: any) {
+      const msg = error?.message || String(error);
+      ElMessage.warning(`发布成功，但本地发布状态保存失败: ${msg}`);
+      console.error('保存发布状态失败', error);
+      return;
+    }
+    ElMessage.success('发布成功');
+    console.log('发布成功', json);
+  } catch (error: any) {
+    const msg = error?.message || String(error);
+    ElMessage.error(`发布失败: ${msg}`);
+    console.error('发布失败', error);
+  }
+};
+
+const onPublishDiagram = async (stationId: string, diagramId: string) => {
+  const station = stations.value.find((f) => f.id === stationId);
+  if (!station) {
+    ElMessage.error('未找到当前场站信息');
+    return;
+  }
+  const diagram = station.diagrams.find((d) => d.id === diagramId);
+  if (!diagram) {
+    ElMessage.error('未找到当前一次接线图');
+    return;
+  }
+  if (!station.ip) {
+    ElMessage.error('当前场站未配置 IP 地址，无法发布');
+    return;
+  }
+
+  const baseUrl = buildStationBaseUrl(station);
+  if (!baseUrl) return;
+
+  const url = `${baseUrl}/business/lineDiagram/publish`;
+  const exportJson = diagram.exportJson as unknown as IExportJson;
+  const requestBody = {
+    clientIp: station.ip,
+    designName: diagramId,
+    contentJson: JSON.stringify(withDeviceSourceConfig(exportJson)),
+    remark: station.remark ?? ''
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody)
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const json = await response.json();
+    if (json.code !== 200) {
+      throw new Error(json.msg || `接口返回 code=${json.code}`);
+    }
+    try {
+      await markDiagramPublished(station.id, diagramId);
+    } catch (error: any) {
+      const msg = error?.message || String(error);
+      ElMessage.warning(`发布成功，但本地发布状态保存失败: ${msg}`);
+      console.error('保存发布状态失败', error);
+      return;
     }
     ElMessage.success('发布成功');
     console.log('发布成功', json);
@@ -517,8 +1158,16 @@ const onEditStation = async (updated: Station) => {
 
 const onDeleteStation = async (stationId: string) => {
   stations.value = stations.value.filter((f) => f.id !== stationId);
+  if (stationId === currentStationId.value) {
+    // 删除的正是当前场站，清理持久化上下文并重置内存状态
+    clearPersistedContext();
+    currentStationId.value = '';
+    drawingDiagram.value = null;
+  }
   try {
     await stationDB.remove(stationId);
+    // 同步清理该场站绑定的 MCU 数据
+    await mcuDB.removeByStation(stationId);
   } catch (e) {
     console.error('删除场站失败', e);
     ElMessage.error('删除场站失败');
@@ -529,6 +1178,12 @@ const onDeleteDiagram = async (stationId: string, diagramId: string) => {
   const station = stations.value.find((f) => f.id === stationId);
   if (station) {
     station.diagrams = station.diagrams.filter((f) => f.id !== diagramId);
+    if (drawingDiagram.value?.stationId === stationId && drawingDiagram.value?.diagramId === diagramId) {
+      // 删除的正是当前编辑的一次图，清理持久化上下文并重置内存状态
+      clearPersistedContext();
+      currentStationId.value = '';
+      drawingDiagram.value = null;
+    }
     try {
       await stationDB.save(station);
     } catch (e) {
@@ -538,7 +1193,7 @@ const onDeleteDiagram = async (stationId: string, diagramId: string) => {
   }
 };
 
-const onLoadDiagram = (stationId: string, diagramId: string) => {
+  const onLoadDiagram = (stationId: string, diagramId: string) => {
   const station = stations.value.find((f) => f.id === stationId);
   const diagram = station?.diagrams.find((f) => f.id === diagramId);
   if (!diagram) {
@@ -551,6 +1206,8 @@ const onLoadDiagram = (stationId: string, diagramId: string) => {
   canvasCfg.transform_origin = { x: 0, y: 0 };
   canvasCfg.drag_offset = { x: 0, y: 0 };
   globalStore.canvasCfg = canvasCfg;
+  // 保存加载时的初始画布配置快照，供复位功能使用
+  globalStore.initialCanvasCfg = objectDeepClone(canvasCfg);
   globalStore.gridCfg = gridCfg;
   globalStore.setGlobalStoreDoneJson(importDoneJson);
   cacheStore.history = [importDoneJson];
@@ -558,7 +1215,23 @@ const onLoadDiagram = (stationId: string, diagramId: string) => {
   // 记录当前正在编辑的一次图，使保存时能更新原图
   drawingDiagram.value = { stationId, diagramId };
   currentStationId.value = stationId;
+  // 持久化当前场站上下文，避免组件重挂载后丢失“进入场站”状态
+  persistCurrentContext();
   ElMessage.success('一次图加载成功');
+};
+
+// 进入场站：加载该场站的首张一次接线图
+const onEnterStation = (stationId: string) => {
+  const station = stations.value.find((f) => f.id === stationId);
+  if (!station) {
+    ElMessage.error('未找到对应场站');
+    return;
+  }
+  if (!station.diagrams.length) {
+    ElMessage.warning('该场站暂无一次图');
+    return;
+  }
+  onLoadDiagram(stationId, station.diagrams[0].id);
 };
 
 const onExportStations = async () => {
@@ -588,6 +1261,79 @@ const onExportStations = async () => {
   }
 };
 
+const onExportDiagram = (stationId: string, diagramId: string) => {
+  try {
+    const station = stations.value.find((f) => f.id === stationId);
+    if (!station) {
+      ElMessage.error('未找到当前场站信息');
+      return;
+    }
+    const diagram = station.diagrams.find((d) => d.id === diagramId);
+    if (!diagram) {
+      ElMessage.error('未找到当前一次接线图');
+      return;
+    }
+    // 合并：当前行（一次图）元数据 + 关联的一次图 JSON（diagram.exportJson）
+    const payload = {
+      type: 'maotu-diagram-package',
+      version: 1,
+      exportedAt: Date.now(),
+      stationId: station.id,
+      stationName: station.name,
+      diagram: diagram
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const fileName = `${station.name || station.id}_${diagram.name || diagram.id}_${d.getFullYear()}${pad(
+      d.getMonth() + 1,
+    )}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.json`;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+    ElMessage.success(`已导出一次图「${diagram.name || diagram.id}」`);
+  } catch (e) {
+    console.error('导出一次图失败', e);
+    ElMessage.error('导出一次图失败');
+  }
+};
+
+const onImportDiagram = async (stationId: string, diagram: StationDiagram) => {
+  try {
+    const stationIndex = stations.value.findIndex((f) => f.id === stationId);
+    if (stationIndex < 0) {
+      ElMessage.error('未找到目标场站，导入失败');
+      return;
+    }
+    const station = stations.value[stationIndex];
+    // 合并：同 id 则覆盖，否则追加，写入完整性以本地数据库为准
+    const existsIdx = station.diagrams.findIndex((d) => d.id === diagram.id);
+    const nextDiagrams = [...station.diagrams];
+    if (existsIdx >= 0) {
+      nextDiagrams.splice(existsIdx, 1, diagram);
+    } else {
+      nextDiagrams.push(diagram);
+    }
+    const updatedStation: Station = { ...station, diagrams: nextDiagrams };
+    stations.value.splice(stationIndex, 1, updatedStation);
+    try {
+      await stationDB.save(updatedStation);
+    } catch (error) {
+      // 数据库写入失败，回滚内存状态，保证内存与数据库一致
+      stations.value.splice(stationIndex, 1, station);
+      throw error;
+    }
+    stations.value = await stationDB.loadAll();
+    ElMessage.success(`已导入一次图「${diagram.name || diagram.id}」并保存至本地数据库`);
+  } catch (e) {
+    console.error('导入一次图写库失败', e);
+    ElMessage.error('导入失败，数据未能保存到本地数据库');
+  }
+};
+
 const onImportStations = async (file: File) => {
   try {
     const text = await file.text();
@@ -613,13 +1359,34 @@ const onImportStations = async (file: File) => {
   }
 };
 
-const onAddDiagram = (stationId: string) => {
-  drawingDiagram.value = { stationId, diagramId: 'diagram-' + randomString() };
-  currentStationId.value = stationId;
+const onAddDiagram = (payload: AddDiagramPayload) => {
+  drawingDiagram.value = {
+    stationId: payload.stationId,
+    diagramId: 'diagram-' + randomString(),
+    name: payload.name,
+    remark: payload.remark
+  };
+  currentStationId.value = payload.stationId;
+  // 新建一次图后立即持久化场站上下文（图本身尚未落库，但场站上下文已可用于获取设备列表）
+  persistCurrentContext();
   // 清空画布，准备绘制新的一次图
   globalStore.setGlobalStoreDoneJson([]);
   cacheStore.history = [[]];
   cacheStore.historyIndex = 0;
+  // 重置画布配置为默认值，并保存初始快照供复位使用
+  globalStore.canvasCfg = {
+    width: 1920,
+    height: 1080,
+    scale: 1,
+    color: '#000',
+    img: '',
+    guide: true,
+    adsorp: true,
+    adsorp_diff: 5,
+    transform_origin: { x: 0, y: 0 },
+    drag_offset: { x: 0, y: 0 }
+  };
+  globalStore.initialCanvasCfg = objectDeepClone(globalStore.canvasCfg);
   ElMessage.info('请在右侧画布绘制一次图，绘制完成后点击保存');
 };
 
@@ -646,11 +1413,20 @@ const onSaveDiagram = async (exportJson: IExportJson) => {
     minute: '2-digit'
   })}`;
   const now = Date.now();
+  const bindingStats = collectDeviceBindingStats(exportJson);
   const diagram: StationDiagram = {
     id: diagramId,
-    name: existingDiagram?.name ?? diagramName,
+    // 新增时优先使用弹窗填写的名称；更新已有图时保留原名称。
+    // 注意用 || 而非 ??：空字符串 "" 不是 nullish，用 ?? 会原样存为 ""，
+    // 导致列表回退显示 id；用 || 时空名称会落到可读的 diagramName，绝不会显示 id。
+    name: existingDiagram?.name || drawingDiagram.value?.name || diagramName,
+    // 备注同样优先使用弹窗填写内容，更新时保留原备注
+    remark: existingDiagram?.remark || drawingDiagram.value?.remark || '',
     thumbnail,
     exportJson: exportJson as unknown as Record<string, unknown>,
+    boundDeviceCount: bindingStats.boundDeviceCount,
+    unboundDeviceCount: bindingStats.unboundDeviceCount,
+    published: existingDiagram?.published ?? false,
     createTime: existingDiagram?.createTime ?? now,
     // 最新更新时间：首次创建时取创建时间，更新时刷新为当前修改时间
     updateTime: now
@@ -663,6 +1439,8 @@ const onSaveDiagram = async (exportJson: IExportJson) => {
   }
   try {
     await stationDB.save(station);
+    // 保存成功后一次图已落库，重新持久化上下文（确保下次重挂载可完整恢复画布）
+    persistCurrentContext();
     ElMessage.success('一次图保存成功');
   } catch (e) {
     console.error('保存一次图失败', e);
@@ -751,6 +1529,8 @@ const onThumbnailClick = () => {
       <mt-edit
         :use-thumbnail="true"
         :export-extra="exportExtra"
+        :current-diagram-update-time="currentDiagramUpdateTime"
+        :current-station-ip="currentStationIp"
         @on-preview-click="onPreviewClick"
         @on-import-success="onImportSuccess"
         @on-return-click="onReturnClick"
@@ -770,10 +1550,15 @@ const onThumbnailClick = () => {
             @delete-diagram="onDeleteDiagram"
             @export-stations="onExportStations"
             @import-stations="onImportStations"
+            @enter-station="onEnterStation"
+            @publish-diagram="onPublishDiagram"
+            @export-diagram="onExportDiagram"
+            @import-diagram="onImportDiagram"
+            @preview-diagram="onPreviewDiagram"
           />
         </template>
         <template #deviceBind="{ item }">
-          <el-form label-width="64px" label-position="left">
+          <el-form label-width="70px" label-position="left">
             <el-alert
               v-if="deviceOptionsError"
               :title="deviceOptionsError"
@@ -788,47 +1573,78 @@ const onThumbnailClick = () => {
               :closable="false"
               class="mb-10px"
             />
-            <el-form-item label="设备">
+            <el-form-item label="设备类型">
               <el-select
-                v-model="getDeviceBind(item).deviceId"
+                v-model="getDeviceBind(item).deviceType"
                 :loading="deviceOptionsLoading"
                 filterable
                 clearable
-                placeholder="选择设备"
+                placeholder="选择设备类型"
                 @change="onDeviceChange(item)"
               >
                 <el-option
-                  v-for="device in devices"
-                  :key="device.id"
-                  :label="`${device.name} (${device.id})`"
-                  :value="device.id"
+                  v-for="dt in deviceTypes"
+                  :key="dt.name"
+                  :label="`${dt.name} (${dt.typeCode})`"
+                  :value="dt.name"
                 />
               </el-select>
+            </el-form-item>
+            <el-form-item v-if="getDeviceBind(item).deviceType" label="设备列表">
+              <div class="device-list-box">
+                <el-button
+                  size="small"
+                  :loading="deviceListLoading"
+                  @click="fetchDeviceList(item)"
+                >
+                  加载设备列表（deviceType={{ getEtypeForType(getDeviceBind(item).deviceType) }}）
+                </el-button>
+                <el-alert
+                  v-if="deviceListError"
+                  :title="deviceListError"
+                  type="error"
+                  :closable="false"
+                  class="mt-8px"
+                />
+                <div
+                  v-if="deviceList.length && getDeviceBind(item).deviceType === deviceListType"
+                  class="device-list mt-8px"
+                >
+                  <div
+                    v-for="dev in deviceList"
+                    :key="String(dev.deviceId)"
+                    class="device-list-item"
+                    :class="{ active: getDeviceBind(item).deviceId === String(dev.deviceId) }"
+                    @click="onDeviceSelect(item, dev)"
+                  >
+                    <span class="device-list-name">{{ dev.deviceName }}</span>
+                    <span class="device-list-id">{{ dev.deviceId }}</span>
+                  </div>
+                </div>
+                <el-text
+                  v-else-if="!deviceListLoading && deviceListFetched && getDeviceBind(item).deviceType === deviceListType"
+                  size="small"
+                  type="info"
+                >
+                  该设备类型下暂无设备
+                </el-text>
+              </div>
             </el-form-item>
             <el-form-item label="属性">
-              <el-select
-                v-model="getDeviceBind(item).dataKey"
-                :loading="deviceOptionsLoading"
-                filterable
-                clearable
-                placeholder="选择属性"
-                @change="onDeviceFieldChange(item)"
-              >
-                <el-option
-                  v-for="field in getFieldsForItem(item)"
-                  :key="`${getDeviceBind(item).deviceId || 'all'}-${field.key}`"
-                  :label="`${field.name}${field.unit ? ` (${field.unit})` : ''}`"
-                  :value="field.key"
-                />
-              </el-select>
+              <div v-if="getSelectedPointLabels(item).length" class="point-label-list">
+                <div v-for="(label, i) in getSelectedPointLabels(item)" :key="i" class="point-label-item">
+                  {{ label }}
+                </div>
+              </div>
+              <el-text v-else type="info">未配置测点（由模板预设）</el-text>
             </el-form-item>
-            <el-form-item label="单位">
+            <!-- <el-form-item label="单位">
               <el-input
                 :model-value="getDeviceBind(item).unit"
                 disabled
                 placeholder="自动取测点单位"
               />
-            </el-form-item>
+            </el-form-item> -->
             <el-form-item v-if="getDeviceNameTargetOptions(item).length" label="键名写到">
               <el-select
                 v-model="getDeviceBind(item).nameTargetAttr"
@@ -897,5 +1713,77 @@ const onThumbnailClick = () => {
   flex: 1 1 auto;
   min-height: 0;
   height: 100%;
+}
+
+.point-label-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 6px 8px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--el-text-color-primary);
+  background: var(--el-fill-color-blank);
+}
+
+.point-label-item {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.device-list-box {
+  width: 100%;
+}
+
+.device-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--el-border-color);
+  border-radius: 4px;
+  padding: 4px;
+}
+
+.device-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.4;
+  background: var(--el-fill-color-blank);
+}
+
+.device-list-item:hover {
+  background: var(--el-fill-color-light);
+}
+
+.device-list-item.active {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  border: 1px solid var(--el-color-primary);
+}
+
+.device-list-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.device-list-id {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 </style>

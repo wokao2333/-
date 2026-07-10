@@ -1,6 +1,6 @@
 import { reactive } from 'vue';
 import type { IConfig, ILeftAsideConfigItem } from './types';
-import { svgToSymbol } from '../utils';
+import { svgToSymbol, svgToImgSrc } from '../utils';
 
 const sysComponentItems: ILeftAsideConfigItem[] = [
   {
@@ -450,8 +450,10 @@ const storageItems: ILeftAsideConfigItem[] = [];
 // 属于“负荷”分类的电气图标
 const loadIconNames = new Set(['电表', '电碳表', '配电箱', '充电桩', '多功能电表']);
 const loadItems: ILeftAsideConfigItem[] = [];
-// 属于“电网及一次设备”分类的电气图标
-const gridIconNames = new Set(['变压器', '并网点', '电网']);
+// 属于“电网”分类的电气图标
+const gridClassIconNames = new Set(['变压器', '并网点', '电网']);
+const gridClassItems: ILeftAsideConfigItem[] = [];
+// 属于“一次设备”分类的电气图标（如母线）
 const gridItems: ILeftAsideConfigItem[] = [];
 // 属于“通信辅助”分类的电气图标
 const commIconNames = new Set(['微网控制单元', '通信网关', '交换机']);
@@ -475,8 +477,8 @@ for (const key in sysSvgModules) {
       ? storageItems
       : loadIconNames.has(name)
         ? loadItems
-        : gridIconNames.has(name)
-          ? gridItems
+        : gridClassIconNames.has(name)
+          ? gridClassItems
           : commIconNames.has(name)
             ? commItems
             : sysComponentItems
@@ -499,6 +501,8 @@ for (const key in sysSvgModules) {
         title: '填充色'
       }
     },
+    // 电网、新能源、储能、负荷、通信辅助 五个分类的图元均标记为设备类，用于统计
+    device: true,
     common_animations: {
       val: '',
       delay: 'delay-0s',
@@ -508,12 +512,60 @@ for (const key in sysSvgModules) {
   });
 }
 
+// 母线图元（属于“一次设备”分类）缩略图生成，图库中统一显示为黑色
+const genBusbarThumb = (strokeWidth: number, label: string) =>
+  svgToImgSrc(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="140" height="40" viewBox="0 0 140 40">` +
+      `<line x1="44" y1="20" x2="134" y2="20" stroke="#000000" stroke-width="${strokeWidth}"/>` +
+      `<text x="4" y="20" fill="#000000" font-size="13" font-family="sans-serif" font-weight="bold" dominant-baseline="middle">${label}</text>` +
+      `</svg>`
+  );
+
+// 母线图元默认属性工厂
+// libraryColor: 图库缩略图颜色（黑色）
+// lineColor: 画布中线条颜色（红色）
+// labelColor: 画布中标签颜色（白色）
+const genBusbarItem = (
+  id: string,
+  title: string,
+  lineColor: string,
+  strokeWidth: number,
+  label: string
+): ILeftAsideConfigItem => ({
+  id,
+  title,
+  type: 'vue',
+  thumbnail: genBusbarThumb(strokeWidth, label),
+  props: {
+    stroke: { title: '线条颜色', type: 'color', val: lineColor },
+    strokeWidth: { title: '线条粗细', type: 'number', val: strokeWidth },
+    label: { title: '标签文字', type: 'input', val: label },
+    labelColor: { title: '标签颜色', type: 'color', val: '#FFFFFF' },
+    fontSize: { title: '标签大小', type: 'number', val: 20 },
+    labelGap: { title: '标签间距', type: 'number', val: 12 }
+  },
+  common_animations: {
+    val: '',
+    delay: 'delay-0s',
+    speed: 'slow',
+    repeat: 'infinite'
+  }
+});
+
+// 添加“一次设备”分类下的三个母线图元
+// 图库中显示为黑色；拖入画布后线条为红色，标签为白色
+// 10KV母线（细）、400V母线（中）、600V母线（粗），粗细各不相同
+gridItems.push(genBusbarItem('busbar-10kv', '10KV母线', '#FF0000', 4, '10KV'));
+gridItems.push(genBusbarItem('busbar-400v', '400V母线', '#FF0000', 10, '400V'));
+gridItems.push(genBusbarItem('busbar-600v', '600V母线', '#FF0000', 18, '600V'));
+
 export const configStore: IConfig = reactive({
   sysComponent: sysComponentItems,
   newEnergy: newEnergyItems,
   storage: storageItems,
   load: loadItems,
   grid: gridItems,
+  gridClass: gridClassItems,
   comm: commItems,
   sysPrimitive: sysPrimitiveItems,
   lineRenderOffset: 10

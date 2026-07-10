@@ -19,6 +19,18 @@ export interface DeviceBindInfo {
   unit: string;
   nameTargetAttr?: string;
   fieldName?: string;
+  /** 选中的设备类型名称（对应本地设备模板库，用于查询该类型下的测点） */
+  deviceType?: string;
+  /** 设备类型展示名称（来自 EMS 返回的 deviceTypeName，便于回显） */
+  deviceTypeName?: string;
+}
+
+/** EMS 设备列表项（来自 /business/microgrid/device/detail?deviceType=...） */
+export interface DeviceListItem {
+  deviceType: number | string;
+  deviceTypeName: string;
+  deviceId: string | number;
+  deviceName: string;
 }
 
 export interface DeviceApiConfig {
@@ -66,6 +78,11 @@ export interface DeviceBindingRecord {
   itemTitle?: string;
   itemTag?: string;
   bind: DeviceBindInfo;
+}
+
+export interface DeviceBindingStats {
+  boundDeviceCount: number;
+  unboundDeviceCount: number;
 }
 
 export const deviceApiConfigStorageKey = 'maotu-device-api-config';
@@ -434,7 +451,9 @@ export const ensureDeviceBind = (item: DeviceBindableItem) => {
       dataKey: '',
       targetAttr: getDefaultTargetAttr(item),
       nameTargetAttr: getDefaultNameTargetAttr(item),
-      unit: ''
+      unit: '',
+      deviceType: '',
+      deviceTypeName: ''
     };
   }
 
@@ -456,25 +475,112 @@ export const syncDeviceFieldMeta = (bind: DeviceBindInfo, fields: DeviceField[])
   bind.unit = field?.unit || '';
 };
 
+/** 未绑定设备的图元信息（用于“在线校验”列表展示与定位） */
+export interface UnboundDeviceItem {
+  /** 图元 id，定位时用作画布选中目标 */
+  id: string;
+  /** 展示名称，优先使用图元 title，缺失时回退到 id */
+  name: string;
+}
+
+/**
+ * 收集当前一次接线图中所有“未绑定设备”的图元（device === true 且未设置 deviceId）
+ * 复用 collectDeviceBindingStats 的判定逻辑，返回可用于列表渲染的 { id, name } 列表
+ */
+export const collectUnboundDevices = (
+  exportJson: IExportJson | DeviceBindingExportJson
+): UnboundDeviceItem[] => {
+  const result: UnboundDeviceItem[] = [];
+
+  const visit = (items: IExportJson['json']) => {
+    items.forEach((item) => {
+      const record = item as DeviceBindableItem & {
+        device?: boolean;
+        title?: string;
+        children?: IExportJson['json'];
+      };
+
+      if (record.device === true) {
+        if (!String(record.deviceBind?.deviceId ?? '').trim()) {
+          const id = record.id;
+          const name = record.title || id;
+
+          if (id) {
+            result.push({ id, name });
+          }
+        }
+      }
+
+      if (record.children?.length) {
+        visit(record.children);
+      }
+    });
+  };
+
+  visit(exportJson.json);
+  return result;
+};
+
 export const collectDeviceBindings = (
   exportJson: IExportJson | DeviceBindingExportJson
 ): DeviceBindingRecord[] => {
-  return exportJson.json.flatMap((item) => {
-    const bind = (item as DeviceBindableItem).deviceBind;
+  const result: DeviceBindingRecord[] = [];
 
-    if (!bind?.deviceId || !bind.dataKey || !bind.targetAttr) {
-      return [];
-    }
+  const visit = (items: IExportJson['json']) => {
+    for (const item of items) {
+      const record = item as DeviceBindableItem & { children?: IExportJson['json'] };
+      const bind = record.deviceBind;
 
-    return [
-      {
-        itemId: item.id,
-        itemTitle: item.title,
-        itemTag: item.tag,
-        bind
+      if (bind?.deviceId && bind.dataKey && bind.targetAttr) {
+        result.push({
+          itemId: item.id,
+          itemTitle: item.title,
+          itemTag: item.tag,
+          bind
+        });
       }
-    ];
-  });
+
+      if (record.children?.length) {
+        visit(record.children);
+      }
+    }
+  };
+
+  visit(exportJson.json);
+  return result;
+};
+
+export const collectDeviceBindingStats = (
+  exportJson: IExportJson | DeviceBindingExportJson
+): DeviceBindingStats => {
+  const stats: DeviceBindingStats = {
+    boundDeviceCount: 0,
+    unboundDeviceCount: 0
+  };
+
+  const visit = (items: IExportJson['json']) => {
+    items.forEach((item) => {
+      const record = item as DeviceBindableItem & {
+        device?: boolean;
+        children?: IExportJson['json'];
+      };
+
+      if (record.device === true) {
+        if (String(record.deviceBind?.deviceId ?? '').trim()) {
+          stats.boundDeviceCount++;
+        } else {
+          stats.unboundDeviceCount++;
+        }
+      }
+
+      if (record.children?.length) {
+        visit(record.children);
+      }
+    });
+  };
+
+  visit(exportJson.json);
+  return stats;
 };
 
 export const getRealtimePointValue = (value: unknown) => {

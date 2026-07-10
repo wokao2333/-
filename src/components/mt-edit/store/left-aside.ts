@@ -7,7 +7,8 @@ import { configStore } from './config';
 export const leftAsideStore: ILeftAside = reactive({
   config: new Map<string, ILeftAsideConfigItem[]>([
     ['系统组件', configStore.sysComponent],
-    ['电网及一次设备', configStore.grid],
+    ['一次设备', configStore.grid],
+    ['电网', configStore.gridClass],
     ['新能源', configStore.newEnergy],
     ['储能', configStore.storage],
     ['负荷', configStore.load],

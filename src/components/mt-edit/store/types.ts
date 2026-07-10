@@ -27,6 +27,7 @@ export interface ILeftAsideConfigItemPublic {
   thumbnail: string; //显示到左侧时候的缩略图
   svg?: string; //图形的svg代码
   props: ILeftAsideConfigItemPublicProps;
+  device?: boolean; //是否为设备类图元（用于统计一次接线图设备总数及未绑定数据设备数）
 }
 export interface ILeftAsideConfigItemPrivateSymbol {
   symbol_id: string;
@@ -124,6 +125,19 @@ export interface IDoneJson {
   use_proportional_scaling?: boolean; //使用等比缩放
   children?: IDoneJson[];
   tag?: string;
+  device?: boolean; //是否为设备类图元（用于统计一次接线图设备总数及未绑定数据设备数）
+  deviceBind?: {
+    deviceId: string;
+    dataKey: string;
+    targetAttr: string;
+    unit: string;
+    nameTargetAttr?: string;
+    fieldName?: string;
+    /** 设备类型名称（对应本地设备模板库，用于查询该类型下的测点） */
+    deviceType?: string;
+    /** 设备类型展示名称（来自 EMS 返回的 deviceTypeName，便于回显） */
+    deviceTypeName?: string;
+  };
   thumbnail?: string;
   events: IDoneJsonEventList[];
 }
@@ -177,6 +191,8 @@ export interface IRealTimeData {
 export interface IGlobalStore {
   intention: GlobalStoreIntention;
   create_item_info: IGlobalStoreCreateItemInfo | null;
+  /** 拖拽模版组合时在画布上实例化所使用的模版内容（group） */
+  create_template_info: IDoneJson | null;
   done_json: IDoneJson[];
   selected_items_id: string[];
   canvasCfg: IGlobalStoreCanvasCfg;
@@ -201,6 +217,7 @@ export interface IGlobalStore {
   };
   setIntention: (val: GlobalStoreIntention) => void;
   setCreateItemInfo: (val: IGlobalStoreCreateItemInfo | null) => void;
+  setCreateTemplateInfo: (val: IDoneJson | null) => void;
   setGlobalStoreDoneJson: (val: IDoneJson[]) => void;
   cancelAllSelect: () => void;
   refreshSelectedItemsId: () => void;
@@ -233,6 +250,7 @@ export interface IConfig {
   storage: ILeftAsideConfigItem[];
   load: ILeftAsideConfigItem[];
   grid: ILeftAsideConfigItem[];
+  gridClass: ILeftAsideConfigItem[];
   comm: ILeftAsideConfigItem[];
   sysPrimitive: ILeftAsideConfigItem[];
   lineRenderOffset: number; //因为连线是使用svg进行渲染的，所以需要一个偏移量和div的画布进行重叠

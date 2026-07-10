@@ -10,6 +10,7 @@ import type {
 export const globalStore: IGlobalStore = reactive({
   intention: 'none',
   create_item_info: null,
+  create_template_info: null,
   selected_items_id: [],
   done_json: [],
   canvasCfg: {
@@ -61,6 +62,9 @@ export const globalStore: IGlobalStore = reactive({
   },
   setCreateItemInfo: (val: IGlobalStoreCreateItemInfo | null) => {
     globalStore.create_item_info = val;
+  },
+  setCreateTemplateInfo: (val: IDoneJson | null) => {
+    globalStore.create_template_info = val;
   },
   setGlobalStoreDoneJson: (val: IDoneJson[]) => {
     globalStore.done_json = val;

@@ -1,11 +1,12 @@
 <template>
   <div class="flex justify-between" style="width: 100%">
-    <div class="flex items-center justify-between w-200px">
+    <div class="flex items-center justify-between shrink-0">
       <div class="flex items-center">
         <el-image class="w-45px h-45px pl-10px" :src="lxLogo" />
-        <div class="pl-8px flex flex-col leading-tight whitespace-nowrap animate__animated animate__bounceIn animate__slow animate__1 animate__delay-0s">
-          <span class="text-14px font-bold">砺行能源</span>
-          <span class="text-12px text-gray-500">一次接线图组态工具</span>
+        <div class="pl-8px flex items-center flex-nowrap whitespace-nowrap gap-6px leading-tight overflow-visible animate__animated animate__bounceIn animate__slow animate__1 animate__delay-0s">
+          <span class="text-16px font-bold whitespace-nowrap shrink-0">砺行能源</span>
+          <span class="text-12px text-gray-500 whitespace-nowrap shrink-0">一次接线图组态工具</span>
+          <el-tag type="primary" effect="dark" round size="small" class="shrink-0 mr-10px">v2.0</el-tag>
         </div>
       </div>
       <el-tooltip
@@ -26,7 +27,7 @@
         </el-button>
       </el-tooltip>
     </div>
-    <div class="flex justify-between" style="width: calc(100% - 440px)">
+    <div class="flex justify-between flex-1">
       <div class="flex items-center">
         <el-button-group>
           <el-tooltip content="撤销 (Ctrl+Z)" placement="bottom" effect="dark">
@@ -270,9 +271,17 @@
             </el-icon>
           </el-button>
         </el-tooltip>
+        <el-divider direction="vertical"></el-divider>
+        <el-tooltip content="在线校验" placement="bottom" effect="dark">
+          <el-button text circle size="small" @click="emits('onOnlineCheckClick')">
+            <el-icon :size="20">
+              <Aim />
+            </el-icon>
+          </el-button>
+        </el-tooltip>
       </div>
     </div>
-    <div class="flex items-center justify-between w-200px">
+    <div class="flex items-center justify-between w-240px shrink-0">
       <el-tooltip
         :content="headerPanelProps.rightAside ? '折叠右侧栏' : '展开右侧栏'"
         placement="bottom"
@@ -330,7 +339,7 @@
 </template>
 <script setup lang="ts">
 import { useDark, useToggle, useFullscreen } from '@vueuse/core';
-import { Connection, Promotion } from '@element-plus/icons-vue';
+import { Connection, Promotion, Aim } from '@element-plus/icons-vue';
 import {
   ElIcon,
   ElDivider,
@@ -383,7 +392,8 @@ const emits = defineEmits([
   'onDrawLineClick',
   'onThumbnailClick',
   'onDataSourceClick',
-  'onPublishClick'
+  'onPublishClick',
+  'onOnlineCheckClick'
 ]);
 const isDark = useDark({
   selector: '#mt-edit'

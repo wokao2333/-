@@ -171,6 +171,12 @@ const getCreateItemSize = (config: ILeftAsideConfigItem) => {
       height: 40
     };
   }
+  // 母线图元（10KV / 400V / 600V）：默认宽度约为画布宽度的 70%，高度贴合线条粗细
+  if (config.id === 'busbar-10kv' || config.id === 'busbar-400v' || config.id === 'busbar-600v') {
+    const canvas_w = canvasAreaRef.value?.clientWidth || 800;
+    const target = Math.round((canvas_w * 0.7) / grid_align_size.value) * grid_align_size.value;
+    return { width: Math.max(target, 200), height: 24 };
+  }
   // SVG 类型组件使用其原始宽高比例，但限制最大初始尺寸为 100px
   if ((config.type === 'svg' || config.type === 'custom-svg') && config.symbol) {
     const w = Number(config.symbol.width) || 50;
@@ -186,6 +192,47 @@ const getCreateItemSize = (config: ILeftAsideConfigItem) => {
   return {
     width: 50,
     height: 50
+  };
+};
+// 设备类图元拖入画布时，默认附带一个“设备名称标签”，本质是系统组件中的文字组件。
+// 该标签的位置（距图元 20px）、字体大小（30px）、颜色（白色）仅为初始默认值，
+// 用户可在属性面板自由修改位置、大小、颜色等，不固定钉死。
+const DEVICE_LABEL_GAP = 20;
+const createDeviceLabel = (deviceItem: IDoneJson): IDoneJson => {
+  const textCfg = configStore.sysComponent.find((f) => f.id === 'text-vue')!;
+  const cfg = objectDeepClone<ILeftAsideConfigItem>(textCfg);
+  cfg.props.text.val = deviceItem.title;
+  cfg.props.fontSize.val = 30;
+  cfg.props.fill.val = '#FFFFFF';
+  const labelW = Math.max(140, deviceItem.title.length * 30 + 20);
+  const labelH = 40;
+  return {
+    id: 'text-vue-' + randomString(),
+    title: cfg.title,
+    type: cfg.type,
+    binfo: {
+      left: alignToGrid(
+        deviceItem.binfo.left + deviceItem.binfo.width + DEVICE_LABEL_GAP,
+        grid_align_size.value
+      ),
+      top: alignToGrid(
+        deviceItem.binfo.top + deviceItem.binfo.height / 2 - labelH / 2,
+        grid_align_size.value
+      ),
+      width: labelW,
+      height: labelH,
+      angle: 0
+    },
+    resize: true,
+    rotate: true,
+    lock: false,
+    active: false,
+    hide: false,
+    use_proportional_scaling: true,
+    props: cfg.props,
+    tag: cfg.id,
+    common_animations: cfg.common_animations,
+    events: []
   };
 };
 const draw_line_init_data: IDoneJson = {
@@ -268,6 +315,28 @@ const onDrop = (e: DragEvent | TouchEvent, isTouch?: boolean) => {
   if (globalStore.intention !== 'create') {
     return;
   }
+  // 从模版面板拖入组合：整体实例化到画布（递归刷新 id，避免与原模版冲突）
+  if (globalStore.create_template_info) {
+    const { x, y } = getCanvasXY(
+      e,
+      canvasAreaRef.value?.getBoundingClientRect(),
+      globalStore.canvasCfg.scale,
+      globalStore.canvasCfg.transform_origin
+    );
+    const instance = instantiateTemplateContent(
+      globalStore.create_template_info,
+      alignToGrid(x, grid_align_size.value),
+      alignToGrid(y, grid_align_size.value)
+    );
+    const done_json_temp = [...globalStore.done_json];
+    done_json_temp.push(instance);
+    globalStore.setGlobalStoreDoneJson(done_json_temp);
+    globalStore.setSingleSelect(instance.id);
+    globalStore.setIntention('none');
+    globalStore.setCreateTemplateInfo(null);
+    cacheStore.addHistory(done_json_temp);
+    return;
+  }
   if (!globalStore.create_item_info) {
     console.error('拖拽初始化失败', globalStore.create_item_info);
     return;
@@ -315,6 +384,7 @@ const onDrop = (e: DragEvent | TouchEvent, isTouch?: boolean) => {
     use_proportional_scaling: true,
     props: deep_find_cfg.props,
     tag: deep_find_cfg.id,
+    device: deep_find_cfg.device,
     common_animations: deep_find_cfg.common_animations,
     events: []
   };
@@ -325,6 +395,10 @@ const onDrop = (e: DragEvent | TouchEvent, isTouch?: boolean) => {
   }
   const done_json_temp = [...globalStore.done_json];
   done_json_temp.push(create_item);
+  // 设备类图元拖入画布时，默认附带一个可自由编辑的设备名称标签（文字组件）
+  if (create_item.device) {
+    done_json_temp.push(createDeviceLabel(create_item));
+  }
   globalStore.setGlobalStoreDoneJson(done_json_temp);
   globalStore.setSingleSelect(create_item.id);
   globalStore.setIntention('none');
@@ -333,6 +407,31 @@ const onDrop = (e: DragEvent | TouchEvent, isTouch?: boolean) => {
 };
 const onDragOver = (e: DragEvent) => {
   e.preventDefault();
+};
+/**
+ * 将模版内容（group）实例化为画布上的一个组合：递归刷新所有 id（含嵌套子组合），
+ * 并把组合整体定位到指定坐标，子元素保持相对比例不变。
+ */
+const instantiateTemplateContent = (content: IDoneJson, x: number, y: number): IDoneJson => {
+  const regen = (item: IDoneJson): IDoneJson => {
+    const copy = objectDeepClone<IDoneJson>(item);
+    copy.id = (item.tag || item.type) + '-' + randomString();
+    if (item.type === 'sys-line') {
+      copy.props.bind_anchors.val = { start: null, end: null };
+    }
+    if (copy.children) {
+      copy.children = copy.children.map(regen);
+    }
+    return copy;
+  };
+  const instance = regen(content);
+  instance.binfo = {
+    ...instance.binfo,
+    left: x,
+    top: y
+  };
+  instance.active = true;
+  return instance;
 };
 const onRenderCoreMouseDown = (item: IDoneJson, e: MouseEvent) => {
   beginListenerKeyDown();
@@ -1363,6 +1462,40 @@ const resetCanvasView = () => {
   globalStore.canvasCfg.transform_origin = { x: 0, y: 0 };
   globalStore.canvasCfg.drag_offset = { x: 0, y: 0 };
 };
+
+/**
+ * 定位并跳转至指定图元：选中该图元，并将画布视图平移到使其居中显示。
+ * 复用画布既有的 transform_origin + scale + drag_offset 变换模型：
+ * 屏幕上某画布点 p 的位置 = drag_offset + transform_origin + (p - transform_origin) * scale
+ * 因此令目标图元中心 pc 落到视口中心 V，反解出 drag_offset 即可。
+ */
+const locateItem = (id: string) => {
+  const item = globalStore.done_json.find((f) => f.id === id);
+  const container = canvasAreaRef.value;
+
+  if (!item || !container) {
+    return;
+  }
+
+  globalStore.setSingleSelect(id);
+
+  const { scale, transform_origin, drag_offset } = globalStore.canvasCfg;
+  const pc = {
+    x: item.binfo.left + item.binfo.width / 2,
+    y: item.binfo.top + item.binfo.height / 2
+  };
+  const v = {
+    x: container.clientWidth / 2,
+    y: container.clientHeight / 2
+  };
+
+  globalStore.canvasCfg.drag_offset = {
+    x: v.x - transform_origin.x - (pc.x - transform_origin.x) * scale,
+    y: v.y - transform_origin.y - (pc.y - transform_origin.y) * scale
+  };
+  // 保持原有 intention，避免误触发布局/拖拽状态
+  void drag_offset;
+};
 const onCanvasMove = () => {};
 /**
  * 绘制线结束事件
@@ -1392,6 +1525,7 @@ defineExpose({
   onRedo,
   onUndo,
   resetCanvasView,
+  locateItem,
   beginListenerKeyDown,
   stopListenerKeyDown
 });
