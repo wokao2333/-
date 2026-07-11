@@ -3,10 +3,6 @@ const SCHEMA_SQL = [
     id TEXT PRIMARY KEY,
     name TEXT,
     address TEXT,
-    sn TEXT,
-    ip TEXT,
-    port TEXT,
-    baseUrl TEXT,
     remark TEXT
   )`,
   `CREATE TABLE IF NOT EXISTS diagrams (
@@ -20,7 +16,9 @@ const SCHEMA_SQL = [
     published INTEGER DEFAULT 0,
     createTime INTEGER,
     updateTime INTEGER,
-    remark TEXT
+    remark TEXT,
+    boundMcuId TEXT,
+    boundMcuInfo TEXT
   )`,
   'CREATE INDEX IF NOT EXISTS idx_diagrams_station ON diagrams(stationId)',
   `CREATE TABLE IF NOT EXISTS mcus (
@@ -28,6 +26,7 @@ const SCHEMA_SQL = [
     stationId TEXT,
     sn TEXT,
     ip TEXT,
+    port TEXT,
     remark TEXT,
     updateTime INTEGER
   )`,
@@ -101,8 +100,27 @@ function ensureSchema(db) {
     if (!cols.includes('published')) {
       db.prepare('ALTER TABLE diagrams ADD COLUMN published INTEGER DEFAULT 0').run();
     }
+    // 补齐一次图与 MCU 关联绑定所需字段：绑定的 MCU ID 及其详细信息快照
+    if (!cols.includes('boundMcuId')) {
+      db.prepare('ALTER TABLE diagrams ADD COLUMN boundMcuId TEXT').run();
+    }
+    if (!cols.includes('boundMcuInfo')) {
+      db.prepare('ALTER TABLE diagrams ADD COLUMN boundMcuInfo TEXT').run();
+    }
   } catch (e) {
     console.error('[schema] 迁移 diagrams 列失败', e);
+  }
+  // 兼容旧库：mcus 表早期仅含 sn / ip / remark，补齐 port，并彻底删除已废弃的 baseUrl
+  try {
+    const mcuCols = db.pragma('table_info(mcus)').map((c) => c.name);
+    if (!mcuCols.includes('port')) {
+      db.prepare('ALTER TABLE mcus ADD COLUMN port TEXT').run();
+    }
+    if (mcuCols.includes('baseUrl')) {
+      db.prepare('ALTER TABLE mcus DROP COLUMN baseUrl').run();
+    }
+  } catch (e) {
+    console.error('[schema] 迁移 mcus 列失败', e);
   }
   db.prepare(
     `CREATE UNIQUE INDEX IF NOT EXISTS idx_diagrams_station_published

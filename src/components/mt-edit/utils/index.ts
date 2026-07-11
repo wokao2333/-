@@ -831,14 +831,34 @@ export const handleAlign = (
  * @param json_arr
  * @returns
  */
+/**
+ * 按 id 深度查找图元（递归遍历 children）。
+ * 设备测点面板（group）会将 kv-vue 等测点图元放在 children 中，
+ * 若仅在顶层数组查找，会导致实时数据无法写入嵌套图元，value/unit 不显示。
+ */
+export const findItemByIdDeep = (id: string, json_arr: IDoneJson[]): IDoneJson | undefined => {
+  for (const item of json_arr) {
+    if (item.id === id) {
+      return item;
+    }
+    if (item.children && item.children.length) {
+      const found = findItemByIdDeep(id, item.children);
+      if (found) {
+        return found;
+      }
+    }
+  }
+  return undefined;
+};
 export const setItemAttr = (id: string, key: string, val: any, json_arr: IDoneJson[]) => {
   return new Promise((res) => {
-    const find_item = json_arr.find((f) => f.id === id);
+    const find_item = findItemByIdDeep(id, json_arr);
     if (!find_item) {
       res({
         status: false,
         msg: '要设置的id不存在'
       });
+      return;
     }
     eval(`find_item.${key} = val;`);
     res({
@@ -848,7 +868,7 @@ export const setItemAttr = (id: string, key: string, val: any, json_arr: IDoneJs
   });
 };
 export const getItemAttr = (id: string, key: string, json_arr: IDoneJson[]) => {
-  const find_item = json_arr.find((f) => f.id === id);
+  const find_item = findItemByIdDeep(id, json_arr);
   if (!find_item) {
     return null;
   }

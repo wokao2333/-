@@ -49,11 +49,11 @@ class SqliteService {
   station = {
     list: () => {
       const stations = this.db
-        .prepare('SELECT id,name,address,sn,ip,port,baseUrl,remark FROM stations')
+        .prepare('SELECT id,name,address,remark FROM stations')
         .all();
       const diagrams = this.db
         .prepare(
-          'SELECT id,stationId,name,thumbnail,exportJson,boundDeviceCount,unboundDeviceCount,published,createTime,updateTime,remark FROM diagrams'
+          'SELECT id,stationId,name,thumbnail,exportJson,boundDeviceCount,unboundDeviceCount,published,createTime,updateTime,remark,boundMcuId,boundMcuInfo FROM diagrams'
         )
         .all();
       const diagramMap = new Map();
@@ -70,7 +70,9 @@ class SqliteService {
           unboundDeviceCount: Number(diagram.unboundDeviceCount) || 0,
           published: Boolean(Number(diagram.published)),
           createTime: diagram.createTime,
-          updateTime: diagram.updateTime
+          updateTime: diagram.updateTime,
+          boundMcuId: diagram.boundMcuId || '',
+          boundMcuInfo: parseJson(diagram.boundMcuInfo, null)
         });
         diagramMap.set(diagram.stationId, list);
       }
@@ -85,22 +87,13 @@ class SqliteService {
       const tx = this.db.transaction(() => {
         this.db
           .prepare(
-            'INSERT OR REPLACE INTO stations (id,name,address,sn,ip,port,baseUrl,remark) VALUES (?,?,?,?,?,?,?,?)'
+            'INSERT OR REPLACE INTO stations (id,name,address,remark) VALUES (?,?,?,?)'
           )
-          .run(
-            station.id,
-            station.name,
-            station.address,
-            station.sn ?? '',
-            station.ip ?? '',
-            station.port ?? '',
-            station.baseUrl ?? '',
-            station.remark ?? ''
-          );
+          .run(station.id, station.name, station.address, station.remark ?? '');
         this.db.prepare('DELETE FROM diagrams WHERE stationId = ?').run(station.id);
 
         const insertDiagram = this.db.prepare(
-          'INSERT INTO diagrams (id,stationId,name,thumbnail,exportJson,boundDeviceCount,unboundDeviceCount,published,createTime,updateTime,remark) VALUES (?,?,?,?,?,?,?,?,?,?,?)'
+          'INSERT INTO diagrams (id,stationId,name,thumbnail,exportJson,boundDeviceCount,unboundDeviceCount,published,createTime,updateTime,remark,boundMcuId,boundMcuInfo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)'
         );
         for (const diagram of station.diagrams ?? []) {
           insertDiagram.run(
@@ -114,7 +107,9 @@ class SqliteService {
             diagram.published ? 1 : 0,
             diagram.createTime,
             diagram.updateTime,
-            diagram.remark ?? ''
+            diagram.remark ?? '',
+            diagram.boundMcuId ?? '',
+            diagram.boundMcuInfo ? JSON.stringify(diagram.boundMcuInfo) : ''
           );
         }
       });
@@ -143,14 +138,14 @@ class SqliteService {
   mcu = {
     listByStation: (stationId) =>
       this.db
-        .prepare('SELECT id,stationId,sn,ip,remark,updateTime FROM mcus WHERE stationId = ?')
+        .prepare('SELECT id,stationId,sn,ip,port,remark,updateTime FROM mcus WHERE stationId = ?')
         .all(stationId),
 
     replaceByStation: (stationId, items) => {
       const tx = this.db.transaction(() => {
         this.db.prepare('DELETE FROM mcus WHERE stationId = ?').run(stationId);
         const insertMcu = this.db.prepare(
-          'INSERT INTO mcus (id,stationId,sn,ip,remark,updateTime) VALUES (?,?,?,?,?,?)'
+          'INSERT INTO mcus (id,stationId,sn,ip,port,remark,updateTime) VALUES (?,?,?,?,?,?,?)'
         );
         for (const item of items) {
           insertMcu.run(
@@ -158,6 +153,7 @@ class SqliteService {
             stationId,
             item.sn,
             item.ip ?? '',
+            item.port ?? '',
             item.remark ?? '',
             item.updateTime
           );

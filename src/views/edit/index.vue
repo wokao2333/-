@@ -1,20 +1,22 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, shallowRef } from 'vue';
+import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue';
 import type { IExportJson } from '@/components/mt-edit/components/types';
 import type { IDoneJson, ILeftAsideConfigItem } from '@/components/mt-edit/store/types';
 import { useGenThumbnail } from '@/components/mt-edit/composables/thumbnail';
-import { MtEdit } from '@/export';
+import { MtEdit, leftAsideStore } from '@/export';
 import { useRouter } from 'vue-router';
 import { globalStore } from '@/components/mt-edit/store/global';
 import { cacheStore } from '@/components/mt-edit/store/cache';
 import { genCanvasDataUrl } from '@/components/mt-edit/composables/canvas-thumbnail';
 import { useExportJsonToDoneJson } from '@/components/mt-edit/composables';
+import { buildPublishExportJson } from '@/components/mt-edit/composables/publish-assets';
 import { randomString, objectDeepClone } from '@/components/mt-edit/utils';
 import StationAside from '@/components/mt-edit/components/layout/station-aside/index.vue';
 import type {
   Station,
   StationDiagram,
-  AddDiagramPayload
+  AddDiagramPayload,
+  McuItem
 } from '@/components/mt-edit/components/layout/station-aside/types';
 import { useStationDB } from '@/composables/useStationDB';
 import { useMcuDB } from '@/composables/useMcuDB';
@@ -44,6 +46,7 @@ import {
   getDeviceUnitTargetAttr,
   getDeviceValueColorTargetAttr,
   getPhaseValueColor,
+  kvUnitTargetAttr,
   loadDeviceApiConfig,
   normalizeDeviceApiConfig,
   parseDeviceBindingData,
@@ -89,6 +92,34 @@ const drawingDiagram = ref<{
 const currentStationId = ref<string>('');
 const stationDB = useStationDB();
 const mcuDB = useMcuDB();
+// 场站与 MCU 的关联缓存：按场站 ID 缓存其绑定的 MCU 列表。
+// 场站本身不再持有连接信息（SN / IP / 端口），所有需要连接信息的场景
+// 都通过“场站 → 其绑定的首个 MCU”解析，从而在数据模型上实现场站与MCU的解耦与隔离。
+const stationMcus = reactive<Record<string, McuItem[]>>({});
+
+const ensureStationMcus = async (stationId: string): Promise<McuItem[]> => {
+  if (stationMcus[stationId]) return stationMcus[stationId];
+  const list = await mcuDB.loadByStation(stationId);
+  stationMcus[stationId] = list;
+  return list;
+};
+
+// 场站可能绑定多个独立 MCU；默认以首个 MCU 作为连接目标（常见场景下单场站即单MCU）。
+const getStationPrimaryMcu = (stationId: string): McuItem | null =>
+  stationMcus[stationId]?.[0] ?? null;
+// 同步“当前是否已存在场站”到全局状态，供绘制一次接线图的前置校验使用。
+// 未添加任何场站时 hasStation 为 false，画布绘图操作将被拦截并提示“请先添加场站”。
+// 监听场站数量（而非整个数组引用）：
+// 1. stations.value.push/splice 等数组原地变更不会触发对数组的浅监听，
+//    但会改变 .length，改用 length getter 可覆盖“添加/删除/导入场站”等所有场景；
+// 2. 重新赋值（stations.value = data）同样会改变 length，亦可触发。
+watch(
+  () => stations.value.length,
+  (len) => {
+    globalStore.setHasStation(len > 0);
+  },
+  { immediate: true }
+);
 // 设备类型（与设备模板库一致的本地数据），用作绑定面板“设备”下拉框数据源
 const deviceTemplateDB = useDeviceTemplateDB();
 const deviceTypes = ref<DeviceTypeRow[]>([]);
@@ -166,11 +197,15 @@ const currentDiagram = computed(() => {
 });
 /** 传递给编辑器底部状态栏：当前接线图的最近更新时间 */
 const currentDiagramUpdateTime = computed(() => currentDiagram.value?.updateTime);
-/** 传递给编辑器底部状态栏：当前接线图所属场站的 IP 地址 */
+/**
+ * 传递给编辑器底部状态栏：当前正在编辑的一次接线图所「绑定MCU」的 IP 地址，用于连接状态探测。
+ * 严格取自该接线图自身的 boundMcuInfo.ip（即用户通过「绑定MCU」为其绑定的那台 MCU），
+ * 而非场站列表/详情中的场站整体连接状态，也非场站下首个 MCU 的 IP。
+ * 若当前接线图尚未绑定任何 MCU，则返回空串，底部状态栏据此显示为「未连接」。
+ */
 const currentStationIp = computed(() => {
-  if (!drawingDiagram.value) return '';
-  const station = stations.value.find((f) => f.id === drawingDiagram.value!.stationId);
-  return station?.ip ?? '';
+  const diagram = currentDiagram.value;
+  return diagram?.boundMcuInfo?.ip ?? '';
 });
 
 onMounted(async () => {
@@ -245,17 +280,15 @@ const parseBindingJson = (silent = false) => {
   }
 };
 
-const buildStationBaseUrl = (station: Station): string | null => {
-  if (!station.ip) {
-    ElMessage.error('所选场站未配置 IP 地址');
+// 由 MCU 实体构造接口基地址：连接信息（IP / 端口）已下沉到 MCU，不再由场站持有。
+const buildMcuBaseUrl = (mcu: McuItem): string | null => {
+  if (!mcu.ip) {
+    ElMessage.error('该MCU未配置 IP 地址，无法建立连接');
     return null;
   }
-  let base = `http://${station.ip}`;
-  if (station.port) {
-    base += `:${station.port}`;
-  }
-  if (station.baseUrl) {
-    base += station.baseUrl;
+  let base = `http://${mcu.ip}`;
+  if (mcu.port) {
+    base += `:${mcu.port}`;
   }
   return base;
 };
@@ -271,7 +304,14 @@ const fetchDevices = async () => {
     ElMessage.error('未找到所选场站');
     return;
   }
-  const baseUrl = buildStationBaseUrl(station);
+  // 连接信息已下沉到 MCU：从该场站绑定的首个 MCU 解析接口地址
+  await ensureStationMcus(station.id);
+  const mcu = getStationPrimaryMcu(station.id);
+  if (!mcu || !mcu.ip) {
+    ElMessage.error('该场站尚未绑定MCU或未配置IP，请先在「绑定MCU」中录入连接信息');
+    return;
+  }
+  const baseUrl = buildMcuBaseUrl(mcu);
   if (!baseUrl) return;
 
   fetchingLoading.value = true;
@@ -409,7 +449,6 @@ const cloneConfigToDoneJson = (
 // 坐标先按参考 group 还原为像素，再按动态宽高换算回百分比，避免长 label 推动 value/card。
 const GROUP_W = 147.6093292236328;
 const GROUP_H = 129.28123474121094;
-const KV_W_PERCENT = 99.58720141413984;
 const KV_H_PERCENT = 30.166791087715367;
 const CARD_W_PERCENT = 55.55204432625488;
 const CARD_H_PERCENT = 30.940298551502938;
@@ -421,7 +460,8 @@ const LABEL_CARD_GAP = 4;
 const KV_INNER_PADDING_X = 10;
 const VALUE_COLUMN_LEFT_SHIFT = 18;
 const VALUE_FONT_SIZE = 26;
-const UNIT_GAP = 23;
+const POINT_VALUE_WIDTH = 72;
+const POINT_UNIT_GAP = 12;
 const PANEL_GAP = 20; // 面板距设备右侧 20px
 const ROW_REL_PERCENT = [
   {
@@ -441,7 +481,6 @@ const ROW_STEP_PERCENT = 34.95283311153929; // 行间距，用于第 4 行及以
 
 const percentToPx = (value: number, base: number) => (value / 100) * base;
 const pxToPercent = (value: number, base: number) => (value / base) * 100;
-const KV_W_PX = percentToPx(KV_W_PERCENT, GROUP_W);
 const KV_H_PX = percentToPx(KV_H_PERCENT, GROUP_H);
 const CARD_W_PX = percentToPx(CARD_W_PERCENT, GROUP_W);
 const CARD_H_PX = percentToPx(CARD_H_PERCENT, GROUP_H);
@@ -514,17 +553,21 @@ const buildDevicePointPanel = (
   const cardCfg = configStore.sysComponent.find((i) => i.id === 'card-vue');
   const kvCfg = configStore.sysPrimitive.find((i) => i.id === 'kv-vue');
   if (!cardCfg || !kvCfg || !points.length) return [];
+  const configuredUnitWidth = Number(kvCfg.props.unitWidth?.val);
+  const pointUnitWidth = Number.isFinite(configuredUnitWidth) ? configuredUnitWidth : 50;
 
   const rows = points.map((point, idx) => {
     const fieldName = getPointFieldName(point);
     const rel = getRowRelPx(idx);
     const labelTextWidth = getPanelLabelTextWidth(fieldName);
-    const valueLeft = rel.kv.left + KV_INNER_PADDING_X + DEFAULT_LABEL_WIDTH - VALUE_COLUMN_LEFT_SHIFT;
+    const valueLeft =
+      rel.kv.left + KV_INNER_PADDING_X + DEFAULT_LABEL_WIDTH - VALUE_COLUMN_LEFT_SHIFT;
     const labelTextRight = rel.card.left - LABEL_CARD_GAP;
     const labelKvLeft = labelTextRight - labelTextWidth - KV_INNER_PADDING_X;
     const labelKvWidth = labelTextWidth + KV_INNER_PADDING_X * 2;
     const valueKvLeft = valueLeft - KV_INNER_PADDING_X;
-    const valueKvWidth = KV_W_PX - DEFAULT_LABEL_WIDTH;
+    const valueKvWidth =
+      KV_INNER_PADDING_X * 2 + POINT_VALUE_WIDTH + POINT_UNIT_GAP + pointUnitWidth;
     return {
       point,
       fieldName,
@@ -539,17 +582,22 @@ const buildDevicePointPanel = (
   const minLeft = Math.min(0, ...rows.map((row) => row.labelKvLeft));
   const maxRight = Math.max(
     GROUP_W,
-    ...rows.flatMap((row) => [
-      row.rel.card.left + CARD_W_PX,
-      row.valueKvLeft + row.valueKvWidth
-    ])
+    ...rows.flatMap((row) => [row.rel.card.left + CARD_W_PX, row.valueKvLeft + row.valueKvWidth])
   );
   const panelWidth = Math.max(1, maxRight - minLeft);
   const panelHeight = Math.max(1, getPanelHeight(rows.length));
   const children: IDoneJson[] = [];
   rows.forEach((row) => {
-    const { point, fieldName, labelTextWidth, labelKvLeft, labelKvWidth, valueKvLeft, valueKvWidth, rel } =
-      row;
+    const {
+      point,
+      fieldName,
+      labelTextWidth,
+      labelKvLeft,
+      labelKvWidth,
+      valueKvLeft,
+      valueKvWidth,
+      rel
+    } = row;
     const cardLeft = rel.card.left - minLeft;
     const normalizedLabelKvLeft = labelKvLeft - minLeft;
     const normalizedValueKvLeft = valueKvLeft - minLeft;
@@ -582,7 +630,13 @@ const buildDevicePointPanel = (
     labelKv.props.unit.val = ' ';
     labelKv.props.unitWidth.val = 0;
     labelKv.props.unitGap.val = 0;
-    labelKv.deviceBind = { deviceId: '', dataKey: '', targetAttr: '', nameTargetAttr: '', unit: '' };
+    labelKv.deviceBind = {
+      deviceId: '',
+      dataKey: '',
+      targetAttr: '',
+      nameTargetAttr: '',
+      unit: ''
+    };
     children.push(labelKv);
 
     // value/unit 使用独立 kv，labelWidth 固定为 0，保证所有行的值和单位绝对位置一致。
@@ -598,10 +652,12 @@ const buildDevicePointPanel = (
     kv.props.labelWidth.val = 0;
     kv.props.labelFontSize.val = LABEL_FONT_SIZE; // 键名字号
     kv.props.value.val = '键值';
+    kv.props.valueWidth.val = POINT_VALUE_WIDTH;
     kv.props.valueFontSize.val = VALUE_FONT_SIZE; // 键值字号（比键名大 8px）
     kv.props.valueColor.val = getPhaseValueColor(fieldName); // 相序颜色：Ua=#FFF700, Ub=#00FF00, Uc=#FF0000
     kv.props.unit.val = point.unit;
-    kv.props.unitGap.val = UNIT_GAP; // 单位左间距统一（不同单位间距离一致）
+    kv.props.unitWidth.val = pointUnitWidth;
+    kv.props.unitGap.val = POINT_UNIT_GAP;
     kv.deviceBind = {
       deviceId,
       dataKey: point.innerId,
@@ -618,6 +674,8 @@ const buildDevicePointPanel = (
   const group: IDoneJson = {
     // 基于设备图元 id 生成确定性面板 id，确保重新选择设备/加载旧图时总能定位并移除旧面板
     id: 'device-panel-' + deviceItem.id,
+    // 标记该面板归属的设备图元，便于后续重建时精确移除（兼容历史随机 id 面板）
+    devicePanelFor: deviceItem.id,
     title: '组合',
     type: 'group',
     binfo: {
@@ -644,6 +702,55 @@ const buildDevicePointPanel = (
   return [group];
 };
 
+// 判断一个分组是否为“设备测点面板”（由 buildDevicePointPanel 生成，子节点均为绑定了测点的 kv-vue）。
+// 用于重新选择设备时，可靠地移除该设备既有的测点面板（包括历史旧面板），避免残留导致重复请求。
+const isDevicePointPanelGroup = (g: any): boolean => {
+  if (!g || g.type !== 'group' || !Array.isArray(g.children) || g.children.length === 0)
+    return false;
+  return g.children.every(
+    (c: any) =>
+      (c.tag === 'kv-vue' || c.type === 'kv-vue') &&
+      !!c.deviceBind?.dataKey &&
+      c.deviceBind?.targetAttr === 'props.value.val'
+  );
+};
+
+// 从一次接线图数据中移除历史遗留的“deviceId 被误写为设备类型名”的测点面板分组，
+// 避免脏数据流入预览或其他消费方，造成重复/错误的实时数据请求。
+const stripLegacyDevicePanels = (exportJson: IExportJson) => {
+  const typeNames = new Set(deviceTypes.value.map((dt) => dt.name));
+  const strip = (items: any[]): any[] =>
+    items.filter((item) => {
+      const isLegacy =
+        isDevicePointPanelGroup(item) &&
+        item.children.every((c: any) => typeNames.has(String(c.deviceBind?.deviceId)));
+      if (isLegacy) return false;
+      if (Array.isArray(item.children)) {
+        item.children = strip(item.children);
+      }
+      return true;
+    });
+  exportJson.json = strip(exportJson.json as any[]) as IExportJson['json'];
+};
+
+// 兼容已保存的旧测点面板：预览前统一补足数值列宽度，并在卡片与单位之间保留间距。
+const normalizePreviewPointPanelLayout = (exportJson: IExportJson) => {
+  const visit = (items: IExportJson['json']) => {
+    for (const item of items) {
+      const bind = (item as any).deviceBind as DeviceBindInfo | undefined;
+      if (item.tag === 'kv-vue' && bind?.dataKey && bind.targetAttr === 'props.value.val') {
+        setValueByPath(item, 'props.valueWidth.val', POINT_VALUE_WIDTH);
+        setValueByPath(item, 'props.unitGap.val', POINT_UNIT_GAP);
+      }
+
+      const children = (item as any).children as IExportJson['json'] | undefined;
+      if (children?.length) visit(children);
+    }
+  };
+
+  visit(exportJson.json);
+};
+
 // 为选中设备创建/刷新测点面板，先按确定性面板 id 移除该设备已有的面板（兼容从数据库加载的旧图），避免重复/残留旧面板
 const buildAndAddDevicePointPanel = (
   deviceItem: IDoneJson,
@@ -652,7 +759,19 @@ const buildAndAddDevicePointPanel = (
   points: DevicePointRow[]
 ) => {
   const panelId = 'device-panel-' + deviceItem.id;
-  let base = globalStore.done_json.filter((i) => i.id !== panelId);
+  // 历史旧面板（旧逻辑将 kv.deviceBind.deviceId 误写为设备类型名称，如“并网点上侧”）的 group 使用随机 id，
+  // 无法被 panelId 命中；此处依据“kv.deviceBind.deviceId 命中已知设备类型名”这一旧 bug 特征将其一并移除，
+  // 确保重新选择设备时仅保留一份正确的测点面板。
+  const typeNames = new Set(deviceTypes.value.map((dt) => dt.name));
+  const isLegacyPanel = (i: any): boolean =>
+    isDevicePointPanelGroup(i) &&
+    i.children.every((c: any) => typeNames.has(String(c.deviceBind?.deviceId)));
+  let base = globalStore.done_json.filter(
+    (i) =>
+      i.id !== panelId &&
+      !(i.devicePanelFor && i.devicePanelFor === deviceItem.id) &&
+      !isLegacyPanel(i)
+  );
   if (!points.length) {
     globalStore.setGlobalStoreDoneJson(base);
     return;
@@ -678,7 +797,12 @@ const rebuildDevicePanel = async (item: DeviceBindableItem) => {
     bind.dataKey = '';
     bind.fieldName = '';
     bind.unit = '';
-    buildAndAddDevicePointPanel(item as unknown as IDoneJson, bind.deviceId, bind.deviceType ?? '', []);
+    buildAndAddDevicePointPanel(
+      item as unknown as IDoneJson,
+      bind.deviceId,
+      bind.deviceType ?? '',
+      []
+    );
     return;
   }
 
@@ -691,7 +815,10 @@ const rebuildDevicePanel = async (item: DeviceBindableItem) => {
 
   // 持久化“选中项”
   try {
-    await deviceTemplateDB.saveSelection(type, selectedPoints.map((p) => p.id));
+    await deviceTemplateDB.saveSelection(
+      type,
+      selectedPoints.map((p) => p.id)
+    );
   } catch (e) {
     console.error('保存测点选中项失败', e);
   }
@@ -705,7 +832,12 @@ const rebuildDevicePanel = async (item: DeviceBindableItem) => {
   }));
 
   // 2~4) 以键值对形式循环展示，并定位在设备右侧 20px 处
-  buildAndAddDevicePointPanel(item as unknown as IDoneJson, bind.deviceId, bind.deviceType ?? '', selectedPoints);
+  buildAndAddDevicePointPanel(
+    item as unknown as IDoneJson,
+    bind.deviceId,
+    bind.deviceType ?? '',
+    selectedPoints
+  );
 };
 
 const onDeviceChange = async (item: DeviceBindableItem) => {
@@ -750,7 +882,16 @@ const fetchDeviceList = async (item: DeviceBindableItem) => {
     return;
   }
   const station = stations.value.find((f) => f.id === currentStationId.value);
-  const baseUrl = station ? buildStationBaseUrl(station) : null;
+  if (!station) return;
+  // 连接信息已下沉到 MCU：从该场站绑定的首个 MCU 解析接口地址
+  await ensureStationMcus(station.id);
+  const mcu = getStationPrimaryMcu(station.id);
+  if (!mcu || !mcu.ip) {
+    deviceListError.value = '该场站尚未绑定MCU或未配置IP，无法获取设备列表';
+    ElMessage.error(deviceListError.value);
+    return;
+  }
+  const baseUrl = buildMcuBaseUrl(mcu);
   if (!baseUrl) return;
 
   const etype = getEtypeForType(typeName);
@@ -763,7 +904,9 @@ const fetchDeviceList = async (item: DeviceBindableItem) => {
   deviceListLoading.value = true;
   deviceListError.value = '';
   try {
-    const url = `${baseUrl}/business/microgrid/device/detail?deviceType=${encodeURIComponent(String(etype))}`;
+    const url = `${baseUrl}/business/microgrid/device/detail?deviceType=${encodeURIComponent(
+      String(etype)
+    )}`;
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
@@ -815,6 +958,13 @@ const withDeviceSourceConfig = (exportJson: IExportJson) => {
   return attachDeviceApiConfig(exportJson, normalizedConfig);
 };
 
+const buildPublishContentJson = (exportJson: IExportJson) =>
+  JSON.stringify(
+    buildPublishExportJson(withDeviceSourceConfig(exportJson), {
+      leftAsideConfig: leftAsideStore.config
+    })
+  );
+
 const exportExtra = computed(() => ({
   deviceApiConfig: normalizeDeviceApiConfig(apiConfig)
 }));
@@ -837,10 +987,15 @@ interface BoundPointGroup {
 /** 从 exportJson 中提取已绑定设备及其测点，按 deviceId 分组（递归包含嵌套的测点键值对） */
 const extractBoundPointGroups = (exportJson: IExportJson): Record<string, BoundPointGroup> => {
   const groups: Record<string, BoundPointGroup> = {};
+  // 已知设备类型名集合，用于剔除历史遗留的“deviceId 被误写为设备类型名”的脏数据，
+  // 避免出现一份正确 + 一份错误类型的重复请求（第二次错误请求会覆盖正确数据）。
+  const typeNames = new Set(deviceTypes.value.map((dt) => dt.name));
   const visit = (items: IExportJson['json']) => {
     for (const item of items) {
       const bind = (item as any).deviceBind as DeviceBindInfo | undefined;
       if (bind?.deviceId && bind?.dataKey) {
+        // 跳过 deviceId 实为设备类型名的脏数据（旧逻辑遗留），仅保留真实设备 ID 的分组
+        if (typeNames.has(String(bind.deviceId))) continue;
         if (!groups[bind.deviceId]) {
           groups[bind.deviceId] = { dataKeys: new Set(), items: [] };
         }
@@ -900,13 +1055,12 @@ const injectRealtimeData = (
         if (deviceData) {
           const pointData = deviceData[bind.dataKey];
           if (pointData && pointData.value !== undefined && pointData.value !== null) {
-            // targetAttr 如 props.value.val，exportJson 中 props 为 { value: '...', unit: '...' }
-            const keys = bind.targetAttr.split('.');
-            if (keys.length >= 2 && keys[0] === 'props') {
-              (item.props as Record<string, unknown>)[keys[1]] = pointData.value;
-              if (pointData.unit && (item.props as Record<string, unknown>).unit !== undefined) {
-                (item.props as Record<string, unknown>).unit = pointData.unit;
-              }
+            // exportJson 中 props 为嵌套结构 { value: { val }, unit: { val } }，
+            // targetAttr 形如 props.value.val，必须写入到最深层 val，
+            // 若直接覆盖 props.value/props.unit 会破坏 { val } 结构，导致渲染时取不到值。
+            setValueByPath(item, bind.targetAttr, pointData.value);
+            if (pointData.unit !== undefined && pointData.unit !== null && pointData.unit !== '') {
+              setValueByPath(item, kvUnitTargetAttr, pointData.unit);
             }
           }
         }
@@ -926,15 +1080,22 @@ const onPreviewClick = async (
 ) => {
   const groups = extractBoundPointGroups(exportJson);
   const groupEntries = Object.entries(groups);
+  // 预览前清理历史遗留的旧测点面板（deviceId 误写为类型名），确保仅保留正确分组，
+  // 既避免 /batchPoint 重复请求，也避免错误返回值覆盖正确数据。
+  stripLegacyDevicePanels(exportJson);
+  normalizePreviewPointPanelLayout(exportJson);
 
   if (groupEntries.length > 0) {
     if (!stationId) {
       ElMessage.warning('未确定当前画布所属场站，无法获取实时数据，将以静态数据预览');
     } else {
       const station = stations.value.find((f) => f.id === stationId);
-      const baseUrl = station ? buildStationBaseUrl(station) : null;
+      // 连接信息已下沉到 MCU：确保该场站的MCU已加载后，从其首个MCU解析接口地址
+      await ensureStationMcus(stationId);
+      const mcu = station ? getStationPrimaryMcu(station.id) : null;
+      const baseUrl = mcu?.ip ? buildMcuBaseUrl(mcu) : null;
       if (!baseUrl) {
-        ElMessage.warning('当前场站未配置 IP 地址，无法获取实时数据');
+        ElMessage.warning('当前场站尚未绑定MCU或未配置IP，无法获取实时数据');
       } else {
         try {
           const realtimeDataMap: Record<
@@ -1019,24 +1180,26 @@ const onPublishClick = async (exportJson: IExportJson) => {
     ElMessage.error('未找到当前场站信息');
     return;
   }
-  if (!station.ip) {
-    ElMessage.error('当前场站未配置 IP 地址，无法发布');
+  // 连接信息已下沉到 MCU：从当前场站绑定的首个 MCU 解析发布接口地址
+  await ensureStationMcus(station.id);
+  const mcu = getStationPrimaryMcu(station.id);
+  if (!mcu || !mcu.ip) {
+    ElMessage.error('当前场站尚未绑定MCU或未配置IP，无法发布');
     return;
   }
 
-  const baseUrl = buildStationBaseUrl(station);
+  const baseUrl = buildMcuBaseUrl(mcu);
   if (!baseUrl) return;
 
   const url = `${baseUrl}/business/lineDiagram/publish`;
 
-  const requestBody = {
-    clientIp: station.ip,
-    designName: diagramId,
-    contentJson: JSON.stringify(withDeviceSourceConfig(exportJson)),
-    remark: station.remark ?? ''
-  };
-
   try {
+    const requestBody = {
+      clientIp: mcu.ip,
+      designName: diagramId,
+      contentJson: buildPublishContentJson(exportJson),
+      remark: station.remark ?? ''
+    };
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1077,24 +1240,26 @@ const onPublishDiagram = async (stationId: string, diagramId: string) => {
     ElMessage.error('未找到当前一次接线图');
     return;
   }
-  if (!station.ip) {
-    ElMessage.error('当前场站未配置 IP 地址，无法发布');
+  // 连接信息已下沉到 MCU：从该场站绑定的首个 MCU 解析发布接口地址
+  await ensureStationMcus(station.id);
+  const mcu = getStationPrimaryMcu(station.id);
+  if (!mcu || !mcu.ip) {
+    ElMessage.error('当前场站尚未绑定MCU或未配置IP，无法发布');
     return;
   }
 
-  const baseUrl = buildStationBaseUrl(station);
+  const baseUrl = buildMcuBaseUrl(mcu);
   if (!baseUrl) return;
 
   const url = `${baseUrl}/business/lineDiagram/publish`;
   const exportJson = diagram.exportJson as unknown as IExportJson;
-  const requestBody = {
-    clientIp: station.ip,
-    designName: diagramId,
-    contentJson: JSON.stringify(withDeviceSourceConfig(exportJson)),
-    remark: station.remark ?? ''
-  };
-
   try {
+    const requestBody = {
+      clientIp: mcu.ip,
+      designName: diagramId,
+      contentJson: buildPublishContentJson(exportJson),
+      remark: station.remark ?? ''
+    };
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1178,7 +1343,10 @@ const onDeleteDiagram = async (stationId: string, diagramId: string) => {
   const station = stations.value.find((f) => f.id === stationId);
   if (station) {
     station.diagrams = station.diagrams.filter((f) => f.id !== diagramId);
-    if (drawingDiagram.value?.stationId === stationId && drawingDiagram.value?.diagramId === diagramId) {
+    if (
+      drawingDiagram.value?.stationId === stationId &&
+      drawingDiagram.value?.diagramId === diagramId
+    ) {
       // 删除的正是当前编辑的一次图，清理持久化上下文并重置内存状态
       clearPersistedContext();
       currentStationId.value = '';
@@ -1193,7 +1361,40 @@ const onDeleteDiagram = async (stationId: string, diagramId: string) => {
   }
 };
 
-  const onLoadDiagram = (stationId: string, diagramId: string) => {
+// 将选中的 MCU 详细信息绑定至指定一次图，并持久化到数据库。
+// 采用不可变更新（splice 替换）确保 Vue 响应式触发，失败时回滚内存状态。
+const onBindDiagramMcu = async (stationId: string, diagramId: string, mcu: McuItem) => {
+  const stationIndex = stations.value.findIndex((s) => s.id === stationId);
+  if (stationIndex < 0) {
+    ElMessage.error('未找到当前场站信息');
+    return;
+  }
+  const station = stations.value[stationIndex];
+  const diagramIndex = station.diagrams.findIndex((d) => d.id === diagramId);
+  if (diagramIndex < 0) {
+    ElMessage.error('未找到目标一次图');
+    return;
+  }
+  const now = Date.now();
+  const nextDiagrams = station.diagrams.map((d, i) =>
+    i === diagramIndex ? { ...d, boundMcuId: mcu.id, boundMcuInfo: { ...mcu }, updateTime: now } : d
+  );
+  const updatedStation: Station = { ...station, diagrams: nextDiagrams };
+  stations.value.splice(stationIndex, 1, updatedStation);
+  try {
+    await stationDB.save(updatedStation);
+    ElMessage.success(`已将 MCU（SN：${mcu.sn}）绑定至一次图`);
+  } catch (e) {
+    // 写库失败回滚内存状态，保证内存与数据库一致
+    stations.value.splice(stationIndex, 1, station);
+    console.error('绑定MCU失败', e);
+    ElMessage.error('绑定MCU失败，请重试');
+  }
+};
+
+const onLoadDiagram = (stationId: string, diagramId: string) => {
+  // 预加载该场站绑定的 MCU，使底部状态栏连接状态能基于 MCU 的 IP 派生
+  ensureStationMcus(stationId);
   const station = stations.value.find((f) => f.id === stationId);
   const diagram = station?.diagrams.find((f) => f.id === diagramId);
   if (!diagram) {
@@ -1250,7 +1451,7 @@ const onExportStations = async () => {
     const d = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
     a.download = `场站工程包_${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(
-      d.getHours(),
+      d.getHours()
     )}${pad(d.getMinutes())}.json`;
     a.click();
     URL.revokeObjectURL(url);
@@ -1288,9 +1489,11 @@ const onExportDiagram = (stationId: string, diagramId: string) => {
     a.href = url;
     const d = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
-    const fileName = `${station.name || station.id}_${diagram.name || diagram.id}_${d.getFullYear()}${pad(
-      d.getMonth() + 1,
-    )}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.json`;
+    const fileName = `${station.name || station.id}_${
+      diagram.name || diagram.id
+    }_${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(
+      d.getMinutes()
+    )}.json`;
     a.download = fileName;
     a.click();
     URL.revokeObjectURL(url);
@@ -1499,7 +1702,7 @@ const onThumbnailClick = () => {
             </el-button>
           </div>
           <el-text size="small" type="info" class="mt-8px block">
-            选择场站后将根据其 IP 地址调用设备详情接口获取设备列表
+            选择场站后将通过其绑定的MCU连接信息调用设备详情接口获取设备列表
           </el-text>
           <el-alert
             v-if="deviceOptionsError"
@@ -1555,6 +1758,7 @@ const onThumbnailClick = () => {
             @export-diagram="onExportDiagram"
             @import-diagram="onImportDiagram"
             @preview-diagram="onPreviewDiagram"
+            @bind-diagram-mcu="onBindDiagramMcu"
           />
         </template>
         <template #deviceBind="{ item }">
@@ -1592,11 +1796,7 @@ const onThumbnailClick = () => {
             </el-form-item>
             <el-form-item v-if="getDeviceBind(item).deviceType" label="设备列表">
               <div class="device-list-box">
-                <el-button
-                  size="small"
-                  :loading="deviceListLoading"
-                  @click="fetchDeviceList(item)"
-                >
+                <el-button size="small" :loading="deviceListLoading" @click="fetchDeviceList(item)">
                   加载设备列表（deviceType={{ getEtypeForType(getDeviceBind(item).deviceType) }}）
                 </el-button>
                 <el-alert
@@ -1622,7 +1822,11 @@ const onThumbnailClick = () => {
                   </div>
                 </div>
                 <el-text
-                  v-else-if="!deviceListLoading && deviceListFetched && getDeviceBind(item).deviceType === deviceListType"
+                  v-else-if="
+                    !deviceListLoading &&
+                    deviceListFetched &&
+                    getDeviceBind(item).deviceType === deviceListType
+                  "
                   size="small"
                   type="info"
                 >
@@ -1632,7 +1836,11 @@ const onThumbnailClick = () => {
             </el-form-item>
             <el-form-item label="属性">
               <div v-if="getSelectedPointLabels(item).length" class="point-label-list">
-                <div v-for="(label, i) in getSelectedPointLabels(item)" :key="i" class="point-label-item">
+                <div
+                  v-for="(label, i) in getSelectedPointLabels(item)"
+                  :key="i"
+                  class="point-label-item"
+                >
                   {{ label }}
                 </div>
               </div>

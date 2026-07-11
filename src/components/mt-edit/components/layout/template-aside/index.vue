@@ -16,14 +16,9 @@
               <el-text truncated class="font-medium">{{ tpl.name }}</el-text>
               <span class="text-xs text-gray-400 shrink-0">{{ tpl.itemCount }} 项</span>
             </div>
-            <el-text
-              v-if="tpl.remark"
-              size="small"
-              type="info"
-              truncated
-              class="block mt-4px"
-              >{{ tpl.remark }}</el-text
-            >
+            <el-text v-if="tpl.remark" size="small" type="info" truncated class="block mt-4px">{{
+              tpl.remark
+            }}</el-text>
             <div
               class="absolute right-6px top-6px opacity-0 group-hover:opacity-100 transition-opacity"
             >

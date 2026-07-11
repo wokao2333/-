@@ -71,9 +71,7 @@ export function layoutKvItems(kvCfg: ILeftAsideConfigItem, lines: TemplateKvLine
     (kvCfg.props.valueWidth?.val ?? 50) +
     (kvCfg.props.unitWidth?.val ?? 50) +
     (kvCfg.props.unitGap?.val ?? 4);
-  return lines.map((line, i) =>
-    buildKvItem(kvCfg, line, 0, i * (rowH + gap), width, rowH)
-  );
+  return lines.map((line, i) => buildKvItem(kvCfg, line, 0, i * (rowH + gap), width, rowH));
 }
 
 /**

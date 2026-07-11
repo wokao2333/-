@@ -274,6 +274,19 @@ const draw_line_init_data: IDoneJson = {
   events: []
 };
 const draw_line_data = ref<IDoneJson>(objectDeepClone(draw_line_init_data));
+// 绘制一次接线图前置校验：未添加场站时禁止在画布上绘制任意图形。
+// 校验通过返回 true；不通过则提示“请先添加场站”并复位拖拽/创建意图，返回 false。
+const ensureStationForDrawing = (): boolean => {
+  if (globalStore.hasStation) {
+    return true;
+  }
+  ElMessage.warning('请先添加场站');
+  // 复位可能已进入的“创建/绘制”意图，避免拖拽状态残留导致后续误创建
+  globalStore.setIntention('none');
+  globalStore.setCreateItemInfo(null);
+  globalStore.setCreateTemplateInfo(null);
+  return false;
+};
 const onDrop = (e: DragEvent | TouchEvent, isTouch?: boolean) => {
   beginListenerKeyDown();
   if (globalStore.lock && globalStore.intention === 'create') {
@@ -288,6 +301,9 @@ const onDrop = (e: DragEvent | TouchEvent, isTouch?: boolean) => {
       return;
     }
     if (mainPanelProps.lineAppendEnable) {
+      if (!ensureStationForDrawing()) {
+        return;
+      }
       globalStore.setIntention('drawSysLineStart');
       const { x, y } = getCanvasXY(
         e,
@@ -313,6 +329,10 @@ const onDrop = (e: DragEvent | TouchEvent, isTouch?: boolean) => {
     selectedAreaRef.value?.onMouseDown(e);
   }
   if (globalStore.intention !== 'create') {
+    return;
+  }
+  // 前置校验：未添加场站时禁止在画布上拖入任意图形（含图元与模版组合）
+  if (!ensureStationForDrawing()) {
     return;
   }
   // 从模版面板拖入组合：整体实例化到画布（递归刷新 id，避免与原模版冲突）
@@ -492,6 +512,9 @@ const onMouseDown = (e: MouseEvent) => {
     return;
   }
   if (mainPanelProps.lineAppendEnable) {
+    if (!ensureStationForDrawing()) {
+      return;
+    }
     globalStore.setIntention('drawSysLineStart');
     const { x, y } = getCanvasXY(
       e,
@@ -1042,6 +1065,10 @@ const handlePasteData = (data: IDoneJson[]) => {
  */
 const onContextMenuPaste = (offset_x: number, offset_y: number) => {
   if (cacheStore.copy.length < 1) {
+    return;
+  }
+  // 前置校验：未添加场站时禁止在画布上粘贴图形
+  if (!ensureStationForDrawing()) {
     return;
   }
   const new_items = handlePasteData(objectDeepClone(cacheStore.copy)).map((m) => {

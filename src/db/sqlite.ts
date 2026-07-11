@@ -27,16 +27,17 @@ async function initSql(): Promise<SqlJsStatic> {
 
 function migrate(db: Database) {
   db.run(`CREATE TABLE IF NOT EXISTS stations (
-    id TEXT PRIMARY KEY, name TEXT, address TEXT, sn TEXT, ip TEXT, port TEXT, baseUrl TEXT, remark TEXT
+    id TEXT PRIMARY KEY, name TEXT, address TEXT, remark TEXT
   )`);
   db.run(`CREATE TABLE IF NOT EXISTS diagrams (
     id TEXT PRIMARY KEY, stationId TEXT, name TEXT, thumbnail TEXT, exportJson TEXT,
     boundDeviceCount INTEGER DEFAULT 0, unboundDeviceCount INTEGER DEFAULT 0,
-    published INTEGER DEFAULT 0, createTime INTEGER, updateTime INTEGER, remark TEXT
+    published INTEGER DEFAULT 0, createTime INTEGER, updateTime INTEGER, remark TEXT,
+    boundMcuId TEXT, boundMcuInfo TEXT
   )`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_diagrams_station ON diagrams(stationId)`);
   db.run(`CREATE TABLE IF NOT EXISTS mcus (
-    id TEXT PRIMARY KEY, stationId TEXT, sn TEXT, ip TEXT, remark TEXT, updateTime INTEGER
+    id TEXT PRIMARY KEY, stationId TEXT, sn TEXT, ip TEXT, port TEXT, remark TEXT, updateTime INTEGER
   )`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_mcus_station ON mcus(stationId)`);
   db.run(`CREATE TABLE IF NOT EXISTS templates (
@@ -74,6 +75,8 @@ function migrate(db: Database) {
   db.run(`CREATE INDEX IF NOT EXISTS idx_device_points_type ON device_points(deviceType)`);
   // 旧库可能缺少后续补充的 diagrams 列，这里按需补齐。
   ensureDiagramColumns(db);
+  // 旧库可能缺少后续补充的 mcus 连接字段（port / baseUrl），这里按需补齐。
+  ensureMcuColumns(db);
   db.run(
     `CREATE UNIQUE INDEX IF NOT EXISTS idx_diagrams_station_published
      ON diagrams(stationId)
@@ -99,8 +102,33 @@ function ensureDiagramColumns(db: Database) {
     if (!cols.includes('published')) {
       db.run('ALTER TABLE diagrams ADD COLUMN published INTEGER DEFAULT 0');
     }
+    // 补齐一次图与 MCU 关联绑定所需字段：绑定的 MCU ID 及其详细信息快照
+    if (!cols.includes('boundMcuId')) {
+      db.run('ALTER TABLE diagrams ADD COLUMN boundMcuId TEXT');
+    }
+    if (!cols.includes('boundMcuInfo')) {
+      db.run('ALTER TABLE diagrams ADD COLUMN boundMcuInfo TEXT');
+    }
   } catch (e) {
     console.error('[sqlite] 迁移 diagrams 列失败', e);
+  }
+}
+
+// 兼容旧库：mcus 表早期仅含 sn / ip / remark，这里补齐 port（通信端口），
+// 并清除已废弃的 baseUrl（接口基地址）列，使连接信息（SN / IP / 端口）完整沉淀在 MCU 实体上。
+function ensureMcuColumns(db: Database) {
+  try {
+    const info = db.exec('PRAGMA table_info(mcus)');
+    const cols = info.length ? info[0].values.map((r) => String(r[1])) : [];
+    if (!cols.includes('port')) {
+      db.run('ALTER TABLE mcus ADD COLUMN port TEXT');
+    }
+    // 彻底删除已废弃的 baseUrl（接口基地址）存储字段
+    if (cols.includes('baseUrl')) {
+      db.run('ALTER TABLE mcus DROP COLUMN baseUrl');
+    }
+  } catch (e) {
+    console.error('[sqlite] 迁移 mcus 列失败', e);
   }
 }
 
@@ -160,13 +188,13 @@ async function migrateLegacy(db: Database): Promise<boolean> {
   try {
     db.run('BEGIN');
     const insStation = db.prepare(
-      'INSERT OR REPLACE INTO stations (id,name,address,sn,ip,port,baseUrl,remark) VALUES (?,?,?,?,?,?,?,?)'
+      'INSERT OR REPLACE INTO stations (id,name,address,remark) VALUES (?,?,?,?)'
     );
     const insDiagram = db.prepare(
       'INSERT OR REPLACE INTO diagrams (id,stationId,name,thumbnail,exportJson,createTime,updateTime) VALUES (?,?,?,?,?,?,?)'
     );
     for (const s of stations) {
-      insStation.run(cleanRow([s.id, s.name, s.address, s.sn, s.ip, s.port, s.baseUrl, s.remark]));
+      insStation.run(cleanRow([s.id, s.name, s.address, s.remark]));
       for (const d of s.diagrams || []) {
         insDiagram.run(
           cleanRow([
@@ -185,10 +213,10 @@ async function migrateLegacy(db: Database): Promise<boolean> {
     insDiagram.free();
 
     const insMcu = db.prepare(
-      'INSERT OR REPLACE INTO mcus (id,stationId,sn,ip,remark,updateTime) VALUES (?,?,?,?,?,?)'
+      'INSERT OR REPLACE INTO mcus (id,stationId,sn,ip,port,remark,updateTime) VALUES (?,?,?,?,?,?,?)'
     );
     for (const m of mcus) {
-      insMcu.run(cleanRow([m.id, m.stationId, m.sn, m.ip, m.remark, m.updateTime]));
+      insMcu.run(cleanRow([m.id, m.stationId, m.sn, m.ip, m.port, m.remark, m.updateTime]));
     }
     insMcu.free();
 

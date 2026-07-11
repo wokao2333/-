@@ -48,11 +48,20 @@ const computedValueColor = computed(() => props.valueColor || props.color);
 const computedUnitText = computed(() => props.unit || '单位');
 const computedUnitFontSize = computed(() => props.unitFontSize || props.fontSize);
 const computedUnitColor = computed(() => props.unitColor || props.color);
+const computedUnitColumnWidth = computed(() => props.unitWidth + props.unitGap);
+const computedTableWidth = computed(
+  () => props.labelWidth + props.valueWidth + computedUnitColumnWidth.value
+);
 </script>
 
 <template>
   <div class="w-1/1 h-1/1 kvWrap">
-    <table class="kvTable">
+    <table class="kvTable" :style="{ width: `${computedTableWidth}px` }">
+      <colgroup>
+        <col :style="{ width: `${props.labelWidth}px` }" />
+        <col :style="{ width: `${props.valueWidth}px` }" />
+        <col :style="{ width: `${computedUnitColumnWidth}px` }" />
+      </colgroup>
       <tbody>
         <tr>
           <td class="kvKey kvKeyValue">{{ props.label }}</td>
@@ -75,8 +84,7 @@ const computedUnitColor = computed(() => props.unitColor || props.color);
   align-items: center;
 }
 
-/* 表格按列宽自然定宽（不拉伸到 100%），配合 table-layout: fixed，
-   使 label/value/unit 三列位置在不同卡片与不同名称长度下完全一致，消除错位 */
+/* 表格和 colgroup 都使用明确宽度，确保 fixed 布局不会因 value 内容长度回退为自动列宽。 */
 .kvTable {
   table-layout: fixed;
   border-collapse: collapse;

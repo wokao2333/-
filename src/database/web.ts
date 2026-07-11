@@ -29,10 +29,10 @@ export const webDatabase: DatabaseService = {
   station: {
     async list() {
       const db = await getDB();
-      const stations = db.exec('SELECT id,name,address,sn,ip,port,baseUrl,remark FROM stations');
+      const stations = db.exec('SELECT id,name,address,remark FROM stations');
       const stationRows = stations.length ? stations[0].values : [];
       const diagrams = db.exec(
-        'SELECT id,stationId,name,thumbnail,exportJson,boundDeviceCount,unboundDeviceCount,published,createTime,updateTime,remark FROM diagrams'
+        'SELECT id,stationId,name,thumbnail,exportJson,boundDeviceCount,unboundDeviceCount,published,createTime,updateTime,remark,boundMcuId,boundMcuInfo FROM diagrams'
       );
       const diagramRows = diagrams.length ? diagrams[0].values : [];
 
@@ -49,7 +49,9 @@ export const webDatabase: DatabaseService = {
           published,
           createTime,
           updateTime,
-          remark
+          remark,
+          boundMcuId,
+          boundMcuInfo
         ] = row as unknown[];
         const key = stationId as string;
         const list = diagramMap.get(key) ?? [];
@@ -63,21 +65,19 @@ export const webDatabase: DatabaseService = {
           unboundDeviceCount: Number(unboundDeviceCount) || 0,
           published: Boolean(Number(published)),
           createTime: createTime as number,
-          updateTime: updateTime as number
+          updateTime: updateTime as number,
+          boundMcuId: (boundMcuId as string) || '',
+          boundMcuInfo: parseJson<McuItem | null>(boundMcuInfo, null)
         });
         diagramMap.set(key, list);
       }
 
       return stationRows.map((row) => {
-        const [id, name, address, sn, ip, port, baseUrl, remark] = row as unknown[];
+        const [id, name, address, remark] = row as unknown[];
         return {
           id: id as string,
           name: name as string,
           address: address as string,
-          sn: sn as string,
-          ip: ip as string,
-          port: port as string,
-          baseUrl: baseUrl as string,
           remark: remark as string,
           diagrams: diagramMap.get(id as string) ?? []
         } satisfies Station;
@@ -86,22 +86,15 @@ export const webDatabase: DatabaseService = {
     async save(station) {
       const db = await getDB();
       db.run('BEGIN');
-      db.run(
-        'INSERT OR REPLACE INTO stations (id,name,address,sn,ip,port,baseUrl,remark) VALUES (?,?,?,?,?,?,?,?)',
-        [
-          station.id,
-          station.name,
-          station.address,
-          station.sn ?? '',
-          station.ip ?? '',
-          station.port ?? '',
-          station.baseUrl ?? '',
-          station.remark ?? ''
-        ]
-      );
+      db.run('INSERT OR REPLACE INTO stations (id,name,address,remark) VALUES (?,?,?,?)', [
+        station.id,
+        station.name,
+        station.address,
+        station.remark ?? ''
+      ]);
       db.run('DELETE FROM diagrams WHERE stationId = ?', [station.id]);
       const insertDiagram = db.prepare(
-        'INSERT INTO diagrams (id,stationId,name,thumbnail,exportJson,boundDeviceCount,unboundDeviceCount,published,createTime,updateTime,remark) VALUES (?,?,?,?,?,?,?,?,?,?,?)'
+        'INSERT INTO diagrams (id,stationId,name,thumbnail,exportJson,boundDeviceCount,unboundDeviceCount,published,createTime,updateTime,remark,boundMcuId,boundMcuInfo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)'
       );
       for (const diagram of station.diagrams ?? []) {
         insertDiagram.run([
@@ -115,7 +108,9 @@ export const webDatabase: DatabaseService = {
           diagram.published ? 1 : 0,
           diagram.createTime,
           diagram.updateTime,
-          diagram.remark ?? ''
+          diagram.remark ?? '',
+          diagram.boundMcuId ?? '',
+          diagram.boundMcuInfo ? JSON.stringify(diagram.boundMcuInfo) : ''
         ]);
       }
       insertDiagram.free();
@@ -145,7 +140,7 @@ export const webDatabase: DatabaseService = {
     async listByStation(stationId) {
       const db = await getDB();
       const stmt = db.prepare(
-        'SELECT id,stationId,sn,ip,remark,updateTime FROM mcus WHERE stationId = ?'
+        'SELECT id,stationId,sn,ip,port,remark,updateTime FROM mcus WHERE stationId = ?'
       );
       stmt.bind([stationId]);
       const out: McuItem[] = [];
@@ -156,6 +151,7 @@ export const webDatabase: DatabaseService = {
           stationId: row.stationId as string,
           sn: row.sn as string,
           ip: row.ip as string,
+          port: row.port as string,
           remark: row.remark as string,
           updateTime: row.updateTime as number
         });
@@ -168,7 +164,7 @@ export const webDatabase: DatabaseService = {
       db.run('BEGIN');
       db.run('DELETE FROM mcus WHERE stationId = ?', [stationId]);
       const insertMcu = db.prepare(
-        'INSERT INTO mcus (id,stationId,sn,ip,remark,updateTime) VALUES (?,?,?,?,?,?)'
+        'INSERT INTO mcus (id,stationId,sn,ip,port,remark,updateTime) VALUES (?,?,?,?,?,?,?)'
       );
       for (const item of items) {
         insertMcu.run([
@@ -176,6 +172,7 @@ export const webDatabase: DatabaseService = {
           stationId,
           item.sn,
           item.ip ?? '',
+          item.port ?? '',
           item.remark ?? '',
           item.updateTime
         ]);

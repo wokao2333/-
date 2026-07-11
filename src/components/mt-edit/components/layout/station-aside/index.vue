@@ -15,11 +15,7 @@
               </div>
             </template>
             <div class="grid grid-cols-2 gap-10px">
-              <div
-                v-for="diagram in station.diagrams"
-                :key="diagram.id"
-                class="relative group"
-              >
+              <div v-for="diagram in station.diagrams" :key="diagram.id" class="relative group">
                 <div
                   class="w-1/1 h-50px border-2 border-transparent rounded cursor-pointer transition-all box-border hover:border-blue-500 flex items-center justify-center bg-gray-50 overflow-hidden"
                   @click="onLoadDiagram(station.id, diagram.id)"
@@ -30,7 +26,10 @@
                     alt="diagram thumbnail"
                   />
                 </div>
-                <div class="mt-4px text-xs text-center truncate px-2px" :title="diagram.name || diagram.id">
+                <div
+                  class="mt-4px text-xs text-center truncate px-2px"
+                  :title="diagram.name || diagram.id"
+                >
                   {{ diagram.name || diagram.id }}
                 </div>
                 <div
@@ -79,7 +78,6 @@
       <el-table :data="stationAsideProps.stations" border stripe max-height="400px">
         <el-table-column prop="name" label="场站名称" width="180" show-overflow-tooltip />
         <el-table-column prop="address" label="详细地址" min-width="260" show-overflow-tooltip />
-        <el-table-column prop="ip" label="IP 地址" width="150" show-overflow-tooltip />
         <el-table-column label="操作" width="300" align="center" fixed="right">
           <template #default="{ row }">
             <div class="flex flex-nowrap items-center justify-center whitespace-nowrap gap-4px">
@@ -88,7 +86,7 @@
                 >删除</el-button
               >
               <el-button text type="primary" size="small" @click="onBindMcuClick(row)"
-                >绑定MCU</el-button
+                >MCU列表</el-button
               >
               <el-button text type="success" size="small" @click="onEnterStationClick(row)"
                 >进入场站</el-button
@@ -113,19 +111,41 @@
       <el-table :data="mcuList" border stripe max-height="380px" empty-text="暂无已绑定的MCU">
         <el-table-column label="SN号" min-width="180">
           <template #default="{ row }">
-            <el-input v-if="editingIds.includes(row.id)" v-model="row.sn" placeholder="请输入SN号（必填）" />
+            <el-input
+              v-if="editingIds.includes(row.id)"
+              v-model="row.sn"
+              placeholder="请输入SN号（必填）"
+            />
             <span v-else>{{ row.sn || '-' }}</span>
           </template>
         </el-table-column>
         <el-table-column label="IP地址" min-width="160">
           <template #default="{ row }">
-            <el-input v-if="editingIds.includes(row.id)" v-model="row.ip" placeholder="请输入IP地址" />
+            <el-input
+              v-if="editingIds.includes(row.id)"
+              v-model="row.ip"
+              placeholder="请输入IP地址"
+            />
             <span v-else>{{ row.ip || '-' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="通信端口" min-width="120">
+          <template #default="{ row }">
+            <el-input
+              v-if="editingIds.includes(row.id)"
+              v-model="row.port"
+              placeholder="请输入通信端口"
+            />
+            <span v-else>{{ row.port || '-' }}</span>
           </template>
         </el-table-column>
         <el-table-column label="备注" min-width="160">
           <template #default="{ row }">
-            <el-input v-if="editingIds.includes(row.id)" v-model="row.remark" placeholder="请输入备注" />
+            <el-input
+              v-if="editingIds.includes(row.id)"
+              v-model="row.remark"
+              placeholder="请输入备注"
+            />
             <span v-else>{{ row.remark || '-' }}</span>
           </template>
         </el-table-column>
@@ -178,30 +198,6 @@
         <el-form-item label="详细地址" prop="address">
           <el-input v-model="form.address" placeholder="请输入详细地址" />
         </el-form-item>
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="SN 号">
-              <el-input v-model="form.sn" placeholder="请输入 SN 号" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="IP 地址">
-              <el-input v-model="form.ip" placeholder="请输入 IP 地址" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="通信端口">
-              <el-input v-model="form.port" placeholder="请输入通信端口" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="接口基地址">
-              <el-input v-model="form.baseUrl" placeholder="请输入接口基地址" />
-            </el-form-item>
-          </el-col>
-        </el-row>
         <el-form-item label="备注">
           <el-input v-model="form.remark" type="textarea" :rows="3" placeholder="请输入备注" />
         </el-form-item>
@@ -247,10 +243,9 @@
     <!-- 进入场站详情弹窗：上方展示场站基本信息与连接状态，下方展示一次图列表 -->
     <el-dialog
       v-model="enterVisible"
-      width="min(900px, 92vw)"
+      width="min(1200px, 92vw)"
       destroy-on-close
       :close-on-click-modal="false"
-      @opened="onEnterDialogOpened"
       @close="onEnterDialogClose"
     >
       <template #header>
@@ -260,7 +255,12 @@
             <el-button type="primary" size="small" :icon="Plus" @click="onAddBlankDiagram">
               新增一次图
             </el-button>
-            <el-button type="primary" size="small" :icon="Upload" @click="importDiagramVisible = true">
+            <el-button
+              type="primary"
+              size="small"
+              :icon="Upload"
+              @click="importDiagramVisible = true"
+            >
               导入一次图
             </el-button>
           </div>
@@ -274,20 +274,6 @@
         <div class="info-item">
           <span class="info-label">详细地址</span>
           <span class="info-value">{{ enterStation?.address || '—' }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">IP 地址</span>
-          <span class="info-value">{{ enterStation?.ip || '—' }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">连接状态</span>
-          <span class="info-value flex items-center gap-6px">
-            <span
-              class="inline-block w-8px h-8px rounded-full"
-              :style="{ backgroundColor: enterStatusColor }"
-            ></span>
-            <span :style="{ color: enterStatusColor }">{{ enterStatusText }}</span>
-          </span>
         </div>
       </div>
 
@@ -303,11 +289,25 @@
         <el-table-column label="一次图名称" min-width="180" show-overflow-tooltip>
           <template #default="{ row }">{{ row.name || row.id }}</template>
         </el-table-column>
-        <el-table-column label="最后更新时间" width="180">
-          <template #default="{ row }">{{ row.updateTime ? formatTime(row.updateTime) : '—' }}</template>
-        </el-table-column>
         <el-table-column label="绑定设备总数" width="120" align="center" prop="boundDeviceCount" />
-        <el-table-column label="未绑定设备数" width="120" align="center" prop="unboundDeviceCount" />
+        <el-table-column
+          label="未绑定设备数"
+          width="120"
+          align="center"
+          prop="unboundDeviceCount"
+        />
+        <el-table-column label="绑定MCU" min-width="150" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span v-if="(row as StationDiagram).boundMcuInfo">
+              {{
+                (row as StationDiagram).boundMcuInfo?.sn ||
+                (row as StationDiagram).boundMcuInfo?.ip ||
+                (row as StationDiagram).boundMcuId
+              }}
+            </span>
+            <span v-else style="color: #909399">未绑定</span>
+          </template>
+        </el-table-column>
         <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.published ? 'success' : 'info'" size="small">
@@ -315,43 +315,51 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="350" align="center" fixed="right">
+        <el-table-column label="最后更新时间" width="180">
+          <template #default="{ row }">{{
+            row.updateTime ? formatTime(row.updateTime) : '—'
+          }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="300" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button text type="primary" size="small" @click="onEnterDiagram(row)">打开组态</el-button>
-            <el-tooltip content="预览" placement="bottom" effect="dark">
+            <div class="op-cell">
+              <el-button text type="primary" size="small" @click="onEnterDiagram(row)"
+                >打开组态</el-button
+              >
+              <el-button text type="primary" size="small" @click="onBindDiagramMcuClick(row)"
+                >绑定MCU</el-button
+              >
+              <el-tooltip content="预览" placement="bottom" effect="dark">
+                <el-button text type="info" size="small" @click="onPreviewDiagram(row)"
+                  >预览</el-button
+                >
+              </el-tooltip>
+              <el-tooltip content="发布" placement="bottom" effect="dark">
+                <el-button
+                  text
+                  type="success"
+                  size="small"
+                  @click="emits('publishDiagram', enterStation!.id, (row as StationDiagram).id)"
+                  >发布</el-button
+                >
+              </el-tooltip>
+              <el-tooltip content="导出" placement="bottom" effect="dark">
+                <el-button
+                  text
+                  type="warning"
+                  size="small"
+                  @click="emits('exportDiagram', enterStation!.id, (row as StationDiagram).id)"
+                  >导出</el-button
+                >
+              </el-tooltip>
               <el-button
                 text
-                type="info"
+                type="danger"
                 size="small"
-                @click="onPreviewDiagram(row)"
-                >预览</el-button
+                @click="onDeleteDiagramClick(enterStation!.id, (row as StationDiagram).id)"
+                >删除</el-button
               >
-            </el-tooltip>
-            <el-tooltip content="发布" placement="bottom" effect="dark">
-              <el-button
-                text
-                type="success"
-                size="small"
-                @click="emits('publishDiagram', enterStation!.id, (row as StationDiagram).id)"
-                >发布</el-button
-              >
-            </el-tooltip>
-            <el-tooltip content="导出" placement="bottom" effect="dark">
-              <el-button
-                text
-                type="warning"
-                size="small"
-                @click="emits('exportDiagram', enterStation!.id, (row as StationDiagram).id)"
-                >导出</el-button
-              >
-            </el-tooltip>
-            <el-button
-              text
-              type="danger"
-              size="small"
-              @click="onDeleteDiagramClick(enterStation!.id, (row as StationDiagram).id)"
-              >删除</el-button
-            >
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -361,7 +369,12 @@
     </el-dialog>
 
     <!-- 导入一次图弹窗：选择并上传本地 JSON 文件 -->
-    <el-dialog v-model="importDiagramVisible" title="导入一次图" width="480px" :close-on-click-modal="false">
+    <el-dialog
+      v-model="importDiagramVisible"
+      title="导入一次图"
+      width="480px"
+      :close-on-click-modal="false"
+    >
       <el-upload
         ref="uploadRef"
         drag
@@ -383,6 +396,63 @@
         <el-button :disabled="importLoading" @click="importDiagramVisible = false">取消</el-button>
       </template>
     </el-dialog>
+
+    <!-- 绑定MCU弹窗：以表格形式列出当前场站下的 MCU，严格单选中一行后将其详细信息绑定至该一次图 -->
+    <el-dialog
+      v-model="bindMcuVisible"
+      :title="`为一次图「${bindMcuDiagramName}」绑定MCU`"
+      width="640px"
+      :close-on-click-modal="false"
+      @opened="onBindMcuOpened"
+    >
+      <el-empty
+        v-if="!bindMcuOptions.length"
+        description="该场站暂无可绑定的 MCU，请先在场站管理中添加 MCU"
+      />
+      <el-table
+        v-else
+        ref="bindMcuTableRef"
+        :data="bindMcuOptions"
+        highlight-current-row
+        height="360"
+        class="bind-mcu-table"
+        @current-change="onBindMcuCurrentChange"
+      >
+        <el-table-column label="SN" min-width="160" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.sn || '—' }}</template>
+        </el-table-column>
+        <el-table-column label="IP" min-width="130" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.ip || '—' }}</template>
+        </el-table-column>
+        <el-table-column label="端口" width="90" align="center">
+          <template #default="{ row }">{{ row.port || '—' }}</template>
+        </el-table-column>
+        <el-table-column label="备注" min-width="140" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.remark || '—' }}</template>
+        </el-table-column>
+        <el-table-column label="当前绑定" width="90" align="center">
+          <template #default="{ row }">
+            <el-tag
+              v-if="row.id === bindMcuDiagramBoundId"
+              type="success"
+              size="small"
+              effect="dark"
+              >已绑定</el-tag
+            >
+            <span v-else style="color: #c0c4cc">—</span>
+          </template>
+        </el-table-column>
+      </el-table>
+      <template #footer>
+        <el-button @click="bindMcuVisible = false">取消</el-button>
+        <el-button
+          type="primary"
+          :disabled="!bindMcuOptions.length || !bindMcuSelectedId"
+          @click="onConfirmBindDiagramMcu"
+          >确定绑定</el-button
+        >
+      </template>
+    </el-dialog>
   </div>
 </template>
 <script setup lang="ts">
@@ -399,8 +469,6 @@ import {
   ElInput,
   ElMessageBox,
   ElMessage,
-  ElRow,
-  ElCol,
   ElScrollbar,
   ElTable,
   ElTableColumn,
@@ -438,6 +506,7 @@ const emits = defineEmits<{
   exportDiagram: [stationId: string, diagramId: string];
   importDiagram: [stationId: string, diagram: StationDiagram];
   previewDiagram: [stationId: string, diagram: StationDiagram];
+  bindDiagramMcu: [stationId: string, diagramId: string, mcu: McuItem];
 }>();
 
 const dialog_visible = ref(false);
@@ -485,10 +554,6 @@ const editingIds = ref<string[]>([]);
 const form = reactive<StationForm>({
   name: '',
   address: '',
-  sn: '',
-  ip: '',
-  port: '',
-  baseUrl: '',
   remark: ''
 });
 const rules = reactive<FormRules<StationForm>>({
@@ -499,10 +564,6 @@ const rules = reactive<FormRules<StationForm>>({
 const resetForm = () => {
   form.name = '';
   form.address = '';
-  form.sn = '';
-  form.ip = '';
-  form.port = '';
-  form.baseUrl = '';
   form.remark = '';
   editingStationId.value = null;
 };
@@ -542,9 +603,7 @@ const handleImportChange = async (uploadFile: UploadFile) => {
     return;
   }
   // 上传格式校验：仅允许 JSON 文件
-  const isJson =
-    file.type === 'application/json' ||
-    file.name.toLowerCase().endsWith('.json');
+  const isJson = file.type === 'application/json' || file.name.toLowerCase().endsWith('.json');
   if (!isJson) {
     ElMessage.error('文件格式不正确，仅支持 JSON 文件');
     uploadRef.value?.clearFiles();
@@ -593,10 +652,6 @@ const onEditClick = (station: Station) => {
   editingStationId.value = station.id;
   form.name = station.name;
   form.address = station.address;
-  form.sn = station.sn || '';
-  form.ip = station.ip || '';
-  form.port = station.port || '';
-  form.baseUrl = station.baseUrl || '';
   form.remark = station.remark || '';
   dialog_visible.value = true;
 };
@@ -625,10 +680,6 @@ const onConfirm = () => {
         id: editingStationId.value,
         name: form.name,
         address: form.address,
-        sn: form.sn,
-        ip: form.ip,
-        port: form.port,
-        baseUrl: form.baseUrl,
         remark: form.remark,
         diagrams: station?.diagrams || []
       };
@@ -639,10 +690,6 @@ const onConfirm = () => {
         id: 'station-' + randomString(),
         name: form.name,
         address: form.address,
-        sn: form.sn,
-        ip: form.ip,
-        port: form.port,
-        baseUrl: form.baseUrl,
         remark: form.remark,
         diagrams: []
       };
@@ -725,6 +772,34 @@ const formatTime = (ts: number): string => {
   );
 };
 
+// 校验 IPv4 地址：必须恰好 4 段，每段为 0-255 的纯数字、以点号分隔，
+// 禁止字母或特殊字符；通过时返回去除前导零的标准化地址，失败时返回清晰错误信息。
+const validateIPv4 = (raw: string): { ok: true; ip: string } | { ok: false; error: string } => {
+  const ip = (raw || '').trim();
+  if (!ip) {
+    return { ok: false, error: 'IP 地址不能为空，请输入有效的 IPv4 地址' };
+  }
+  const segments = ip.split('.');
+  if (segments.length !== 4) {
+    return { ok: false, error: 'IP 地址必须由 4 段数字组成，并以点号分隔（如 192.168.1.1）' };
+  }
+  for (const seg of segments) {
+    if (seg === '') {
+      return { ok: false, error: 'IP 地址每一段都不能为空' };
+    }
+    if (!/^\d+$/.test(seg)) {
+      return { ok: false, error: 'IP 地址每段只能包含数字，不能包含字母或特殊字符' };
+    }
+    const num = Number(seg);
+    if (num < 0 || num > 255) {
+      return { ok: false, error: 'IP 地址每一段的数值必须在 0-255 之间' };
+    }
+  }
+  // 标准化：去除每段前导零（如 01 -> 1），拼接为规范形式
+  const normalized = segments.map((s) => String(Number(s))).join('.');
+  return { ok: true, ip: normalized };
+};
+
 // 打开“绑定MCU”弹窗，加载该场站已绑定的 MCU 列表
 const onBindMcuClick = async (row: Station) => {
   currentStationId.value = row.id;
@@ -751,65 +826,11 @@ const enterStationId = ref<string | null>(null);
 const enterStation = computed(
   () => stationAsideProps.stations.find((s) => s.id === enterStationId.value) ?? null
 );
-const enterChecking = ref(false);
-const enterConnected = ref<boolean | null>(null);
-let enterPingTimer: number | undefined;
-let enterPingController: AbortController | null = null;
 
-// 连接状态探测：与 MtEdit 底部状态栏保持一致的 HTTP 可达性探测实现
-const pingStation = async (ip: string): Promise<boolean> => {
-  if (!ip) return false;
-  // 若有在途请求先中止，避免弹窗内重复探测时请求堆积
-  enterPingController?.abort();
-  const controller = new AbortController();
-  enterPingController = controller;
-  const timer = setTimeout(() => controller.abort(), 3000);
-  try {
-    await fetch(`http://${ip}`, {
-      method: 'HEAD',
-      mode: 'no-cors',
-      cache: 'no-store',
-      signal: controller.signal
-    });
-    return true;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timer);
-    if (enterPingController === controller) enterPingController = null;
-  }
-};
-
-const runEnterPing = async (ip: string) => {
-  enterChecking.value = true;
-  enterConnected.value = await pingStation(ip);
-  enterChecking.value = false;
-};
-
-// 弹窗打开后启动连接状态探测，并每 10 秒刷新一次
-const onEnterDialogOpened = () => {
-  const ip = enterStation.value?.ip;
-  if (ip) {
-    runEnterPing(ip);
-    enterPingTimer = window.setInterval(() => runEnterPing(ip), 10000);
-  } else {
-    enterConnected.value = null;
-    enterChecking.value = false;
-  }
-};
-
-// 弹窗关闭：立即终止相关数据请求（清除定时探测并中止在途请求），与现有探测逻辑保持一致
+// 弹窗关闭：重置详情弹窗的场站上下文。
+// 说明：场站详情不再展示连接状态——连接信息（SN / IP / 端口）已下沉到 MCU 实体，
+// 场站本身不再持有 IP，原基于场站 IP 的连接探测逻辑已移除。
 const onEnterDialogClose = () => {
-  if (enterPingTimer) {
-    clearInterval(enterPingTimer);
-    enterPingTimer = undefined;
-  }
-  if (enterPingController) {
-    enterPingController.abort();
-    enterPingController = null;
-  }
-  enterChecking.value = false;
-  enterConnected.value = null;
   enterStationId.value = null;
 };
 
@@ -830,17 +851,66 @@ const onPreviewDiagram = (diagram: StationDiagram) => {
   emits('previewDiagram', enterStation.value.id, diagram);
 };
 
-// 详情弹窗内连接状态展示（颜色与文案与 MtEdit 底部状态栏保持一致）
-const enterStatusColor = computed(() => {
-  if (enterChecking.value) return '#E6A23C'; // 检测中：黄色
-  if (enterConnected.value === true) return '#67C23A'; // 已连接：绿色
-  return '#F56C6C'; // 未连接：红色
-});
-const enterStatusText = computed(() => {
-  if (enterChecking.value) return '连接检测中…';
-  if (enterConnected.value === true) return '已连接';
-  return '未连接';
-});
+// 绑定MCU弹窗相关状态：为单个一次图选择所属场站下的一个 MCU 进行绑定
+const bindMcuVisible = ref(false);
+const bindMcuDiagramName = ref('');
+const bindMcuDiagramId = ref('');
+// 记录该一次图当前已绑定的 MCU（用于表格中高亮「已绑定」标记）；与 bindMcuSelectedId 区分开：
+// selected 为本次弹窗内的待绑定选择，boundId 为最初打开时已有的绑定，便于用户取消已绑定关系时对比
+const bindMcuDiagramBoundId = ref('');
+const bindMcuOptions = ref<McuItem[]>([]);
+const bindMcuSelectedId = ref('');
+const bindMcuTableRef = ref<InstanceType<typeof ElTable> | null>(null);
+
+// 点击「绑定MCU」：拉取当前场站下的 MCU 列表，弹窗供用户选择
+const onBindDiagramMcuClick = async (diagram: StationDiagram) => {
+  const station = enterStation.value;
+  if (!station) {
+    ElMessage.error('未定位到当前场站，无法绑定MCU');
+    return;
+  }
+  bindMcuDiagramId.value = diagram.id;
+  bindMcuDiagramName.value = diagram.name || diagram.id;
+  // 记录该图当前已绑定的 MCU，用于展示「已绑定」标记
+  bindMcuDiagramBoundId.value = diagram.boundMcuId || '';
+  // 默认回显该图已绑定的 MCU（严格单选，初始至多一个选中项）
+  bindMcuSelectedId.value = diagram.boundMcuId || '';
+  try {
+    const db = useMcuDB();
+    bindMcuOptions.value = await db.loadByStation(station.id);
+  } catch (e) {
+    bindMcuOptions.value = [];
+    ElMessage.error('获取MCU列表失败，请重试');
+    return;
+  }
+  bindMcuVisible.value = true;
+};
+
+// 弹窗完全打开后，将已绑定的 MCU 行设为表格高亮（仅选中一行，保证严格单选）
+const onBindMcuOpened = () => {
+  const table = bindMcuTableRef.value;
+  if (!table) return;
+  const current = bindMcuOptions.value.find((m) => m.id === bindMcuSelectedId.value) || null;
+  table.setCurrentRow(current);
+};
+
+// 表格严格单选：当前行切换时更新待绑定选择，highlight-current-row 保证同一时间只有一行被选中
+const onBindMcuCurrentChange = (row: McuItem | null) => {
+  bindMcuSelectedId.value = row ? row.id : '';
+};
+
+// 确认绑定：把选中的 MCU 详细信息绑定至目标一次图，交由父组件持久化
+const onConfirmBindDiagramMcu = () => {
+  const station = enterStation.value;
+  if (!station) return;
+  const mcu = bindMcuOptions.value.find((m) => m.id === bindMcuSelectedId.value);
+  if (!mcu) {
+    ElMessage.warning('请选择要绑定的 MCU');
+    return;
+  }
+  emits('bindDiagramMcu', station.id, bindMcuDiagramId.value, { ...mcu });
+  bindMcuVisible.value = false;
+};
 
 // 新增一行可编辑的 MCU（SN 号留空，待保存时校验必填），新增行直接进入编辑模式
 const onAddMcuRow = () => {
@@ -850,6 +920,7 @@ const onAddMcuRow = () => {
     stationId: currentStationId.value,
     sn: '',
     ip: '',
+    port: '',
     remark: '',
     updateTime: 0
   });
@@ -878,9 +949,8 @@ const onFinishMcuRow = (id: string) => {
   editingIds.value = editingIds.value.filter((x) => x !== id);
 };
 
-// 保存 MCU 绑定：校验 SN 必填，按变更刷新更新时间，并持久化到统一数据库
+// 保存 MCU 绑定：校验 SN 必填、IP 为合法 IPv4，每次成功保存自动以当前系统时间刷新更新时间，并持久化到统一数据库
 const onSaveMcu = async () => {
-  const snapshotMap = new Map(mcuSnapshot.map((m) => [m.id, m]));
   const now = Date.now();
   const items: McuItem[] = [];
   for (const m of mcuList.value) {
@@ -889,18 +959,24 @@ const onSaveMcu = async () => {
       ElMessage.warning('SN号为必填项，请填写完整后再保存');
       return;
     }
-    const ip = (m.ip || '').trim();
+    const ipRaw = (m.ip || '').trim();
+    const ipResult = validateIPv4(ipRaw);
+    if (!ipResult.ok) {
+      ElMessage.warning(`MCU（SN：${sn}）的${ipResult.error}`);
+      return;
+    }
+    const ip = ipResult.ip;
+    const port = (m.port || '').trim();
     const remark = (m.remark || '').trim();
-    const orig = snapshotMap.get(m.id);
-    const changed =
-      !orig || orig.sn !== sn || (orig.ip || '') !== ip || (orig.remark || '') !== remark;
     items.push({
       id: m.id,
       stationId: currentStationId.value,
       sn,
       ip,
+      port,
       remark,
-      updateTime: changed ? now : (orig?.updateTime ?? now)
+      // 每次成功保存即捕获当前系统时间，准确反映最后一次编辑完成时间
+      updateTime: now
     });
   }
   const db = useMcuDB();
@@ -915,6 +991,9 @@ const onSaveMcu = async () => {
 };
 </script>
 <style scoped>
+:deep(.el-button--small) {
+  padding: 6px;
+}
 #mt-station-aside :deep(.el-collapse-item__header),
 #mt-station-aside :deep(.el-collapse-item__wrap) {
   background-color: transparent !important;
@@ -939,5 +1018,22 @@ const onSaveMcu = async () => {
 .info-value {
   color: #303133;
   word-break: break-all;
+}
+
+.bind-mcu-table {
+  width: 100%;
+}
+.bind-mcu-table :deep(.el-table__row) {
+  cursor: pointer;
+}
+
+.op-cell {
+  display: flex;
+  /* flex-wrap: wrap; */
+  justify-content: center;
+  gap: 0px;
+}
+.op-cell .el-button {
+  margin: 0;
 }
 </style>

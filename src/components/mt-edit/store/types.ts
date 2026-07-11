@@ -125,7 +125,11 @@ export interface IDoneJson {
   use_proportional_scaling?: boolean; //使用等比缩放
   children?: IDoneJson[];
   tag?: string;
+  /** 发布包中对应的内嵌 SVG 资产 ID；普通编辑/本地保存数据可不包含 */
+  svgAssetId?: string;
   device?: boolean; //是否为设备类图元（用于统计一次接线图设备总数及未绑定数据设备数）
+  /** 标记该分组为某设备图元自动生成的测点面板，便于重建时精确移除，避免重复/残留旧面板 */
+  devicePanelFor?: string;
   deviceBind?: {
     deviceId: string;
     dataKey: string;
@@ -210,6 +214,8 @@ export interface IGlobalStore {
     };
   };
   lock: boolean;
+  /** 当前是否已存在场站：绘制一次接线图的前置校验依据，未添加场站时禁止在画布上绘图 */
+  hasStation: boolean;
   real_time_data: IRealTimeData;
   adsorp_diff: {
     x: number;
@@ -225,6 +231,8 @@ export interface IGlobalStore {
   setSingleSelect: (id: string) => void;
   setSelectItems: (ids: string[]) => void;
   setRealTimeData: (val: IRealTimeData) => void;
+  /** 设置“当前是否已存在场站”的标志，供绘制一次接线图的前置校验使用 */
+  setHasStation: (val: boolean) => void;
 }
 // 左侧配置
 export interface ILeftAside {

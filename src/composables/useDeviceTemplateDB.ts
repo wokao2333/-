@@ -5,9 +5,7 @@ import * as XLSX from 'xlsx';
 // 「设备类型-点」Excel 表头顺序：
 // 类型 / 类型名称 / 属性标识 / 点名称 / 展示名称 / 数值类型 / 单位 / 是否默认选中 / 排序
 function parseRows(aoa: unknown[][]): DevicePointImportRow[] {
-  const headerIdx = aoa.findIndex(
-    (r) => r.includes('类型名称') && r.includes('属性标识')
-  );
+  const headerIdx = aoa.findIndex((r) => r.includes('类型名称') && r.includes('属性标识'));
   if (headerIdx < 0) return [];
   const headers = aoa[headerIdx].map((c) => String(c).trim());
   const col = (name: string) => headers.indexOf(name);
@@ -52,7 +50,13 @@ export async function parseDeviceXlsxFile(file: File): Promise<DevicePointImport
 
 /** 是否运行在 Electron 桌面端（具备按绝对路径导入能力） */
 export function hasElectronDeviceImport(): boolean {
-  return Boolean((window as unknown as { api?: { database?: { deviceTemplate?: { importFromPath?: unknown } } } }).api?.database?.deviceTemplate?.importFromPath);
+  return Boolean(
+    (
+      window as unknown as {
+        api?: { database?: { deviceTemplate?: { importFromPath?: unknown } } };
+      }
+    ).api?.database?.deviceTemplate?.importFromPath
+  );
 }
 
 export function useDeviceTemplateDB() {
@@ -75,7 +79,11 @@ export function useDeviceTemplateDB() {
   const importFromPath = async (absPath: string): Promise<number> => {
     const bridge = (
       window as unknown as {
-        api?: { database?: { deviceTemplate?: { importFromPath?: (p: string) => Promise<{ count: number }> } } };
+        api?: {
+          database?: {
+            deviceTemplate?: { importFromPath?: (p: string) => Promise<{ count: number }> };
+          };
+        };
       }
     ).api?.database?.deviceTemplate;
     if (!bridge?.importFromPath) throw new Error('当前环境不支持按路径导入');

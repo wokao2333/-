@@ -49,6 +49,8 @@ export const globalStore: IGlobalStore = reactive({
     }
   },
   lock: false,
+  // 当前是否已存在场站：绘制一次接线图的前置校验依据，未添加场站时禁止在画布上绘图
+  hasStation: false,
   real_time_data: {
     show: false,
     text: ''
@@ -115,5 +117,8 @@ export const globalStore: IGlobalStore = reactive({
   },
   setRealTimeData: (val: IRealTimeData) => {
     globalStore.real_time_data = val;
+  },
+  setHasStation: (val: boolean) => {
+    globalStore.hasStation = val;
   }
 });

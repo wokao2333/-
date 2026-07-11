@@ -474,14 +474,14 @@ for (const key in sysSvgModules) {
   (newEnergyIconNames.has(name)
     ? newEnergyItems
     : storageIconNames.has(name)
-      ? storageItems
-      : loadIconNames.has(name)
-        ? loadItems
-        : gridClassIconNames.has(name)
-          ? gridClassItems
-          : commIconNames.has(name)
-            ? commItems
-            : sysComponentItems
+    ? storageItems
+    : loadIconNames.has(name)
+    ? loadItems
+    : gridClassIconNames.has(name)
+    ? gridClassItems
+    : commIconNames.has(name)
+    ? commItems
+    : sysComponentItems
   ).push({
     id: name,
     title: name,
@@ -554,10 +554,10 @@ const genBusbarItem = (
 
 // 添加“一次设备”分类下的三个母线图元
 // 图库中显示为黑色；拖入画布后线条为红色，标签为白色
-// 10KV母线（细）、400V母线（中）、600V母线（粗），粗细各不相同
-gridItems.push(genBusbarItem('busbar-10kv', '10KV母线', '#FF0000', 4, '10KV'));
-gridItems.push(genBusbarItem('busbar-400v', '400V母线', '#FF0000', 10, '400V'));
-gridItems.push(genBusbarItem('busbar-600v', '600V母线', '#FF0000', 18, '600V'));
+// 电压越高线宽越粗：10KV母线（粗/18）、600V母线（中/10）、400V母线（细/4）
+gridItems.push(genBusbarItem('busbar-10kv', '10KV母线', '#FF0000', 18, '10KV'));
+gridItems.push(genBusbarItem('busbar-400v', '400V母线', '#FF0000', 4, '400V'));
+gridItems.push(genBusbarItem('busbar-600v', '600V母线', '#FF0000', 10, '600V'));
 
 export const configStore: IConfig = reactive({
   sysComponent: sysComponentItems,

@@ -68,9 +68,7 @@
                   v-if="left_aside_active_tab === 'graphic'"
                   :leftAsideConfig="leftAsideStore.config"
                 ></left-aside>
-                <device-template
-                  v-else-if="left_aside_active_tab === 'template'"
-                ></device-template>
+                <device-template v-else-if="left_aside_active_tab === 'template'"></device-template>
                 <slot v-else-if="hasStationAsideSlot" name="stationAside" />
                 <div v-else class="h-1/1 flex items-center justify-center p-10px">
                   <el-empty description="暂无场站内容" />
@@ -201,7 +199,7 @@ type MtEditProps = {
   exportExtra?: Record<string, unknown>;
   /** 当前已加载一次接线图的最近更新时间（时间戳，毫秒） */
   currentDiagramUpdateTime?: number;
-  /** 当前接线图所属场站的 IP 地址，用于连接状态探测 */
+  /** 当前接线图所属场站所绑定MCU（首个）的 IP 地址，用于连接状态探测 */
   currentStationIp?: string;
 };
 const mtEidtProps = withDefaults(defineProps<MtEditProps>(), {
@@ -257,8 +255,8 @@ const line_append_enable = ref(false);
 const left_aside_active_tab = ref('graphic');
 
 const tabs = [
-  { name: 'graphic', label: '图元', icon: Grid },
   { name: 'station', label: '场站', icon: OfficeBuilding },
+  { name: 'graphic', label: '图元', icon: Grid },
   { name: 'template', label: '模版', icon: Files }
 ];
 const currentTab = computed(() => tabs.find((f) => f.name === left_aside_active_tab.value));
@@ -497,5 +495,4 @@ defineExpose({
   color: var(--el-text-color-primary);
   border-bottom: 1px solid var(--el-border-color);
 }
-
 </style>
