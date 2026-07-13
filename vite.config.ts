@@ -34,7 +34,6 @@ export default defineConfig(({ mode }) => {
         editor: '/Applications/CodeBuddy CN.app/Contents/Resources/app/bin/code'
       })
     ],
-
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url))

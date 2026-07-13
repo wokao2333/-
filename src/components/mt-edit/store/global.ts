@@ -7,30 +7,38 @@ import type {
   IGlobalStoreCreateItemInfo,
   IRealTimeData
 } from './types';
+
+export const DEFAULT_CANVAS_SIZE = {
+  width: 1280,
+  height: 750
+} as const;
+
+export const createDefaultCanvasCfg = (): IGlobalStoreCanvasCfg => ({
+  width: DEFAULT_CANVAS_SIZE.width,
+  height: DEFAULT_CANVAS_SIZE.height,
+  scale: 1,
+  color: '#000',
+  img: '',
+  guide: true,
+  adsorp: true,
+  adsorp_diff: 5,
+  transform_origin: {
+    x: 0,
+    y: 0
+  },
+  drag_offset: {
+    x: 0,
+    y: 0
+  }
+});
+
 export const globalStore: IGlobalStore = reactive({
   intention: 'none',
   create_item_info: null,
   create_template_info: null,
   selected_items_id: [],
   done_json: [],
-  canvasCfg: {
-    width: 1920,
-    height: 1080,
-    scale: 1,
-    color: '#000',
-    img: '',
-    guide: true,
-    adsorp: true,
-    adsorp_diff: 5,
-    transform_origin: {
-      x: 0,
-      y: 0
-    },
-    drag_offset: {
-      x: 0,
-      y: 0
-    }
-  },
+  canvasCfg: createDefaultCanvasCfg(),
   // 导入/初始加载时的画布配置快照，复位时恢复此状态
   initialCanvasCfg: null as IGlobalStoreCanvasCfg | null,
   gridCfg: {

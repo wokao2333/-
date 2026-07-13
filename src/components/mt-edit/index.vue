@@ -109,6 +109,16 @@
         <div class="flex items-center gap-6px text-gray-500 dark:text-gray-400">
           <span class="text-gray-400">最近更新：</span>
           <span>{{ formatTime(mtEidtProps.currentDiagramUpdateTime) }}</span>
+          <span class="mx-2px text-gray-600 dark:text-gray-500">|</span>
+          <span class="text-gray-400">场站：</span>
+          <span class="max-w-160px truncate" :title="mtEidtProps.currentStationName">
+            {{ mtEidtProps.currentStationName || '—' }}
+          </span>
+          <span class="mx-2px text-gray-600 dark:text-gray-500">|</span>
+          <span class="text-gray-400">图纸：</span>
+          <span class="max-w-160px truncate" :title="mtEidtProps.currentDiagramName">
+            {{ mtEidtProps.currentDiagramName || '—' }}
+          </span>
         </div>
         <div class="flex items-center gap-6px">
           <span
@@ -201,12 +211,18 @@ type MtEditProps = {
   currentDiagramUpdateTime?: number;
   /** 当前接线图所属场站所绑定MCU（首个）的 IP 地址，用于连接状态探测 */
   currentStationIp?: string;
+  /** 当前展示一次接线图所属场站名称 */
+  currentStationName?: string;
+  /** 当前展示一次接线图名称 */
+  currentDiagramName?: string;
 };
 const mtEidtProps = withDefaults(defineProps<MtEditProps>(), {
   useThumbnail: false,
   exportExtra: () => ({}),
   currentDiagramUpdateTime: undefined,
-  currentStationIp: ''
+  currentStationIp: '',
+  currentStationName: '',
+  currentDiagramName: ''
 });
 const emits = defineEmits([
   'onPreviewClick',

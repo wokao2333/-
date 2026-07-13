@@ -5,7 +5,7 @@ import type { IDoneJson, ILeftAsideConfigItem } from '@/components/mt-edit/store
 import { useGenThumbnail } from '@/components/mt-edit/composables/thumbnail';
 import { MtEdit, leftAsideStore } from '@/export';
 import { useRouter } from 'vue-router';
-import { globalStore } from '@/components/mt-edit/store/global';
+import { createDefaultCanvasCfg, globalStore } from '@/components/mt-edit/store/global';
 import { cacheStore } from '@/components/mt-edit/store/cache';
 import { genCanvasDataUrl } from '@/components/mt-edit/composables/canvas-thumbnail';
 import { useExportJsonToDoneJson } from '@/components/mt-edit/composables';
@@ -207,6 +207,13 @@ const currentStationIp = computed(() => {
   const diagram = currentDiagram.value;
   return diagram?.boundMcuInfo?.ip ?? '';
 });
+/** 传递给编辑器底部状态栏：当前一次接线图所属场站名称 */
+const currentStationName = computed(() => {
+  if (!drawingDiagram.value) return '';
+  return stations.value.find((f) => f.id === drawingDiagram.value!.stationId)?.name ?? '';
+});
+/** 传递给编辑器底部状态栏：当前一次接线图名称 */
+const currentDiagramName = computed(() => currentDiagram.value?.name ?? '');
 
 onMounted(async () => {
   try {
@@ -1577,18 +1584,7 @@ const onAddDiagram = (payload: AddDiagramPayload) => {
   cacheStore.history = [[]];
   cacheStore.historyIndex = 0;
   // 重置画布配置为默认值，并保存初始快照供复位使用
-  globalStore.canvasCfg = {
-    width: 1920,
-    height: 1080,
-    scale: 1,
-    color: '#000',
-    img: '',
-    guide: true,
-    adsorp: true,
-    adsorp_diff: 5,
-    transform_origin: { x: 0, y: 0 },
-    drag_offset: { x: 0, y: 0 }
-  };
+  globalStore.canvasCfg = createDefaultCanvasCfg();
   globalStore.initialCanvasCfg = objectDeepClone(globalStore.canvasCfg);
   ElMessage.info('请在右侧画布绘制一次图，绘制完成后点击保存');
 };
@@ -1734,6 +1730,8 @@ const onThumbnailClick = () => {
         :export-extra="exportExtra"
         :current-diagram-update-time="currentDiagramUpdateTime"
         :current-station-ip="currentStationIp"
+        :current-station-name="currentStationName"
+        :current-diagram-name="currentDiagramName"
         @on-preview-click="onPreviewClick"
         @on-import-success="onImportSuccess"
         @on-return-click="onReturnClick"
