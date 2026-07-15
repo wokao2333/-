@@ -208,14 +208,6 @@
             </el-button>
           </el-tooltip>
         </el-button-group>
-        <el-divider direction="vertical"></el-divider>
-        <el-tooltip content="数据源配置" placement="bottom" effect="dark">
-          <el-button text circle size="small" @click="emits('onDataSourceClick')">
-            <el-icon :size="20">
-              <Connection />
-            </el-icon>
-          </el-button>
-        </el-tooltip>
         <el-divider direction="vertical" v-if="!is_npm_env"></el-divider>
         <el-tooltip v-if="!is_npm_env" content="连线编辑模式" placement="bottom" effect="dark">
           <el-button text circle size="small" @click="onDrawLineClick">
@@ -343,7 +335,7 @@
 </template>
 <script setup lang="ts">
 import { useDark, useToggle, useFullscreen } from '@vueuse/core';
-import { Connection, Promotion, Aim } from '@element-plus/icons-vue';
+import { Promotion, Aim } from '@element-plus/icons-vue';
 import {
   ElIcon,
   ElDivider,
@@ -395,7 +387,6 @@ const emits = defineEmits([
   'onSaveClick',
   'onDrawLineClick',
   'onThumbnailClick',
-  'onDataSourceClick',
   'onPublishClick',
   'onOnlineCheckClick'
 ]);

@@ -48,17 +48,6 @@ export async function parseDeviceXlsxFile(file: File): Promise<DevicePointImport
   return parseRows(aoa);
 }
 
-/** 是否运行在 Electron 桌面端（具备按绝对路径导入能力） */
-export function hasElectronDeviceImport(): boolean {
-  return Boolean(
-    (
-      window as unknown as {
-        api?: { database?: { deviceTemplate?: { importFromPath?: unknown } } };
-      }
-    ).api?.database?.deviceTemplate?.importFromPath
-  );
-}
-
 export function useDeviceTemplateDB() {
   const listDeviceTypes = (): Promise<DeviceTypeRow[]> => db.deviceTemplate.listDeviceTypes();
   const listPointsByDevice = (deviceType: string): Promise<DevicePointRow[]> =>
@@ -75,28 +64,11 @@ export function useDeviceTemplateDB() {
     return rows.length;
   };
 
-  /** Electron 端：直接解析指定绝对路径的 Excel 并导入 */
-  const importFromPath = async (absPath: string): Promise<number> => {
-    const bridge = (
-      window as unknown as {
-        api?: {
-          database?: {
-            deviceTemplate?: { importFromPath?: (p: string) => Promise<{ count: number }> };
-          };
-        };
-      }
-    ).api?.database?.deviceTemplate;
-    if (!bridge?.importFromPath) throw new Error('当前环境不支持按路径导入');
-    const res = await bridge.importFromPath(absPath);
-    return res.count;
-  };
-
   return {
     listDeviceTypes,
     listPointsByDevice,
     saveSelection,
     replaceFromRows,
-    importFromXlsxFile,
-    importFromPath
+    importFromXlsxFile
   };
 }

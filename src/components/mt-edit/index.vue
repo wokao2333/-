@@ -32,7 +32,6 @@
           @on-preview-click="onPreviewClick"
           @on-thumbnail-click="onThumbnailClick"
           @on-draw-line-click="onDrawLineClick"
-          @on-data-source-click="emits('onDataSourceClick')"
           @on-publish-click="onPublishClick"
           @on-online-check-click="onOnlineCheckClick"
         ></header-panel>
@@ -230,7 +229,6 @@ const emits = defineEmits([
   'onSaveClick',
   'onThumbnailClick',
   'onImportSuccess',
-  'onDataSourceClick',
   'onPublishClick'
 ]);
 const slots = useSlots();

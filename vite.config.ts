@@ -42,12 +42,9 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       host: '0.0.0.0',
-      proxy: {
-        '/api': {
-          target: 'http://localhost:3001',
-          changeOrigin: true
-        }
-      }
+      port: 5173,
+      // 端口被占用时直接报错，而不是静默切换到 5174，避免 Electron 连错端口
+      strictPort: true
     }
   };
   if (mode === 'lib' || mode === 'npm') {

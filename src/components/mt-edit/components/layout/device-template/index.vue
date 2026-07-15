@@ -3,15 +3,6 @@
     <div class="flex items-center justify-between mb-10px">
       <el-text type="info" size="small">设备类型模版（数据来自本地 SQLite）</el-text>
       <div class="flex items-center gap-6px">
-        <el-button
-          v-if="hasPathImport"
-          type="primary"
-          size="small"
-          :loading="pathLoading"
-          @click="onImportFromPath"
-        >
-          从默认路径导入
-        </el-button>
         <el-button type="primary" size="small" @click="fileInputRef?.click()">
           导入Excel
         </el-button>
@@ -101,19 +92,13 @@ import {
   ElText,
   ElMessage
 } from 'element-plus';
-import { useDeviceTemplateDB, hasElectronDeviceImport } from '@/composables/useDeviceTemplateDB';
+import { useDeviceTemplateDB } from '@/composables/useDeviceTemplateDB';
 import type { DevicePointRow, DeviceTypeRow } from './types';
 
-// 需求指定的 Excel 默认路径（仅 Electron 桌面端可按此路径直接导入）
-const DEFAULT_XLSX_PATH =
-  '/Users/wokao2333/Library/Containers/com.tencent.xinWeChat/Data/Documents/xwechat_files/wxid_4g2yfzenw03122_76d1/msg/file/2026-07/设备类型-点.xlsx';
-
 const db = useDeviceTemplateDB();
-const hasPathImport = hasElectronDeviceImport();
 
 const deviceTypes = ref<DeviceTypeRow[]>([]);
 const fileInputRef = ref<HTMLInputElement>();
-const pathLoading = ref(false);
 
 const dialogVisible = ref(false);
 const currentDevice = ref('');
@@ -143,19 +128,6 @@ const onFileChange = async (e: Event) => {
     }
   }
   target.value = '';
-};
-
-const onImportFromPath = async () => {
-  pathLoading.value = true;
-  try {
-    const count = await db.importFromPath(DEFAULT_XLSX_PATH);
-    ElMessage.success(`已导入 ${count} 条测点`);
-    await loadDeviceTypes();
-  } catch (err) {
-    ElMessage.error('按路径导入失败：' + (err instanceof Error ? err.message : String(err)));
-  } finally {
-    pathLoading.value = false;
-  }
 };
 
 const onEdit = async (row: DeviceTypeRow) => {
@@ -194,12 +166,15 @@ const onSelectAll = (checked: boolean) => {
 const onSave = async () => {
   saving.value = true;
   try {
-    await db.saveSelection(currentDevice.value, selectedIds.value);
+    // 跨 IPC 前转成普通数组：selectedIds.value 是 Vue reactive 代理，
+    // ipcRenderer.invoke 的结构化克隆无法克隆 Proxy，会抛 "An object could not be cloned"
+    await db.saveSelection(currentDevice.value, [...selectedIds.value]);
     ElMessage.success('测点配置已保存');
     dialogVisible.value = false;
     await loadDeviceTypes();
-  } catch {
-    ElMessage.error('保存失败，请重试');
+  } catch (err) {
+    console.error('[device-template] saveSelection 失败', err);
+    ElMessage.error('保存失败：' + (err instanceof Error ? err.message : String(err)));
   } finally {
     saving.value = false;
   }

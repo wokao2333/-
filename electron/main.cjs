@@ -1,45 +1,7 @@
 const path = require('node:path');
+const http = require('node:http');
 const { app, BrowserWindow, ipcMain } = require('electron');
 const { createSqliteService } = require('./database/sqlite-service.cjs');
-const XLSX = require('xlsx');
-
-// 解析「设备类型-点」Excel（按绝对路径）。单 Sheet，表头：
-// 类型 / 类型名称 / 属性标识 / 点名称 / 展示名称 / 数值类型 / 单位 / 是否默认选中 / 排序
-function parseDeviceXlsxFile(absPath) {
-  const wb = XLSX.readFile(absPath);
-  const sheet = wb.Sheets[wb.SheetNames[0]];
-  const aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', blankrows: false });
-  const headerIdx = aoa.findIndex(
-    (r) => r.includes('类型名称') && r.includes('属性标识')
-  );
-  if (headerIdx < 0) return [];
-  const headers = aoa[headerIdx].map((c) => String(c).trim());
-  const col = (name) => headers.indexOf(name);
-  const get = (row, name) => {
-    const idx = col(name);
-    return idx >= 0 ? String(row[idx] ?? '').trim() : '';
-  };
-  const rows = [];
-  for (let i = headerIdx + 1; i < aoa.length; i++) {
-    const row = aoa[i];
-    const deviceType = get(row, '类型名称');
-    const innerId = get(row, '属性标识');
-    const pointName = get(row, '点名称');
-    if (!deviceType || (!pointName && !innerId)) continue;
-    rows.push({
-      typeCode: Number(get(row, '类型')) || 0,
-      deviceType,
-      innerId,
-      pointName,
-      displayName: get(row, '展示名称'),
-      dataType: get(row, '数值类型'),
-      unit: get(row, '单位'),
-      defaultSelected: Number(get(row, '是否默认选中')) ? 1 : 0,
-      sortOrder: Number(get(row, '排序')) || 0
-    });
-  }
-  return rows;
-}
 
 let mainWindow = null;
 let sqliteService = null;
@@ -98,15 +60,13 @@ function registerDatabaseIpc() {
   ipcMain.handle('database:device-template:list-points', (_event, deviceType) =>
     getSqliteService().deviceTemplate.listPointsByDevice(deviceType)
   );
-  ipcMain.handle('database:device-template:save-selection', (_event, deviceType, selectedIds) =>
-    getSqliteService().deviceTemplate.saveSelection(deviceType, selectedIds)
-  );
-  // 按绝对路径解析「设备类型-点」Excel 并导入（仅在 Electron 桌面端可用）
-  ipcMain.handle('database:device-template:import-from-path', (_event, absPath) => {
-    const service = getSqliteService();
-    const rows = parseDeviceXlsxFile(absPath);
-    service.deviceTemplate.replaceFromRows(rows);
-    return { count: rows.length };
+  ipcMain.handle('database:device-template:save-selection', (_event, deviceType, selectedIds) => {
+    try {
+      return getSqliteService().deviceTemplate.saveSelection(deviceType, selectedIds);
+    } catch (err) {
+      console.error('[main] save-selection 失败', deviceType, selectedIds, err);
+      throw err;
+    }
   });
 
   ipcMain.handle('database:project:export-bytes', () => getSqliteService().project.exportBytes());
@@ -115,7 +75,43 @@ function registerDatabaseIpc() {
   );
 }
 
-function createWindow() {
+// 轮询等待 Vite 开发服务器在 5173 端口就绪，避免 Electron 在服务器未启动时
+// 直接 loadURL 触发 ERR_CONNECTION_REFUSED
+function waitForDevServer(url, { retries = 60, delay = 1000 } = {}) {
+  return new Promise((resolve, reject) => {
+    const { hostname, port } = new URL(url);
+    let attempts = 0;
+    const tryConnect = () => {
+      const req = http.get(
+        { hostname, port, path: '/', method: 'GET', timeout: 2000 },
+        (res) => {
+          res.destroy();
+          resolve(true);
+        }
+      );
+      req.on('error', () => {
+        attempts += 1;
+        if (attempts >= retries) {
+          reject(new Error(`Vite 开发服务器在 ${retries} 次重试内未就绪（${url}）`));
+        } else {
+          setTimeout(tryConnect, delay);
+        }
+      });
+      req.on('timeout', () => {
+        req.destroy();
+        attempts += 1;
+        if (attempts >= retries) {
+          reject(new Error(`连接 Vite 开发服务器超时（${url}）`));
+        } else {
+          setTimeout(tryConnect, delay);
+        }
+      });
+    };
+    tryConnect();
+  });
+}
+
+async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1440,
     height: 960,
@@ -130,8 +126,24 @@ function createWindow() {
 
   const devServerUrl = process.env.VITE_DEV_SERVER_URL;
   if (devServerUrl) {
-    mainWindow.loadURL(devServerUrl);
-    mainWindow.webContents.openDevTools({ mode: 'detach' });
+    // 等待 Vite 就绪后再加载页面，避免 ERR_CONNECTION_REFUSED
+    waitForDevServer(devServerUrl)
+      .then(() => {
+        if (!mainWindow || mainWindow.isDestroyed()) return;
+        mainWindow.loadURL(devServerUrl);
+        mainWindow.webContents.openDevTools({ mode: 'detach' });
+      })
+      .catch((err) => {
+        console.error('[electron] 无法连接 Vite 开发服务器：', err.message);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          const html = `<html><body style="font-family:sans-serif;padding:24px">
+            <h2>无法连接开发服务器</h2>
+            <p>${err.message}</p>
+            <p>请确认已运行 <code>pnpm run vite:serve</code>，且端口 5173 未被占用或被防火墙拦截。</p>
+          </body></html>`;
+          mainWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+        }
+      });
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }

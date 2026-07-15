@@ -3,7 +3,7 @@
       "source.fixAll.eslint": "explicit",
       "eslint.autoFixOnSave": "explicit"
     },
-    "files.eol": "\n" 
+    "files.eol": "\n"
   }
   
   

@@ -33,9 +33,7 @@ contextBridge.exposeInMainWorld('api', {
       listPointsByDevice: (deviceType) =>
         invoke('database:device-template:list-points', deviceType),
       saveSelection: (deviceType, selectedIds) =>
-        invoke('database:device-template:save-selection', deviceType, selectedIds),
-      importFromPath: (absPath) =>
-        invoke('database:device-template:import-from-path', absPath)
+        invoke('database:device-template:save-selection', deviceType, selectedIds)
     },
     project: {
       exportBytes: () => invoke('database:project:export-bytes'),

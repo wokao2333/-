@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { IExportJson } from '@/components/mt-edit/components/types';
 import type { IDoneJson, ILeftAsideConfigItem } from '@/components/mt-edit/store/types';
 import { useGenThumbnail } from '@/components/mt-edit/composables/thumbnail';
@@ -26,10 +26,8 @@ import type { DevicePointRow, DeviceTypeRow } from '@/database';
 import {
   ElAlert,
   ElButton,
-  ElDialog,
   ElForm,
   ElFormItem,
-  ElInput,
   ElMessage,
   ElOption,
   ElSelect,
@@ -49,7 +47,6 @@ import {
   kvUnitTargetAttr,
   loadDeviceApiConfig,
   normalizeDeviceApiConfig,
-  parseDeviceBindingData,
   saveDeviceApiConfig,
   setValueByPath,
   syncDeviceFieldMeta,
@@ -58,23 +55,12 @@ import {
   type DeviceBindInfo,
   type DeviceBindingExportJson,
   type DeviceField,
-  type DeviceInfo,
   type DeviceListItem
 } from '@/composables/useDeviceBinding';
 
 const router = useRouter();
-const devices = ref<DeviceInfo[]>([]);
 const deviceFieldsMap = ref<Record<string, DeviceField[]>>({});
-const deviceOptionsLoading = shallowRef(false);
-const deviceOptionsError = shallowRef('');
-const dataSourceVisible = ref(false);
 const apiConfig = reactive<DeviceApiConfig>(loadDeviceApiConfig());
-const bindingJsonText = ref('');
-const parsedBindingJsonText = shallowRef('');
-const allDeviceFields = computed(() => Object.values(deviceFieldsMap.value).flat());
-const fetchingLoading = ref(false);
-const selectedStationForFetch = ref('');
-const parsedDeviceSourceName = ref('');
 // 设备列表（来自 EMS /business/microgrid/device/detail?deviceType=...），按当前选中的设备类型加载
 const deviceList = ref<DeviceListItem[]>([]);
 const deviceListLoading = ref(false);
@@ -231,62 +217,6 @@ onMounted(async () => {
   }
 });
 
-const clearBindingJson = () => {
-  devices.value = [];
-  deviceFieldsMap.value = {};
-  bindingJsonText.value = '';
-  parsedBindingJsonText.value = '';
-  selectedStationForFetch.value = '';
-  parsedDeviceSourceName.value = '';
-  ElMessage.success('已清空数据');
-};
-
-/** 数据源解析后，刷新画布上所有已绑定设备的 fieldName */
-const refreshAllBindingsAfterParse = () => {
-  globalStore.done_json.forEach((item: any) => {
-    const bind = item.deviceBind as DeviceBindInfo | undefined;
-    if (!bind?.deviceId || !bind?.dataKey) return;
-    const fields = deviceFieldsMap.value[bind.deviceId] || [];
-    syncDeviceFieldMeta(bind, fields);
-    syncDeviceBindMetaToItem(item as DeviceBindableItem);
-  });
-};
-
-const parseBindingJson = (silent = false) => {
-  if (!bindingJsonText.value.trim()) {
-    if (!silent) {
-      ElMessage.warning('请先粘贴或导入 JSON 数据');
-    }
-    return false;
-  }
-
-  try {
-    const parsed = parseDeviceBindingData(JSON.parse(bindingJsonText.value));
-
-    devices.value = parsed.devices;
-    deviceFieldsMap.value = parsed.fieldsMap;
-    parsedBindingJsonText.value = bindingJsonText.value;
-    deviceOptionsError.value = '';
-    refreshAllBindingsAfterParse();
-
-    if (!silent) {
-      ElMessage.success(
-        `已解析 ${parsed.devices.length} 个设备，共 ${allDeviceFields.value.length} 个属性`
-      );
-    }
-
-    return true;
-  } catch (error) {
-    deviceOptionsError.value = 'JSON 解析失败，请检查数据格式';
-    parsedBindingJsonText.value = '';
-    if (!silent) {
-      ElMessage.error(deviceOptionsError.value);
-    }
-    console.error(error);
-    return false;
-  }
-};
-
 // 由 MCU 实体构造接口基地址：连接信息（IP / 端口）已下沉到 MCU，不再由场站持有。
 const buildMcuBaseUrl = (mcu: McuItem): string | null => {
   if (!mcu.ip) {
@@ -300,85 +230,6 @@ const buildMcuBaseUrl = (mcu: McuItem): string | null => {
   return base;
 };
 
-/** 根据选中的场站 IP 调用接口获取设备列表 */
-const fetchDevices = async () => {
-  if (!selectedStationForFetch.value) {
-    ElMessage.warning('请先选择场站');
-    return;
-  }
-  const station = stations.value.find((f) => f.id === selectedStationForFetch.value);
-  if (!station) {
-    ElMessage.error('未找到所选场站');
-    return;
-  }
-  // 连接信息已下沉到 MCU：从该场站绑定的首个 MCU 解析接口地址
-  await ensureStationMcus(station.id);
-  const mcu = getStationPrimaryMcu(station.id);
-  if (!mcu || !mcu.ip) {
-    ElMessage.error('该场站尚未绑定MCU或未配置IP，请先在「绑定MCU」中录入连接信息');
-    return;
-  }
-  const baseUrl = buildMcuBaseUrl(mcu);
-  if (!baseUrl) return;
-
-  fetchingLoading.value = true;
-  deviceOptionsError.value = '';
-
-  try {
-    const url = `${baseUrl}/business/microgrid/device/detail`;
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    const json = await response.json();
-
-    if (json.code !== 200) {
-      throw new Error(json.msg || `接口返回 code=${json.code}`);
-    }
-
-    const parsed = parseDeviceBindingData(json);
-    devices.value = parsed.devices;
-    deviceFieldsMap.value = parsed.fieldsMap;
-    parsedBindingJsonText.value = JSON.stringify(json);
-    parsedDeviceSourceName.value = station.name;
-    deviceOptionsError.value = '';
-    refreshAllBindingsAfterParse();
-    ElMessage.success(
-      `${station.name}: ${parsed.devices.length} 个设备 / ${allDeviceFields.value.length} 个属性`
-    );
-  } catch (error: any) {
-    const msg = error?.message || String(error);
-    deviceOptionsError.value = `获取设备失败: ${msg}`;
-    ElMessage.error(deviceOptionsError.value);
-    console.error('fetchDevices error', error);
-  } finally {
-    fetchingLoading.value = false;
-  }
-};
-
-const loadDeviceOptions = async () => {
-  // 从场站接口获取的数据已在 devices 中，只需保存配置
-  if (devices.value.length > 0) {
-    saveDeviceApiConfig(apiConfig);
-    return;
-  }
-  // 兼容导入 JSON 时通过 bindingJsonText 解析的场景
-  if (bindingJsonText.value.trim()) {
-    deviceOptionsLoading.value = true;
-    deviceOptionsError.value = '';
-    try {
-      parseBindingJson();
-      saveDeviceApiConfig(apiConfig);
-    } catch (error) {
-      deviceOptionsError.value = '设备数据解析失败，请检查 JSON 格式';
-      ElMessage.error(deviceOptionsError.value);
-      console.error(error);
-    } finally {
-      deviceOptionsLoading.value = false;
-    }
-  }
-};
-
 const getDeviceBind = (item: DeviceBindableItem) => ensureDeviceBind(item);
 
 const getFieldsByDeviceId = (deviceId: string) => deviceFieldsMap.value[deviceId] || [];
@@ -387,7 +238,7 @@ const getFieldsForItem = (item: DeviceBindableItem) => {
   const bind = ensureDeviceBind(item);
 
   if (!bind.deviceType) {
-    return allDeviceFields.value;
+    return [];
   }
 
   return getFieldsByDeviceId(bind.deviceType);
@@ -951,14 +802,6 @@ const onDeviceFieldChange = (item: DeviceBindableItem) => {
   syncDeviceBindMetaToItem(item);
 };
 
-const confirmDataSource = () => {
-  if (!devices.value.length) {
-    ElMessage.warning('请先选择场站并获取设备数据');
-    return;
-  }
-  dataSourceVisible.value = false;
-};
-
 const withDeviceSourceConfig = (exportJson: IExportJson) => {
   const normalizedConfig = normalizeDeviceApiConfig(apiConfig);
   saveDeviceApiConfig(normalizedConfig);
@@ -976,14 +819,13 @@ const exportExtra = computed(() => ({
   deviceApiConfig: normalizeDeviceApiConfig(apiConfig)
 }));
 
-const onImportSuccess = async (exportJson: DeviceBindingExportJson) => {
+const onImportSuccess = (exportJson: DeviceBindingExportJson) => {
   if (!exportJson.deviceApiConfig) {
     return;
   }
 
   Object.assign(apiConfig, normalizeDeviceApiConfig(exportJson.deviceApiConfig));
   saveDeviceApiConfig(apiConfig);
-  await loadDeviceOptions();
 };
 
 interface BoundPointGroup {
@@ -1650,80 +1492,10 @@ const onSaveDiagram = async (exportJson: IExportJson) => {
 const onThumbnailClick = () => {
   useGenThumbnail();
 };
-
-/* 页面挂载时不自动加载，改为用户在对话框中手动导入 JSON */
 </script>
 
 <template>
   <div class="edit-page">
-    <el-dialog
-      v-model="dataSourceVisible"
-      title="数据源配置"
-      width="560px"
-      :close-on-click-modal="false"
-    >
-      <template #header>
-        <div class="source-dialog-header">
-          <span>数据源配置</span>
-          <el-text v-if="devices.length" size="small" type="info" class="ml-12px">
-            {{ parsedDeviceSourceName }} {{ devices.length }} 设备 /
-            {{ allDeviceFields.length }} 属性
-          </el-text>
-        </div>
-      </template>
-      <div class="source-body">
-        <div class="fetch-form">
-          <div class="flex items-center gap-12px">
-            <el-text class="whitespace-nowrap">选择场站</el-text>
-            <el-select
-              v-model="selectedStationForFetch"
-              placeholder="请选择场站"
-              class="flex-1"
-              :disabled="fetchingLoading"
-            >
-              <el-option
-                v-for="station in stations"
-                :key="station.id"
-                :label="station.name"
-                :value="station.id"
-              />
-            </el-select>
-            <el-button
-              type="primary"
-              :loading="fetchingLoading"
-              :disabled="!selectedStationForFetch"
-              @click="fetchDevices"
-            >
-              获取设备
-            </el-button>
-          </div>
-          <el-text size="small" type="info" class="mt-8px block">
-            选择场站后将通过其绑定的MCU连接信息调用设备详情接口获取设备列表
-          </el-text>
-          <el-alert
-            v-if="deviceOptionsError"
-            :title="deviceOptionsError"
-            type="error"
-            :closable="false"
-            class="mt-8px"
-          />
-          <div v-if="devices.length" class="device-summary mt-12px p-12px bg-light-50 rounded">
-            <el-text size="small" type="primary">已加载 {{ devices.length }} 个设备</el-text>
-            <div class="mt-8px max-h-160px overflow-y-auto">
-              <el-text v-for="device in devices" :key="device.id" size="small" class="block mt-4px">
-                {{ device.name }} ({{ device.id }})
-              </el-text>
-            </div>
-          </div>
-        </div>
-      </div>
-      <template #footer>
-        <el-button type="danger" plain :disabled="!devices.length" @click="clearBindingJson">
-          清空数据
-        </el-button>
-        <el-button type="primary" @click="confirmDataSource">确定</el-button>
-      </template>
-    </el-dialog>
     <div class="editor-shell">
       <mt-edit
         :use-thumbnail="true"
@@ -1737,7 +1509,6 @@ const onThumbnailClick = () => {
         @on-return-click="onReturnClick"
         @on-save-click="onSaveClick"
         @on-thumbnail-click="onThumbnailClick"
-        @on-data-source-click="dataSourceVisible = true"
         @on-publish-click="onPublishClick"
       >
         <template #stationAside>
@@ -1762,13 +1533,6 @@ const onThumbnailClick = () => {
         <template #deviceBind="{ item }">
           <el-form label-width="70px" label-position="left">
             <el-alert
-              v-if="deviceOptionsError"
-              :title="deviceOptionsError"
-              type="error"
-              :closable="false"
-              class="mb-10px"
-            />
-            <el-alert
               v-if="!canBindDeviceValue(item)"
               title="当前图元本身不展示数值，请选中文本、按钮或键值对组件绑定。卡片通常作为容器使用。"
               type="info"
@@ -1778,7 +1542,6 @@ const onThumbnailClick = () => {
             <el-form-item label="设备类型">
               <el-select
                 v-model="getDeviceBind(item).deviceType"
-                :loading="deviceOptionsLoading"
                 filterable
                 clearable
                 placeholder="选择设备类型"
@@ -1893,26 +1656,6 @@ const onThumbnailClick = () => {
   width: 100%;
   height: 100vh;
   overflow: hidden;
-}
-
-.source-dialog-header {
-  display: flex;
-  align-items: center;
-}
-
-.source-body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.fetch-form {
-  display: flex;
-  flex-direction: column;
-}
-
-.device-summary {
-  border: 1px solid var(--el-border-color);
 }
 
 .editor-shell {
