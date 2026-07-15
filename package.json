@@ -10,6 +10,7 @@
     "electron:dev": "concurrently -k -n vite,electron -c blue,green \"pnpm run vite:serve\" \"pnpm run electron:start\"",
     "electron:preview": "pnpm run build-only && electron electron/main.cjs",
     "electron:rebuild": "electron-rebuild -f -w better-sqlite3",
+    "electron:build": "pnpm run build-only && pnpm run electron:rebuild && electron-builder",
     "preview": "vite preview",
     "test:unit": "vitest",
     "build-only": "vite build",
@@ -41,6 +42,43 @@
       "vue-demi",
       "vue-echarts"
     ]
+  },
+  "build": {
+    "appId": "com.maotu.app",
+    "productName": "一次接线图",
+    "copyright": "Copyright © 2026 maotu",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraMetadata": {
+      "main": "electron/main.cjs"
+    },
+    "asarUnpack": [
+      "**/*.node",
+      "**/better-sqlite3/**"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ]
+    }
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
@@ -75,6 +113,7 @@
     "code-inspector-plugin": "^1.6.1",
     "concurrently": "^10.0.3",
     "electron": "^43.1.0",
+    "electron-builder": "^26.15.3",
     "eslint": "^8.49.0",
     "eslint-plugin-vue": "^9.17.0",
     "jsdom": "^22.1.0",

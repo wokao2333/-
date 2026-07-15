@@ -1,0 +1,97 @@
+name: Build Desktop Installers
+
+on:
+  push:
+    tags:
+      - 'v*'          # 打 tag（如 v0.3.1）时自动发 Release
+  pull_request: {}   # PR 也会跑构建验证，但不发 Release
+  workflow_dispatch: {}
+
+permissions:
+  contents: write   # 发 Release 所需
+
+jobs:
+  # ---------- macOS 安装包（dmg / zip）----------
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Electron app (macOS)
+        env:
+          # 未配置证书时跳过自动签名，避免构建失败；配置了下面三个 secret 后可自动公证
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          # APPLE_ID: ${{ secrets.APPLE_ID }}
+          # APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: pnpm run electron:build
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-installers
+          path: dist-electron/*.{dmg,zip,yml,blockmap}
+
+  # ---------- Windows 安装包（NSIS exe）----------
+  build-win:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: pnpm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'   # better-sqlite3 原生模块重建需要 Python
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Electron app (Windows)
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: pnpm run electron:build
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: win-installers
+          path: dist-electron/*.exe
+
+  # ---------- 打 tag 时汇总发布到 Release ----------
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-mac, build-win]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**
+          draft: true          # 先存草稿，确认无误再发布
+          generate_release_notes: true

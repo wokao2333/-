@@ -12,6 +12,7 @@ import { useExportJsonToDoneJson } from '@/components/mt-edit/composables';
 import { buildPublishExportJson } from '@/components/mt-edit/composables/publish-assets';
 import { randomString, objectDeepClone } from '@/components/mt-edit/utils';
 import StationAside from '@/components/mt-edit/components/layout/station-aside/index.vue';
+import PreviewDialog from '@/components/mt-preview/preview-dialog.vue';
 import type {
   Station,
   StationDiagram,
@@ -965,12 +966,12 @@ const onPreviewClick = async (
     }
   }
 
-  sessionStorage.setItem('exportJson', JSON.stringify(withDeviceSourceConfig(exportJson)));
-  const routeUrl = router.resolve({
-    name: 'preview'
-  });
-  window.open(routeUrl.href, '_blank');
+  previewExportJson.value = withDeviceSourceConfig(exportJson);
+  previewVisible.value = true;
 };
+// 预览弹窗状态：以 Modal 形式在当前页面展示预览，替代原先打开新页面的方式
+const previewVisible = ref(false);
+const previewExportJson = ref<IExportJson | null>(null);
 
 // 场站详情列表中的“预览”：复用顶部“预览”按钮的完整逻辑，
 // 使用该行一次图自身的 exportJson 与其所属场站发起预览。
@@ -1646,6 +1647,8 @@ const onThumbnailClick = () => {
         </template>
       </mt-edit>
     </div>
+    <!-- 预览弹窗：以 Modal 形式在当前页面展示，替代原有的新页面跳转 -->
+    <preview-dialog v-model="previewVisible" :export-json="previewExportJson" />
   </div>
 </template>
 

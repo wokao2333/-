@@ -1,6 +1,6 @@
 <template>
   <div id="mt-device-template" class="h-1/1 flex flex-col p-10px box-border">
-    <div class="flex items-center justify-between mb-10px">
+    <div class="flex flex-col gap-6px mb-10px">
       <el-text type="info" size="small">设备类型模版（数据来自本地 SQLite）</el-text>
       <div class="flex items-center gap-6px">
         <el-button type="primary" size="small" @click="fileInputRef?.click()">

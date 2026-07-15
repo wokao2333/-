@@ -73,22 +73,29 @@ const done_json = ref<IDoneJson[]>([]);
 const userScale = ref(1); // 用户手动缩放的比例（Ctrl+滚轮）
 
 /**
- * 计算自适应缩放比例，使画布铺满整个视口
+ * 计算自适应缩放比例，使画布铺满整个承载容器。
+ * 优先使用组件自身的容器尺寸（弹窗/局部区域场景下可自适应），
+ * 退化时回退到窗口尺寸，保证独立预览页也能正常工作。
  */
 const fitScale = ref(1);
+const getViewportSize = () => {
+  const el = previewShellRef.value;
+  const w = el?.clientWidth || window.innerWidth;
+  const h = el?.clientHeight || window.innerHeight;
+  return { w, h };
+};
 const calcFitScale = () => {
   const canvasW = canvas_cfg.value.width;
   const canvasH = canvas_cfg.value.height;
-  const viewW = window.innerWidth;
-  const viewH = window.innerHeight;
+  const { w: viewW, h: viewH } = getViewportSize();
 
-  if (canvasW === 0 || canvasH === 0) return;
+  if (canvasW === 0 || canvasH === 0 || viewW === 0 || viewH === 0) return;
 
-  // 计算宽高方向各自需要缩放到视口大小的比例
+  // 计算宽高方向各自需要缩放到容器大小的比例
   const scaleX = viewW / canvasW;
   const scaleY = viewH / canvasH;
 
-  // 取较小的比例，确保画布完整显示在视口中
+  // 取较小的比例，确保画布完整显示在容器中
   fitScale.value = Math.min(scaleX, scaleY);
 };
 
@@ -105,8 +112,7 @@ const effectiveScale = computed(() => {
 const wrapperStyle = computed(() => {
   const canvasW = canvas_cfg.value.width * effectiveScale.value;
   const canvasH = canvas_cfg.value.height * effectiveScale.value;
-  const viewW = window.innerWidth;
-  const viewH = window.innerHeight;
+  const { w: viewW, h: viewH } = getViewportSize();
 
   const offsetX = (viewW - canvasW) / 2;
   const offsetY = (viewH - canvasH) / 2;
@@ -194,6 +200,7 @@ const handleResize = () => {
   calcFitScale();
 };
 
+let resizeObserver: ResizeObserver | null = null;
 onMounted(() => {
   if (mtPreviewProps.exportJson) {
     const { canvasCfg, gridCfg, importDoneJson } = useExportJsonToDoneJson(
@@ -205,10 +212,17 @@ onMounted(() => {
   }
   calcFitScale();
   window.addEventListener('resize', handleResize);
+  // 监听承载容器尺寸变化（弹窗尺寸/窗口调整），实时重新计算自适应缩放
+  if (previewShellRef.value && typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(() => calcFitScale());
+    resizeObserver.observe(previewShellRef.value);
+  }
 });
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
+  resizeObserver?.disconnect();
+  resizeObserver = null;
   stopPreviewCanvasDrag();
 });
 
@@ -228,8 +242,8 @@ defineExpose({
 </script>
 <style scoped>
 .preview-shell {
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   background-color: #1a1a2e;
 }

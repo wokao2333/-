@@ -1,5 +1,7 @@
 <template>
-  <mt-preview ref="MtPreviewRef" @on-event-call-back="onEventCallBack"></mt-preview>
+  <div class="preview-page-root">
+    <mt-preview ref="MtPreviewRef" @on-event-call-back="onEventCallBack"></mt-preview>
+  </div>
 </template>
 <script setup lang="ts">
 import { MtPreview } from '@/export';
@@ -118,3 +120,12 @@ onUnmounted(() => {
   }
 });
 </script>
+
+<style scoped>
+.preview-page-root {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+}
+</style>
