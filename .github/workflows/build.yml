@@ -36,7 +36,7 @@ jobs:
           # APPLE_ID: ${{ secrets.APPLE_ID }}
           # APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: pnpm run electron:build
+        run: pnpm run electron:build -- --publish never
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
@@ -69,7 +69,7 @@ jobs:
       - name: Build Electron app (Windows)
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
-        run: pnpm run electron:build
+        run: pnpm run electron:build -- --publish never
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
