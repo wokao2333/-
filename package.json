@@ -44,9 +44,9 @@
     ]
   },
   "build": {
-    "appId": "com.maotu.app",
+    "appId": "com.wokao.app",
     "productName": "一次接线图",
-    "copyright": "Copyright © 2026 maotu",
+    "copyright": "Copyright © 2026 lx",
     "directories": {
       "output": "dist-electron"
     },

@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHashHistory } from 'vue-router';
 export const constantRoutes = [
   {
     path: '/',
@@ -41,7 +41,7 @@ export const constantRoutes = [
   }
 ];
 const router = createRouter({
-  history: createWebHistory(), // hash模式：createWebHashHistory，history模式：createWebHistory
+  history: createWebHashHistory(),
   routes: constantRoutes
 });
 

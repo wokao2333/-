@@ -10,6 +10,7 @@ import { codeInspectorPlugin } from 'code-inspector-plugin';
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   let config: UserConfigExport = {
+    base: './',
     plugins: [
       vue(),
       dts({
