@@ -42,7 +42,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mac-installers
-          path: dist-electron/*.{dmg,zip,yml,blockmap}
+          path: |
+            dist-electron/*.dmg
+            dist-electron/*.zip
+            dist-electron/*.yml
+            dist-electron/*.blockmap
+          if-no-files-found: error
 
   # ---------- Windows 安装包（NSIS exe）----------
   build-win:
@@ -76,6 +81,7 @@ jobs:
         with:
           name: win-installers
           path: dist-electron/*.exe
+          if-no-files-found: error
 
   # ---------- 打 tag 时汇总发布到 Release ----------
   release:
