@@ -26,4 +26,15 @@ describe('KvVue', () => {
     expect(wrapper.find('table').attributes('style')).toContain('width: 134px');
     expect(getColumnWidths()).toEqual(['width: 30px;', 'width: 72px;', 'width: 32px;']);
   });
+
+  it('uses scalable horizontal and vertical padding', () => {
+    const wrapper = mount(KvVue, {
+      props: {
+        paddingX: 20,
+        paddingY: 12
+      }
+    });
+
+    expect(wrapper.find('.kvWrap').attributes('style')).toContain('padding: 12px 20px');
+  });
 });

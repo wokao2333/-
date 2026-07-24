@@ -1,6 +1,6 @@
 <template>
   <p
-    class="break-words w-1/1 h-1/1"
+    class="text-content break-words w-1/1 h-1/1"
     :class="props.vertical ? 'text-vertical' : ''"
     :style="{ fontFamily: props.fontFamily, fontSize: props.fontSize + 'px', color: props.fill }"
   >
@@ -32,6 +32,10 @@ const props = defineProps({
 });
 </script>
 <style scoped>
+.text-content {
+  margin: 0;
+}
+
 .text-vertical {
   writing-mode: tb;
   letter-spacing: 5px;

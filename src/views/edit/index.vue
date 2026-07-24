@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import type { IExportJson } from '@/components/mt-edit/components/types';
 import type { IDoneJson, ILeftAsideConfigItem } from '@/components/mt-edit/store/types';
 import { useGenThumbnail } from '@/components/mt-edit/composables/thumbnail';
@@ -23,15 +23,22 @@ import { useStationDB } from '@/composables/useStationDB';
 import { useMcuDB } from '@/composables/useMcuDB';
 import { configStore } from '@/components/mt-edit/store/config';
 import { useDeviceTemplateDB } from '@/composables/useDeviceTemplateDB';
-import type { DevicePointRow, DeviceTypeRow } from '@/database';
+import { useDeviceTypes } from '@/composables/useDeviceTypes';
+import type { DevicePointRow } from '@/database';
+import type { DeviceTemplateSelectionChange } from '@/components/mt-edit/components/layout/device-template/types';
 import {
   ElAlert,
   ElButton,
+  ElDialog,
+  ElEmpty,
   ElForm,
   ElFormItem,
   ElMessage,
   ElOption,
+  ElPagination,
   ElSelect,
+  ElTable,
+  ElTableColumn,
   ElText
 } from 'element-plus';
 
@@ -60,6 +67,7 @@ import {
 } from '@/composables/useDeviceBinding';
 
 const router = useRouter();
+const mtEditRef = ref<InstanceType<typeof MtEdit>>();
 const deviceFieldsMap = ref<Record<string, DeviceField[]>>({});
 const apiConfig = reactive<DeviceApiConfig>(loadDeviceApiConfig());
 // 设备列表（来自 EMS /business/microgrid/device/detail?deviceType=...），按当前选中的设备类型加载
@@ -68,6 +76,19 @@ const deviceListLoading = ref(false);
 const deviceListError = ref('');
 const deviceListFetched = ref(false);
 const deviceListType = ref('');
+// 设备列表弹窗相关状态：以表格形式列出当前设备类型下的真实设备，选中一行后绑定到当前图元
+const deviceListDialogVisible = ref(false);
+const deviceListDialogItem = ref<DeviceBindableItem | null>(null);
+const deviceListSelectedId = ref('');
+const deviceListTableRef = ref<InstanceType<typeof ElTable> | null>(null);
+// 设备列表弹窗分页状态
+const deviceListPage = ref(1);
+const deviceListPageSize = ref(10);
+// 当前页展示的设备（对完整列表做切片，配合 el-pagination 使用）
+const pagedDeviceList = computed<DeviceListItem[]>(() => {
+  const start = (deviceListPage.value - 1) * deviceListPageSize.value;
+  return deviceList.value.slice(start, start + deviceListPageSize.value);
+});
 
 const stations = ref<Station[]>([]);
 const drawingDiagram = ref<{
@@ -84,16 +105,43 @@ const mcuDB = useMcuDB();
 // 都通过“场站 → 其绑定的首个 MCU”解析，从而在数据模型上实现场站与MCU的解耦与隔离。
 const stationMcus = reactive<Record<string, McuItem[]>>({});
 
-const ensureStationMcus = async (stationId: string): Promise<McuItem[]> => {
-  if (stationMcus[stationId]) return stationMcus[stationId];
+const replaceStationMcus = (stationId: string, list: McuItem[]): McuItem[] => {
+  const nextList = list.map((mcu) => ({ ...mcu }));
+  stationMcus[stationId] = nextList;
+  return nextList;
+};
+
+const refreshStationMcus = async (stationId: string): Promise<McuItem[]> => {
   const list = await mcuDB.loadByStation(stationId);
-  stationMcus[stationId] = list;
-  return list;
+  return replaceStationMcus(stationId, list);
+};
+
+const ensureStationMcus = async (stationId: string): Promise<McuItem[]> => {
+  if (Object.prototype.hasOwnProperty.call(stationMcus, stationId)) {
+    return stationMcus[stationId];
+  }
+  return refreshStationMcus(stationId);
 };
 
 // 场站可能绑定多个独立 MCU；默认以首个 MCU 作为连接目标（常见场景下单场站即单MCU）。
 const getStationPrimaryMcu = (stationId: string): McuItem | null =>
   stationMcus[stationId]?.[0] ?? null;
+
+// 一次图已明确绑定 MCU 时优先使用其 boundMcuId；数据库中暂时找不到对应记录时，
+// 兼容使用绑定时保存的快照。未绑定具体 MCU 的历史数据才回退到场站首个 MCU。
+const getDiagramConnectionMcu = (
+  stationId: string,
+  diagram: StationDiagram | null
+): McuItem | null => {
+  const list = stationMcus[stationId] ?? [];
+  if (diagram?.boundMcuId) {
+    const boundMcu = list.find((mcu) => mcu.id === diagram.boundMcuId);
+    if (boundMcu) return boundMcu;
+    if (diagram.boundMcuInfo?.id === diagram.boundMcuId) return diagram.boundMcuInfo;
+    return null;
+  }
+  return diagram?.boundMcuInfo ?? list[0] ?? null;
+};
 // 同步“当前是否已存在场站”到全局状态，供绘制一次接线图的前置校验使用。
 // 未添加任何场站时 hasStation 为 false，画布绘图操作将被拦截并提示“请先添加场站”。
 // 监听场站数量（而非整个数组引用）：
@@ -107,9 +155,10 @@ watch(
   },
   { immediate: true }
 );
-// 设备类型（与设备模板库一致的本地数据），用作绑定面板“设备”下拉框数据源
+// 设备类型（与设备模板库一致的本地数据），用作绑定面板“设备”下拉框数据源。
+// 使用跨组件共享的单例响应式状态：导入 Excel 后刷新一次，绑定下拉即可同步更新。
 const deviceTemplateDB = useDeviceTemplateDB();
-const deviceTypes = ref<DeviceTypeRow[]>([]);
+const { deviceTypes, loadDeviceTypes } = useDeviceTypes();
 
 // 当前选中的场站/一次图上下文持久化键。
 // 由于 currentStationId / drawingDiagram 仅为组件内内存状态，组件被失活/重挂载
@@ -211,11 +260,8 @@ onMounted(async () => {
   }
   // 组件重挂载后，从本地存储恢复“进入场站”状态，避免场站上下文丢失
   restoreCurrentContext();
-  try {
-    deviceTypes.value = await deviceTemplateDB.listDeviceTypes();
-  } catch (e) {
-    console.error('加载设备类型失败', e);
-  }
+  // 加载设备模板库到共享状态，绑定面板下拉会自动同步
+  await loadDeviceTypes();
 });
 
 // 由 MCU 实体构造接口基地址：连接信息（IP / 端口）已下沉到 MCU，不再由场站持有。
@@ -270,6 +316,15 @@ const getSelectedPointLabels = (item: DeviceBindableItem): string[] => {
   return getFieldsForItem(item).map((f) => (f.unit ? `${f.name} (${f.unit})` : f.name));
 };
 
+const openDevicePointConfig = (item: DeviceBindableItem) => {
+  const deviceType = ensureDeviceBind(item).deviceType;
+  if (!deviceType) {
+    ElMessage.warning('请先选择设备类型');
+    return;
+  }
+  mtEditRef.value?.openDevicePointConfig(deviceType);
+};
+
 const setDefaultField = (item: DeviceBindableItem) => {
   const bind = ensureDeviceBind(item);
   const fields = getFieldsForItem(item);
@@ -314,11 +369,11 @@ const CARD_H_PERCENT = 30.940298551502938;
 const DEFAULT_LABEL_WIDTH = 50;
 const LABEL_FONT_SIZE = 18;
 const LABEL_FONT_FAMILY = '黑体';
-const LABEL_SAFE_GAP = 4;
+const LABEL_SAFE_GAP = 8;
 const LABEL_CARD_GAP = 4;
 const KV_INNER_PADDING_X = 10;
 const VALUE_COLUMN_LEFT_SHIFT = 18;
-const VALUE_FONT_SIZE = 26;
+const VALUE_FONT_SIZE = 22;
 const POINT_VALUE_WIDTH = 72;
 const POINT_UNIT_GAP = 12;
 const PANEL_GAP = 20; // 面板距设备右侧 20px
@@ -410,7 +465,9 @@ const buildDevicePointPanel = (
   points: DevicePointRow[]
 ): IDoneJson[] => {
   const cardCfg = configStore.sysComponent.find((i) => i.id === 'card-vue');
-  const kvCfg = configStore.sysPrimitive.find((i) => i.id === 'kv-vue');
+  const kvCfg =
+    configStore.sysComponent.find((i) => i.id === 'kv-vue') ||
+    configStore.sysPrimitive.find((i) => i.id === 'kv-vue');
   if (!cardCfg || !kvCfg || !points.length) return [];
   const configuredUnitWidth = Number(kvCfg.props.unitWidth?.val);
   const pointUnitWidth = Number.isFinite(configuredUnitWidth) ? configuredUnitWidth : 50;
@@ -470,6 +527,7 @@ const buildDevicePointPanel = (
       angle: 0
     });
     card.use_proportional_scaling = false;
+    card.devicePanelGenerated = true;
     card.deviceBind = { deviceId: '', dataKey: '', targetAttr: '', nameTargetAttr: '', unit: '' };
     children.push(card);
 
@@ -489,6 +547,7 @@ const buildDevicePointPanel = (
     labelKv.props.unit.val = ' ';
     labelKv.props.unitWidth.val = 0;
     labelKv.props.unitGap.val = 0;
+    labelKv.devicePanelGenerated = true;
     labelKv.deviceBind = {
       deviceId: '',
       dataKey: '',
@@ -517,6 +576,7 @@ const buildDevicePointPanel = (
     kv.props.unit.val = point.unit;
     kv.props.unitWidth.val = pointUnitWidth;
     kv.props.unitGap.val = POINT_UNIT_GAP;
+    kv.devicePanelGenerated = true;
     kv.deviceBind = {
       deviceId,
       dataKey: point.innerId,
@@ -535,6 +595,7 @@ const buildDevicePointPanel = (
     id: 'device-panel-' + deviceItem.id,
     // 标记该面板归属的设备图元，便于后续重建时精确移除（兼容历史随机 id 面板）
     devicePanelFor: deviceItem.id,
+    devicePanelGenerated: true,
     title: '组合',
     type: 'group',
     binfo: {
@@ -610,6 +671,38 @@ const normalizePreviewPointPanelLayout = (exportJson: IExportJson) => {
   visit(exportJson.json);
 };
 
+interface DevicePanelSource {
+  item: IDoneJson;
+  deviceId: string;
+  deviceType: string;
+}
+
+// 一次性替换一个或多个设备的测点面板；模板批量刷新时只产生一条撤销历史。
+const replaceDevicePointPanels = (sources: DevicePanelSource[], points: DevicePointRow[]) => {
+  const ownerIds = new Set(sources.map(({ item }) => item.id));
+  const panelIds = new Set(sources.map(({ item }) => `device-panel-${item.id}`));
+  const targetTypes = new Set(sources.map(({ deviceType }) => deviceType));
+  // 历史旧面板（旧逻辑将 kv.deviceBind.deviceId 误写为设备类型名称，如“并网点上侧”）的 group 使用随机 id，
+  // 无法被 panelId 命中；此处依据“kv.deviceBind.deviceId 命中已知设备类型名”这一旧 bug 特征将其一并移除，
+  // 确保重新选择设备时仅保留一份正确的测点面板。
+  const isLegacyPanel = (i: any): boolean =>
+    isDevicePointPanelGroup(i) &&
+    i.children.every((c: any) => targetTypes.has(String(c.deviceBind?.deviceId)));
+  const base = globalStore.done_json.filter(
+    (i) =>
+      !panelIds.has(i.id) &&
+      !(i.devicePanelFor && ownerIds.has(i.devicePanelFor)) &&
+      !isLegacyPanel(i)
+  );
+  const panels = points.length
+    ? sources.flatMap(({ item, deviceId, deviceType }) =>
+        buildDevicePointPanel(item, deviceId, deviceType, points)
+      )
+    : [];
+  globalStore.setGlobalStoreDoneJson([...base, ...panels]);
+  cacheStore.addHistory(globalStore.done_json);
+};
+
 // 为选中设备创建/刷新测点面板，先按确定性面板 id 移除该设备已有的面板（兼容从数据库加载的旧图），避免重复/残留旧面板
 const buildAndAddDevicePointPanel = (
   deviceItem: IDoneJson,
@@ -617,27 +710,54 @@ const buildAndAddDevicePointPanel = (
   deviceType: string,
   points: DevicePointRow[]
 ) => {
-  const panelId = 'device-panel-' + deviceItem.id;
-  // 历史旧面板（旧逻辑将 kv.deviceBind.deviceId 误写为设备类型名称，如“并网点上侧”）的 group 使用随机 id，
-  // 无法被 panelId 命中；此处依据“kv.deviceBind.deviceId 命中已知设备类型名”这一旧 bug 特征将其一并移除，
-  // 确保重新选择设备时仅保留一份正确的测点面板。
-  const typeNames = new Set(deviceTypes.value.map((dt) => dt.name));
-  const isLegacyPanel = (i: any): boolean =>
-    isDevicePointPanelGroup(i) &&
-    i.children.every((c: any) => typeNames.has(String(c.deviceBind?.deviceId)));
-  let base = globalStore.done_json.filter(
-    (i) =>
-      i.id !== panelId &&
-      !(i.devicePanelFor && i.devicePanelFor === deviceItem.id) &&
-      !isLegacyPanel(i)
+  replaceDevicePointPanels([{ item: deviceItem, deviceId, deviceType }], points);
+};
+
+const syncDeviceFields = (deviceType: string, points: DevicePointRow[]) => {
+  deviceFieldsMap.value[deviceType] = points.map((point) => ({
+    key: point.innerId,
+    name: point.pointName,
+    displayName: point.displayName,
+    unit: point.unit
+  }));
+};
+
+const collectBoundDevicesByType = (deviceType: string): IDoneJson[] => {
+  const result: IDoneJson[] = [];
+  const visit = (items: IDoneJson[]) => {
+    for (const item of items) {
+      // 自动生成的测点面板也带 deviceBind，不能把面板内的 kv 当成设备再次重建。
+      if (item.devicePanelFor) continue;
+
+      if (
+        item.device === true &&
+        item.deviceBind?.deviceType === deviceType &&
+        String(item.deviceBind.deviceId || '').trim()
+      ) {
+        result.push(item);
+      }
+
+      if (item.children?.length) visit(item.children);
+    }
+  };
+
+  visit(globalStore.done_json);
+  return result;
+};
+
+const onDeviceTemplateChange = ({ deviceType, points }: DeviceTemplateSelectionChange) => {
+  syncDeviceFields(deviceType, points);
+  const devices = collectBoundDevicesByType(deviceType);
+  if (!devices.length) return;
+
+  replaceDevicePointPanels(
+    devices.map((device) => ({
+      item: device,
+      deviceId: device.deviceBind?.deviceId || '',
+      deviceType
+    })),
+    points
   );
-  if (!points.length) {
-    globalStore.setGlobalStoreDoneJson(base);
-    return;
-  }
-  const panel = buildDevicePointPanel(deviceItem, deviceId, deviceType, points);
-  globalStore.setGlobalStoreDoneJson([...base, ...panel]);
-  cacheStore.addHistory(globalStore.done_json);
 };
 
 const getEtypeForType = (typeName?: string): number | string | undefined => {
@@ -667,28 +787,10 @@ const rebuildDevicePanel = async (item: DeviceBindableItem) => {
 
   // 1) 查询该设备类型绑定的测点作为“选中项”
   const allPoints = await deviceTemplateDB.listPointsByDevice(type);
-  const selectedPoints =
-    allPoints.filter((p) => p.selected === 1).length > 0
-      ? allPoints.filter((p) => p.selected === 1)
-      : allPoints;
-
-  // 持久化“选中项”
-  try {
-    await deviceTemplateDB.saveSelection(
-      type,
-      selectedPoints.map((p) => p.id)
-    );
-  } catch (e) {
-    console.error('保存测点选中项失败', e);
-  }
+  const selectedPoints = allPoints.filter((p) => p.selected === 1);
 
   // 供“属性”展示与绑定复用测点列表（按设备类型分组）
-  deviceFieldsMap.value[type] = selectedPoints.map((p) => ({
-    key: p.innerId,
-    name: p.pointName,
-    displayName: p.displayName,
-    unit: p.unit
-  }));
+  syncDeviceFields(type, selectedPoints);
 
   // 2~4) 以键值对形式循环展示，并定位在设备右侧 20px 处
   buildAndAddDevicePointPanel(
@@ -724,6 +826,7 @@ const onDeviceSelect = async (item: DeviceBindableItem, dev: DeviceListItem) => 
   const bind = ensureDeviceBind(item);
   bind.deviceId = String(dev.deviceId);
   bind.deviceTypeName = dev.deviceTypeName;
+  bind.deviceName = dev.deviceName;
   await rebuildDevicePanel(item);
   syncDeviceBindMetaToItem(item);
 };
@@ -742,9 +845,10 @@ const fetchDeviceList = async (item: DeviceBindableItem) => {
   }
   const station = stations.value.find((f) => f.id === currentStationId.value);
   if (!station) return;
-  // 连接信息已下沉到 MCU：从该场站绑定的首个 MCU 解析接口地址
-  await ensureStationMcus(station.id);
-  const mcu = getStationPrimaryMcu(station.id);
+  // 每次点击都从数据库刷新，避免进入一次图时缓存的空列表/旧 IP 导致误判。
+  // 当前一次图已绑定具体 MCU 时按 boundMcuId 精确选择，避免多 MCU 场站取错首条记录。
+  await refreshStationMcus(station.id);
+  const mcu = getDiagramConnectionMcu(station.id, currentDiagram.value);
   if (!mcu || !mcu.ip) {
     deviceListError.value = '该场站尚未绑定MCU或未配置IP，无法获取设备列表';
     ElMessage.error(deviceListError.value);
@@ -795,6 +899,76 @@ const fetchDeviceList = async (item: DeviceBindableItem) => {
   } finally {
     deviceListLoading.value = false;
   }
+};
+
+// 点击「加载设备列表」：记录当前图元并打开弹窗，由弹窗在 @opened 时拉取设备列表
+const openDeviceListDialog = (item: DeviceBindableItem) => {
+  const bind = ensureDeviceBind(item);
+  if (!bind.deviceType) {
+    ElMessage.warning('请先选择设备类型');
+    return;
+  }
+  deviceListDialogItem.value = item;
+  deviceListDialogVisible.value = true;
+};
+
+// 弹窗完全打开后：拉取设备列表，并将当前已绑定的设备行高亮（保证同一时间仅一行被选中）
+const onDeviceListDialogOpened = async () => {
+  const item = deviceListDialogItem.value;
+  if (!item) return;
+  deviceListPage.value = 1;
+  await fetchDeviceList(item);
+  const table = deviceListTableRef.value;
+  if (!table) return;
+  const current = deviceList.value.find(
+    (d) => String(d.deviceId) === getDeviceBind(item).deviceId
+  ) || null;
+  table.setCurrentRow(current);
+  deviceListSelectedId.value = getDeviceBind(item).deviceId || '';
+};
+
+// 表格严格单选：当前行切换时更新待选择设备，highlight-current-row 保证同一时间只有一行被选中
+const onDeviceListCurrentChange = (row: DeviceListItem | null) => {
+  deviceListSelectedId.value = row ? String(row.deviceId) : '';
+};
+
+// 翻页后：若上一页选中的设备在当前页，重新高亮该行，保持选中态可见
+const onDeviceListPageChange = (page: number) => {
+  deviceListPage.value = page;
+  nextTick(() => {
+    const table = deviceListTableRef.value;
+    if (!table) return;
+    const current = pagedDeviceList.value.find(
+      (d) => String(d.deviceId) === deviceListSelectedId.value
+    ) || null;
+    table.setCurrentRow(current);
+  });
+};
+
+// 调整每页条数：回到第 1 页并重新高亮已选中的设备行
+const onDeviceListSizeChange = (size: number) => {
+  deviceListPageSize.value = size;
+  deviceListPage.value = 1;
+  nextTick(() => {
+    const table = deviceListTableRef.value;
+    if (!table) return;
+    const current = pagedDeviceList.value.find(
+      (d) => String(d.deviceId) === deviceListSelectedId.value
+    ) || null;
+    table.setCurrentRow(current);
+  });
+};
+
+// 确认选择：把选中的设备绑定到当前图元，并关闭弹窗
+const onConfirmDeviceSelect = () => {
+  const item = deviceListDialogItem.value;
+  const dev = deviceList.value.find((d) => String(d.deviceId) === deviceListSelectedId.value);
+  if (!item || !dev) {
+    ElMessage.warning('请选择设备');
+    return;
+  }
+  onDeviceSelect(item, dev);
+  deviceListDialogVisible.value = false;
 };
 
 const onDeviceFieldChange = (item: DeviceBindableItem) => {
@@ -1171,6 +1345,11 @@ const onEditStation = async (updated: Station) => {
   }
 };
 
+// StationAside 保存 MCU 后同步父级缓存，保证预览、发布等后续操作立即读取最新 IP。
+const onMcuSaved = (stationId: string, mcus: McuItem[]) => {
+  replaceStationMcus(stationId, mcus);
+};
+
 const onDeleteStation = async (stationId: string) => {
   stations.value = stations.value.filter((f) => f.id !== stationId);
   if (stationId === currentStationId.value) {
@@ -1208,6 +1387,48 @@ const onDeleteDiagram = async (stationId: string, diagramId: string) => {
       console.error('更新场站失败', e);
       ElMessage.error('删除一次图失败');
     }
+  }
+};
+
+const onEditDiagram = async (payload: {
+  stationId: string;
+  diagramId: string;
+  name: string;
+  remark: string;
+}) => {
+  const stationIndex = stations.value.findIndex((f) => f.id === payload.stationId);
+  if (stationIndex < 0) {
+    ElMessage.error('未找到目标场站');
+    return;
+  }
+  const station = stations.value[stationIndex];
+  const diagram = station.diagrams.find((d) => d.id === payload.diagramId);
+  if (!diagram) {
+    ElMessage.error('未找到目标一次图');
+    return;
+  }
+  diagram.name = payload.name;
+  diagram.remark = payload.remark || '';
+  diagram.updateTime = Date.now();
+
+  if (
+    drawingDiagram.value?.stationId === payload.stationId &&
+    drawingDiagram.value?.diagramId === payload.diagramId
+  ) {
+    drawingDiagram.value.name = payload.name;
+    drawingDiagram.value.remark = payload.remark;
+    persistCurrentContext();
+  }
+
+  const updatedStation: Station = { ...station };
+  stations.value.splice(stationIndex, 1, updatedStation);
+
+  try {
+    await stationDB.save(updatedStation);
+    ElMessage.success('一次图信息已更新');
+  } catch (e) {
+    console.error('更新一次图失败', e);
+    ElMessage.error('更新一次图失败');
   }
 };
 
@@ -1412,24 +1633,74 @@ const onImportStations = async (file: File) => {
   }
 };
 
-const onAddDiagram = (payload: AddDiagramPayload) => {
+const onAddDiagram = async (payload: AddDiagramPayload) => {
+  const stationIndex = stations.value.findIndex((f) => f.id === payload.stationId);
+  if (stationIndex < 0) {
+    ElMessage.error('未找到目标场站');
+    return;
+  }
+  const station = stations.value[stationIndex];
+  const diagramId = 'diagram-' + randomString();
+
+  const defaultCanvasCfg = createDefaultCanvasCfg();
+  const defaultExportJson: IExportJson = {
+    canvasCfg: defaultCanvasCfg,
+    gridCfg: { enabled: false, align: true, size: 10 },
+    json: []
+  };
+
+  // 清空画布，准备绘制新的一次图
+  globalStore.canvasCfg = defaultCanvasCfg;
+  globalStore.initialCanvasCfg = objectDeepClone(defaultCanvasCfg);
+  globalStore.gridCfg = { enabled: false, align: true, size: 10 };
+  globalStore.setGlobalStoreDoneJson([]);
+  cacheStore.history = [[]];
+  cacheStore.historyIndex = 0;
+
   drawingDiagram.value = {
     stationId: payload.stationId,
-    diagramId: 'diagram-' + randomString(),
+    diagramId,
     name: payload.name,
     remark: payload.remark
   };
   currentStationId.value = payload.stationId;
-  // 新建一次图后立即持久化场站上下文（图本身尚未落库，但场站上下文已可用于获取设备列表）
-  persistCurrentContext();
-  // 清空画布，准备绘制新的一次图
-  globalStore.setGlobalStoreDoneJson([]);
-  cacheStore.history = [[]];
-  cacheStore.historyIndex = 0;
-  // 重置画布配置为默认值，并保存初始快照供复位使用
-  globalStore.canvasCfg = createDefaultCanvasCfg();
-  globalStore.initialCanvasCfg = objectDeepClone(globalStore.canvasCfg);
-  ElMessage.info('请在右侧画布绘制一次图，绘制完成后点击保存');
+
+  // 尝试生成新一次图初始缩略图
+  let thumbnail = '';
+  try {
+    thumbnail = (await genCanvasDataUrl()) || '';
+  } catch (e) {
+    console.warn('生成初始缩略图跳过', e);
+  }
+
+  const now = Date.now();
+  const newDiagram: StationDiagram = {
+    id: diagramId,
+    name: payload.name,
+    remark: payload.remark || '',
+    thumbnail,
+    exportJson: defaultExportJson as unknown as Record<string, unknown>,
+    boundDeviceCount: 0,
+    unboundDeviceCount: 0,
+    published: false,
+    createTime: now,
+    updateTime: now
+  };
+
+  const nextDiagrams = [...station.diagrams, newDiagram];
+  const updatedStation: Station = { ...station, diagrams: nextDiagrams };
+  stations.value.splice(stationIndex, 1, updatedStation);
+
+  try {
+    await stationDB.save(updatedStation);
+    persistCurrentContext();
+    ElMessage.success(`一次接线图「${payload.name}」已添加并选中`);
+  } catch (e) {
+    // 数据库保存失败，回滚内存状态
+    stations.value.splice(stationIndex, 1, station);
+    console.error('保存新一次图失败', e);
+    ElMessage.error('创建一次图失败，请重试');
+  }
 };
 
 const onSaveDiagram = async (exportJson: IExportJson) => {
@@ -1499,6 +1770,7 @@ const onThumbnailClick = () => {
   <div class="edit-page">
     <div class="editor-shell">
       <mt-edit
+        ref="mtEditRef"
         :use-thumbnail="true"
         :export-extra="exportExtra"
         :current-diagram-update-time="currentDiagramUpdateTime"
@@ -1511,13 +1783,17 @@ const onThumbnailClick = () => {
         @on-save-click="onSaveClick"
         @on-thumbnail-click="onThumbnailClick"
         @on-publish-click="onPublishClick"
+        @on-device-template-change="onDeviceTemplateChange"
       >
         <template #stationAside>
           <station-aside
             :stations="stations"
+            :active-station-id="drawingDiagram?.stationId"
+            :active-diagram-id="drawingDiagram?.diagramId"
             @add-station="onAddStation"
             @edit-station="onEditStation"
             @add-diagram="onAddDiagram"
+            @edit-diagram="onEditDiagram"
             @load-diagram="onLoadDiagram"
             @delete-station="onDeleteStation"
             @delete-diagram="onDeleteDiagram"
@@ -1529,17 +1805,18 @@ const onThumbnailClick = () => {
             @import-diagram="onImportDiagram"
             @preview-diagram="onPreviewDiagram"
             @bind-diagram-mcu="onBindDiagramMcu"
+            @mcu-saved="onMcuSaved"
           />
         </template>
         <template #deviceBind="{ item }">
           <el-form label-width="70px" label-position="left">
-            <el-alert
+            <!-- <el-alert
               v-if="!canBindDeviceValue(item)"
               title="当前图元本身不展示数值，请选中文本、按钮或键值对组件绑定。卡片通常作为容器使用。"
               type="info"
               :closable="false"
               class="mb-10px"
-            />
+            /> -->
             <el-form-item label="设备类型">
               <el-select
                 v-model="getDeviceBind(item).deviceType"
@@ -1558,55 +1835,47 @@ const onThumbnailClick = () => {
             </el-form-item>
             <el-form-item v-if="getDeviceBind(item).deviceType" label="设备列表">
               <div class="device-list-box">
-                <el-button size="small" :loading="deviceListLoading" @click="fetchDeviceList(item)">
-                  加载设备列表（deviceType={{ getEtypeForType(getDeviceBind(item).deviceType) }}）
-                </el-button>
-                <el-alert
-                  v-if="deviceListError"
-                  :title="deviceListError"
-                  type="error"
-                  :closable="false"
-                  class="mt-8px"
-                />
-                <div
-                  v-if="deviceList.length && getDeviceBind(item).deviceType === deviceListType"
-                  class="device-list mt-8px"
-                >
-                  <div
-                    v-for="dev in deviceList"
-                    :key="String(dev.deviceId)"
-                    class="device-list-item"
-                    :class="{ active: getDeviceBind(item).deviceId === String(dev.deviceId) }"
-                    @click="onDeviceSelect(item, dev)"
-                  >
-                    <span class="device-list-name">{{ dev.deviceName }}</span>
-                    <span class="device-list-id">{{ dev.deviceId }}</span>
-                  </div>
-                </div>
-                <el-text
-                  v-else-if="
-                    !deviceListLoading &&
-                    deviceListFetched &&
-                    getDeviceBind(item).deviceType === deviceListType
-                  "
+                <el-button
+                  type="primary"
                   size="small"
-                  type="info"
+                  :loading="deviceListLoading"
+                  @click="openDeviceListDialog(item)"
                 >
-                  该设备类型下暂无设备
+                  加载设备列表
+                </el-button>
+                <el-text
+                  v-if="getDeviceBind(item).deviceId"
+                  size="small"
+                  type="success"
+                >
                 </el-text>
+                <div>
+                  已绑定：{{ getDeviceBind(item).deviceName || getDeviceBind(item).deviceId }}
+                </div>
               </div>
             </el-form-item>
             <el-form-item label="属性">
-              <div v-if="getSelectedPointLabels(item).length" class="point-label-list">
-                <div
-                  v-for="(label, i) in getSelectedPointLabels(item)"
-                  :key="i"
-                  class="point-label-item"
-                >
-                  {{ label }}
+              <div class="point-config-box">
+                <div v-if="getSelectedPointLabels(item).length" class="point-label-list">
+                  <div
+                    v-for="(label, i) in getSelectedPointLabels(item)"
+                    :key="i"
+                    class="point-label-item"
+                  >
+                    {{ label }}
+                  </div>
                 </div>
+                <el-text v-else type="info">未配置测点（由模板预设）</el-text>
+                <el-button
+                  type="primary"
+                  size="small"
+                  plain
+                  :disabled="!getDeviceBind(item).deviceType"
+                  @click="openDevicePointConfig(item)"
+                >
+                  配置测点
+                </el-button>
               </div>
-              <el-text v-else type="info">未配置测点（由模板预设）</el-text>
             </el-form-item>
             <!-- <el-form-item label="单位">
               <el-input
@@ -1640,15 +1909,67 @@ const onThumbnailClick = () => {
                 />
               </el-select>
             </el-form-item>
-            <el-text size="small" type="info">
+            <!-- <el-text size="small" type="info">
               键名会写入字段 name，键值会从实时接口读取 dataKey 对应的值。
-            </el-text>
+            </el-text> -->
           </el-form>
         </template>
       </mt-edit>
     </div>
     <!-- 预览弹窗：以 Modal 形式在当前页面展示，替代原有的新页面跳转 -->
     <preview-dialog v-model="previewVisible" :export-json="previewExportJson" />
+
+    <!-- 设备列表弹窗：以表格形式列出当前设备类型下的真实设备，序号 + 设备名称，点击行即选中 -->
+    <el-dialog
+      v-model="deviceListDialogVisible"
+      title="选择设备"
+      width="560px"
+      :close-on-click-modal="false"
+      @opened="onDeviceListDialogOpened"
+    >
+      <div v-if="deviceListLoading" class="device-list-dialog-loading">加载中…</div>
+      <el-empty
+        v-else-if="deviceListFetched && !deviceList.length"
+        description="该设备类型下暂无设备"
+      />
+      <el-table
+        v-else
+        ref="deviceListTableRef"
+        :data="pagedDeviceList"
+        highlight-current-row
+        height="360"
+        class="device-list-table"
+        @current-change="onDeviceListCurrentChange"
+      >
+        <el-table-column label="序号" width="80" align="center">
+          <template #default="{ $index }">{{ (deviceListPage - 1) * deviceListPageSize + $index + 1 }}</template>
+        </el-table-column>
+        <el-table-column label="设备名称" min-width="280" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.deviceName }}</template>
+        </el-table-column>
+      </el-table>
+      <el-pagination
+        v-if="deviceListFetched && deviceList.length"
+        class="device-list-pagination"
+        layout="total, sizes, prev, pager, next"
+        :total="deviceList.length"
+        :current-page="deviceListPage"
+        :page-size="deviceListPageSize"
+        :page-sizes="[10, 20, 50]"
+        :pager-count="5"
+        @current-change="onDeviceListPageChange"
+        @size-change="onDeviceListSizeChange"
+      />
+      <template #footer>
+        <el-button @click="deviceListDialogVisible = false">取消</el-button>
+        <el-button
+          type="primary"
+          :disabled="!deviceListSelectedId"
+          @click="onConfirmDeviceSelect"
+          >确定</el-button
+        >
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -1681,6 +2002,14 @@ const onThumbnailClick = () => {
   line-height: 1.4;
   color: var(--el-text-color-primary);
   background: var(--el-fill-color-blank);
+}
+
+.point-config-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
 }
 
 .point-label-item {

@@ -15,9 +15,19 @@
               </div>
             </template>
             <div class="grid grid-cols-2 gap-10px">
-              <div v-for="diagram in station.diagrams" :key="diagram.id" class="relative group">
+              <div
+                v-for="diagram in station.diagrams"
+                :key="diagram.id"
+                class="relative group"
+                @contextmenu.prevent="onDiagramContextMenu($event, station.id, diagram)"
+              >
                 <div
-                  class="w-1/1 h-50px border-2 border-transparent rounded cursor-pointer transition-all box-border hover:border-blue-500 flex items-center justify-center bg-gray-50 overflow-hidden"
+                  class="w-1/1 h-50px border-2 rounded cursor-pointer transition-all box-border flex items-center justify-center bg-gray-50 overflow-hidden"
+                  :class="[
+                    isDiagramActive(station.id, diagram.id)
+                      ? 'border-blue-500 ring-2 ring-blue-100 shadow-sm'
+                      : 'border-transparent hover:border-blue-400'
+                  ]"
                   @click="onLoadDiagram(station.id, diagram.id)"
                 >
                   <img
@@ -27,18 +37,16 @@
                   />
                 </div>
                 <div
-                  class="mt-4px text-xs text-center truncate px-2px"
+                  class="mt-4px text-xs text-center truncate px-2px cursor-pointer"
+                  :class="
+                    isDiagramActive(station.id, diagram.id)
+                      ? 'text-blue-600 font-semibold'
+                      : 'text-gray-700'
+                  "
                   :title="diagram.name || diagram.id"
+                  @click="onLoadDiagram(station.id, diagram.id)"
                 >
                   {{ diagram.name || diagram.id }}
-                </div>
-                <div
-                  class="absolute right-4px top-4px opacity-0 group-hover:opacity-100 transition-opacity"
-                  @click.stop="onDeleteDiagramClick(station.id, diagram.id)"
-                >
-                  <el-button type="danger" size="small" circle>
-                    <el-icon><Delete /></el-icon>
-                  </el-button>
                 </div>
               </div>
               <div
@@ -60,13 +68,15 @@
     <!-- 管理场站弹窗 -->
     <el-dialog v-model="manageVisible" title="管理场站" width="min(960px, 92vw)" destroy-on-close>
       <div class="mb-12px flex flex-wrap justify-end gap-8px">
+        <el-button type="primary" size="small" @click="onAddStationClick">
+          <el-icon class="mr-4px"><Plus /></el-icon>新增场站
+        </el-button>
+         <el-button type="primary" size="small" @click="onImportClick">
+          <el-icon class="mr-4px"><Upload /></el-icon>导入场站工程包
+        </el-button>
         <el-button type="primary" size="small" @click="onExportClick">
           <el-icon class="mr-4px"><Download /></el-icon>导出场站工程包
         </el-button>
-        <el-button type="primary" size="small" @click="onImportClick">
-          <el-icon class="mr-4px"><Upload /></el-icon>导入场站工程包
-        </el-button>
-        <el-button type="primary" size="small" @click="onAddStationClick">添加场站</el-button>
         <input
           ref="fileInputRef"
           type="file"
@@ -208,10 +218,10 @@
       </template>
     </el-dialog>
 
-    <!-- 新增一次接线图弹窗 -->
+    <!-- 新增/编辑一次接线图弹窗 -->
     <el-dialog
       v-model="addDiagramVisible"
-      title="新增一次接线图"
+      :title="editingDiagramId ? '编辑一次接线图' : '新增一次接线图'"
       width="min(520px, 92vw)"
       destroy-on-close
     >
@@ -453,10 +463,30 @@
         >
       </template>
     </el-dialog>
+
+    <!-- 节点右键菜单 -->
+    <teleport to="body">
+      <ul
+        v-if="contextMenuVisible"
+        class="station-aside-context-menu"
+        :style="{ left: contextMenuPosition.left + 'px', top: contextMenuPosition.top + 'px' }"
+        @click.stop
+      >
+        <li @click="onContextMenuEdit">
+          <p>编辑</p>
+        </li>
+        <li @click="onContextMenuBindMcu">
+          <p>绑定MCU</p>
+        </li>
+        <li @click="onContextMenuDelete">
+          <p class="danger">删除</p>
+        </li>
+      </ul>
+    </teleport>
   </div>
 </template>
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue';
 import {
   ElButton,
   ElCollapse,
@@ -488,14 +518,19 @@ import { useMcuDB } from '@/composables/useMcuDB';
 
 type StationAsideProps = {
   stations: Station[];
+  activeStationId?: string;
+  activeDiagramId?: string;
 };
 const stationAsideProps = withDefaults(defineProps<StationAsideProps>(), {
-  stations: () => []
+  stations: () => [],
+  activeStationId: '',
+  activeDiagramId: ''
 });
 const emits = defineEmits<{
   addStation: [station: Station];
   editStation: [station: Station];
   addDiagram: [payload: AddDiagramPayload];
+  editDiagram: [payload: { stationId: string; diagramId: string; name: string; remark: string }];
   loadDiagram: [stationId: string, diagramId: string];
   deleteStation: [stationId: string];
   deleteDiagram: [stationId: string, diagramId: string];
@@ -507,6 +542,7 @@ const emits = defineEmits<{
   importDiagram: [stationId: string, diagram: StationDiagram];
   previewDiagram: [stationId: string, diagram: StationDiagram];
   bindDiagramMcu: [stationId: string, diagramId: string, mcu: McuItem];
+  mcuSaved: [stationId: string, mcus: McuItem[]];
 }>();
 
 const dialog_visible = ref(false);
@@ -515,6 +551,23 @@ const editingStationId = ref<string | null>(null);
 const formRef = ref<FormInstance>();
 const fileInputRef = ref<HTMLInputElement>();
 const active_names = ref<string[]>([]);
+
+const isDiagramActive = (stationId: string, diagramId: string) => {
+  return (
+    stationAsideProps.activeStationId === stationId &&
+    stationAsideProps.activeDiagramId === diagramId
+  );
+};
+
+watch(
+  () => stationAsideProps.activeStationId,
+  (newStationId) => {
+    if (newStationId && !active_names.value.includes(newStationId)) {
+      active_names.value.push(newStationId);
+    }
+  },
+  { immediate: true }
+);
 
 // 新增一次接线图弹窗相关状态
 const addDiagramVisible = ref(false);
@@ -700,10 +753,84 @@ const onConfirm = () => {
   });
 };
 
+const editingDiagramId = ref<string | null>(null);
+
+// 右键菜单相关状态与逻辑
+const contextMenuVisible = ref(false);
+const contextMenuPosition = reactive({ left: 0, top: 0 });
+const contextMenuDiagram = ref<{ stationId: string; diagram: StationDiagram } | null>(null);
+
+const closeContextMenu = () => {
+  contextMenuVisible.value = false;
+};
+
+onMounted(() => {
+  window.addEventListener('click', closeContextMenu);
+  window.addEventListener('contextmenu', closeContextMenu);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('click', closeContextMenu);
+  window.removeEventListener('contextmenu', closeContextMenu);
+});
+
+const onDiagramContextMenu = (e: MouseEvent, stationId: string, diagram: StationDiagram) => {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const menuWidth = 110;
+  const menuHeight = 110;
+  let left = e.clientX;
+  let top = e.clientY;
+
+  if (left + menuWidth > window.innerWidth) {
+    left = window.innerWidth - menuWidth - 8;
+  }
+  if (top + menuHeight > window.innerHeight) {
+    top = window.innerHeight - menuHeight - 8;
+  }
+
+  contextMenuPosition.left = left;
+  contextMenuPosition.top = top;
+  contextMenuDiagram.value = { stationId, diagram };
+  contextMenuVisible.value = true;
+};
+
+const onContextMenuEdit = () => {
+  const target = contextMenuDiagram.value;
+  contextMenuVisible.value = false;
+  if (!target) return;
+  onLoadDiagram(target.stationId, target.diagram.id);
+  onEditDiagramClick(target.stationId, target.diagram);
+};
+
+const onContextMenuBindMcu = () => {
+  const target = contextMenuDiagram.value;
+  contextMenuVisible.value = false;
+  if (!target) return;
+  onBindDiagramMcuClick(target.diagram, target.stationId);
+};
+
+const onContextMenuDelete = () => {
+  const target = contextMenuDiagram.value;
+  contextMenuVisible.value = false;
+  if (!target) return;
+  onDeleteDiagramClick(target.stationId, target.diagram.id);
+};
+
 const onAddDiagram = (stationId: string) => {
+  editingDiagramId.value = null;
   addDiagramStationId.value = stationId;
   diagramForm.name = '';
   diagramForm.remark = '';
+  addDiagramVisible.value = true;
+};
+
+const onEditDiagramClick = (stationId: string, diagram: StationDiagram) => {
+  editingDiagramId.value = diagram.id;
+  addDiagramStationId.value = stationId;
+  diagramForm.name = diagram.name || '';
+  diagramForm.remark = diagram.remark || '';
   addDiagramVisible.value = true;
 };
 
@@ -724,7 +851,7 @@ const onAddBlankDiagram = () => {
   onAddDiagram(stationId);
 };
 
-// 确认新增一次接线图：校验名称后把名称与备注提交给父组件持久化
+// 确认新增/编辑一次接线图：校验名称后提交给父组件持久化
 const onConfirmAddDiagram = () => {
   // 先统一去空格，使后续校验与提交的值一致
   diagramForm.name = diagramForm.name.trim();
@@ -737,11 +864,20 @@ const onConfirmAddDiagram = () => {
     if (!diagramForm.name) {
       return;
     }
-    emits('addDiagram', {
-      stationId: addDiagramStationId.value,
-      name: diagramForm.name,
-      remark: diagramForm.remark
-    });
+    if (editingDiagramId.value) {
+      emits('editDiagram', {
+        stationId: addDiagramStationId.value,
+        diagramId: editingDiagramId.value,
+        name: diagramForm.name,
+        remark: diagramForm.remark
+      });
+    } else {
+      emits('addDiagram', {
+        stationId: addDiagramStationId.value,
+        name: diagramForm.name,
+        remark: diagramForm.remark
+      });
+    }
     addDiagramVisible.value = false;
   });
 };
@@ -855,6 +991,7 @@ const onPreviewDiagram = (diagram: StationDiagram) => {
 const bindMcuVisible = ref(false);
 const bindMcuDiagramName = ref('');
 const bindMcuDiagramId = ref('');
+const bindMcuDiagramStationId = ref('');
 // 记录该一次图当前已绑定的 MCU（用于表格中高亮「已绑定」标记）；与 bindMcuSelectedId 区分开：
 // selected 为本次弹窗内的待绑定选择，boundId 为最初打开时已有的绑定，便于用户取消已绑定关系时对比
 const bindMcuDiagramBoundId = ref('');
@@ -863,12 +1000,13 @@ const bindMcuSelectedId = ref('');
 const bindMcuTableRef = ref<InstanceType<typeof ElTable> | null>(null);
 
 // 点击「绑定MCU」：拉取当前场站下的 MCU 列表，弹窗供用户选择
-const onBindDiagramMcuClick = async (diagram: StationDiagram) => {
-  const station = enterStation.value;
-  if (!station) {
+const onBindDiagramMcuClick = async (diagram: StationDiagram, targetStationId?: string) => {
+  const stId = targetStationId || enterStation.value?.id;
+  if (!stId) {
     ElMessage.error('未定位到当前场站，无法绑定MCU');
     return;
   }
+  bindMcuDiagramStationId.value = stId;
   bindMcuDiagramId.value = diagram.id;
   bindMcuDiagramName.value = diagram.name || diagram.id;
   // 记录该图当前已绑定的 MCU，用于展示「已绑定」标记
@@ -877,7 +1015,7 @@ const onBindDiagramMcuClick = async (diagram: StationDiagram) => {
   bindMcuSelectedId.value = diagram.boundMcuId || '';
   try {
     const db = useMcuDB();
-    bindMcuOptions.value = await db.loadByStation(station.id);
+    bindMcuOptions.value = await db.loadByStation(stId);
   } catch (e) {
     bindMcuOptions.value = [];
     ElMessage.error('获取MCU列表失败，请重试');
@@ -901,14 +1039,14 @@ const onBindMcuCurrentChange = (row: McuItem | null) => {
 
 // 确认绑定：把选中的 MCU 详细信息绑定至目标一次图，交由父组件持久化
 const onConfirmBindDiagramMcu = () => {
-  const station = enterStation.value;
-  if (!station) return;
+  const stId = bindMcuDiagramStationId.value || enterStation.value?.id;
+  if (!stId) return;
   const mcu = bindMcuOptions.value.find((m) => m.id === bindMcuSelectedId.value);
   if (!mcu) {
     ElMessage.warning('请选择要绑定的 MCU');
     return;
   }
-  emits('bindDiagramMcu', station.id, bindMcuDiagramId.value, { ...mcu });
+  emits('bindDiagramMcu', stId, bindMcuDiagramId.value, { ...mcu });
   bindMcuVisible.value = false;
 };
 
@@ -983,6 +1121,11 @@ const onSaveMcu = async () => {
   try {
     await db.replaceByStation(currentStationId.value, items);
     mcuSnapshot = items.map((m) => ({ ...m }));
+    emits(
+      'mcuSaved',
+      currentStationId.value,
+      items.map((m) => ({ ...m }))
+    );
     ElMessage.success('MCU绑定信息已保存');
     mcuVisible.value = false;
   } catch (e) {
@@ -1035,5 +1178,49 @@ const onSaveMcu = async () => {
 }
 .op-cell .el-button {
   margin: 0;
+}
+
+.station-aside-context-menu {
+  position: fixed;
+  z-index: 99999;
+  background: #ffffff;
+  padding: 5px 0;
+  margin: 0;
+  display: block;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 100px;
+  border: 1px solid #e4e7ed;
+}
+
+.station-aside-context-menu li {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.station-aside-context-menu p {
+  text-decoration: none;
+  display: block;
+  padding: 6px 18px;
+  margin: 0;
+  font-size: 13px;
+  color: #606266;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.station-aside-context-menu p:hover {
+  background-color: #ecf5ff;
+  color: #409eff;
+}
+
+.station-aside-context-menu p.danger:hover {
+  background-color: #fef0f0;
+  color: #f56c6c;
 }
 </style>

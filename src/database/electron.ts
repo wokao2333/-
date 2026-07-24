@@ -34,7 +34,8 @@ export const electronDatabase: DatabaseService = {
   },
   mcu: {
     listByStation: (stationId) => getBridge().mcu.listByStation(stationId),
-    replaceByStation: (stationId, items) => getBridge().mcu.replaceByStation(stationId, toPlain(items)),
+    replaceByStation: (stationId, items) =>
+      getBridge().mcu.replaceByStation(stationId, toPlain(items)),
     removeByStation: (stationId) => getBridge().mcu.removeByStation(stationId)
   },
   template: {

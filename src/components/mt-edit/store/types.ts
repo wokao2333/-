@@ -128,8 +128,12 @@ export interface IDoneJson {
   /** 发布包中对应的内嵌 SVG 资产 ID；普通编辑/本地保存数据可不包含 */
   svgAssetId?: string;
   device?: boolean; //是否为设备类图元（用于统计一次接线图设备总数及未绑定数据设备数）
+  /** 标记该 group 是拖入设备时自动生成的“设备 + 名称”组合 */
+  deviceLabelGroup?: boolean;
   /** 标记该分组为某设备图元自动生成的测点面板，便于重建时精确移除，避免重复/残留旧面板 */
   devicePanelFor?: string;
+  /** 标记该图元由设备模板测点面板自动生成，不允许再单独配置设备绑定 */
+  devicePanelGenerated?: boolean;
   deviceBind?: {
     deviceId: string;
     dataKey: string;
@@ -237,7 +241,11 @@ export interface IGlobalStore {
 // 左侧配置
 export interface ILeftAside {
   config: ILeftAsideConfig;
-  registerConfig: (title: string, config: ILeftAsideConfigItemPublic[]) => void;
+  registerConfig: (
+    title: string,
+    config: ILeftAsideConfigItemPublic[],
+    options?: { replaceExisting?: boolean }
+  ) => void;
 }
 // 缓存配置
 export interface ICache {

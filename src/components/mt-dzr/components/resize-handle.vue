@@ -13,7 +13,7 @@
 </template>
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import type { IDzrPropsModelValue } from '../types';
+import type { IDzrPropsModelValue, IDzrResizeMovePayload } from '../types';
 import { dzrStore } from '../store';
 import {
   autoDestroyMouseMove,
@@ -158,18 +158,23 @@ const onMouseDown = (
     const format_data = formatData(pData, centerX, centerY);
     const new_width = calcGrid(format_data.width, resizeProps.gridAlignSize);
     const new_height = calcGrid(format_data.height, resizeProps.gridAlignSize);
-    emits('update:itemInfo', {
+    const resized_item_info: IDzrPropsModelValue = {
       ...resizeProps.itemInfo,
       ...format_data,
       left: calcGrid(format_data.left, resizeProps.gridAlignSize),
       top: calcGrid(format_data.top, resizeProps.gridAlignSize),
       width: new_width,
       height: new_height
-    });
-    emits('onResizeMove', {
+    };
+    emits('update:itemInfo', resized_item_info);
+    const resize_move_payload: IDzrResizeMovePayload = {
+      binfo: resized_item_info,
       width: new_width,
-      height: new_height
-    });
+      height: new_height,
+      widthScale: rect.width === 0 ? 1 : new_width / rect.width,
+      heightScale: rect.height === 0 ? 1 : new_height / rect.height
+    };
+    emits('onResizeMove', resize_move_payload);
   };
   autoDestroyMouseMove(onMouseMove, () => {
     dzrStore.hideDzrCopy();

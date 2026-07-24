@@ -8,9 +8,7 @@
         >
           <span class="text-16px font-bold whitespace-nowrap shrink-0">砺行能源</span>
           <span class="text-12px text-gray-500 whitespace-nowrap shrink-0">一次接线图组态工具</span>
-          <el-tag type="primary" effect="dark" round size="small" class="shrink-0 mr-10px"
-            >v2.0</el-tag
-          >
+          <el-tag effect="dark" round size="small" class="shrink-0 mr-10px">v2.0</el-tag>
         </div>
       </div>
       <el-tooltip
@@ -34,63 +32,63 @@
     <div class="flex justify-between flex-1">
       <div class="flex items-center">
         <el-button-group>
-          <el-tooltip content="撤销 (Ctrl+Z)" placement="bottom" effect="dark">
-            <el-button
-              text
-              circle
-              size="small"
-              :disabled="!headerPanelProps.undoEnabled"
-              @click="emits('onUndoClick')"
-            >
-              <el-icon :size="20">
-                <svg-analysis name="undo"></svg-analysis>
-              </el-icon>
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="重做 (Ctrl+Y)" placement="bottom" effect="dark">
-            <el-button
-              text
-              circle
-              size="small"
-              :disabled="!headerPanelProps.redoEnabled"
-              @click="emits('onRedoClick')"
-            >
-              <el-icon :size="20">
-                <svg-analysis name="redo"></svg-analysis>
-              </el-icon>
-            </el-button>
-          </el-tooltip>
-        </el-button-group>
-        <el-divider direction="vertical"></el-divider>
-        <el-tooltip content="复位画布位置/大小" placement="bottom" effect="dark">
-          <el-button text circle size="small" @click="emits('onResetCanvasClick')">
-            <el-icon :size="20">
-              <svg-analysis name="rotate"></svg-analysis>
-            </el-icon>
-          </el-button>
-        </el-tooltip>
-        <el-divider direction="vertical"></el-divider>
-        <el-tooltip content="删除 (Delete)" placement="bottom" effect="dark">
           <el-button
             text
-            circle
             size="small"
-            :disabled="!headerPanelProps.deleteEnabled"
-            @click="onDeleteClick"
+            class="header-action-button"
+            :disabled="!headerPanelProps.undoEnabled"
+            @click="emits('onUndoClick')"
           >
-            <el-icon :class="``" :size="20">
-              <svg-analysis name="delete"></svg-analysis>
-            </el-icon>
-          </el-button>
-        </el-tooltip>
-        <el-divider direction="vertical"></el-divider>
-        <el-tooltip content="组件树" placement="bottom" effect="dark">
-          <el-button text circle size="small" @click="onTreeClick">
             <el-icon :size="20">
-              <svg-analysis name="tree-list"></svg-analysis>
+              <svg-analysis name="undo"></svg-analysis>
             </el-icon>
+            <span class="header-action-label">撤销</span>
           </el-button>
-        </el-tooltip>
+          <el-button
+            text
+            size="small"
+            class="header-action-button"
+            :disabled="!headerPanelProps.redoEnabled"
+            @click="emits('onRedoClick')"
+          >
+            <el-icon :size="20">
+              <svg-analysis name="redo"></svg-analysis>
+            </el-icon>
+            <span class="header-action-label">重做</span>
+          </el-button>
+        </el-button-group>
+        <el-divider direction="vertical"></el-divider>
+        <el-button
+          text
+          size="small"
+          class="header-action-button"
+          @click="emits('onResetCanvasClick')"
+        >
+          <el-icon :size="20">
+            <svg-analysis name="rotate"></svg-analysis>
+          </el-icon>
+          <span class="header-action-label">复位</span>
+        </el-button>
+        <el-divider direction="vertical"></el-divider>
+        <el-button
+          text
+          size="small"
+          class="header-action-button"
+          :disabled="!headerPanelProps.deleteEnabled"
+          @click="onDeleteClick"
+        >
+          <el-icon :class="``" :size="20">
+            <svg-analysis name="delete"></svg-analysis>
+          </el-icon>
+          <span class="header-action-label">删除</span>
+        </el-button>
+        <el-divider direction="vertical"></el-divider>
+        <el-button text size="small" class="header-action-button" @click="onTreeClick">
+          <el-icon :size="20">
+            <svg-analysis name="tree-list"></svg-analysis>
+          </el-icon>
+          <span class="header-action-label">组件树</span>
+        </el-button>
 
         <el-divider direction="vertical"></el-divider>
         <el-popover
@@ -100,122 +98,115 @@
           :disabled="!headerPanelProps.alignEnabled"
         >
           <template #reference>
-            <el-tooltip
-              content="对齐"
-              placement="bottom"
-              effect="dark"
-              :disabled="headerPanelProps.alignEnabled"
+            <span
+              class="inline-flex"
+              :title="
+                headerPanelProps.alignEnabled ? undefined : '请至少选择两个非连线图元进行对齐'
+              "
             >
-              <el-button text circle size="small" :disabled="!headerPanelProps.alignEnabled">
+              <el-button
+                text
+                size="small"
+                class="header-action-button"
+                aria-label="对齐"
+                :disabled="!headerPanelProps.alignEnabled"
+              >
                 <el-icon :size="20">
                   <svg-analysis name="align"></svg-analysis>
                 </el-icon>
+                <span class="header-action-label">对齐</span>
               </el-button>
-            </el-tooltip>
+            </span>
           </template>
           <div class="flex justify-center">
             <el-button-group>
-              <el-tooltip content="左对齐" placement="bottom" effect="dark">
-                <el-button text circle size="small" @click="alignSelected('left')">
-                  <el-icon :size="20">
-                    <svg-analysis name="align-left"></svg-analysis>
-                  </el-icon>
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="水平居中" placement="bottom" effect="dark">
-                <el-button text circle size="small" @click="alignSelected('horizontally')">
-                  <el-icon :size="20">
-                    <svg-analysis name="align-horizontally"></svg-analysis>
-                  </el-icon>
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="右对齐" placement="bottom" effect="dark">
-                <el-button text circle size="small" @click="alignSelected('right')">
-                  <el-icon :size="20">
-                    <svg-analysis name="align-right"></svg-analysis>
-                  </el-icon>
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="上对齐" placement="bottom" effect="dark">
-                <el-button text circle size="small" @click="alignSelected('top')">
-                  <el-icon :size="20">
-                    <svg-analysis name="align-top"></svg-analysis>
-                  </el-icon>
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="垂直居中" placement="bottom" effect="dark">
-                <el-button text circle size="small" @click="alignSelected('vertically')">
-                  <el-icon :size="20">
-                    <svg-analysis name="align-vertical"></svg-analysis>
-                  </el-icon>
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="下对齐" placement="bottom" effect="dark">
-                <el-button text circle size="small" @click="alignSelected('bottom')">
-                  <el-icon :size="20">
-                    <svg-analysis name="align-bottom"></svg-analysis>
-                  </el-icon>
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="水平分布" placement="bottom" effect="dark">
-                <el-button
-                  text
-                  circle
-                  size="small"
-                  @click="alignSelected('horizontal-distribution')"
-                >
-                  <el-icon :size="20">
-                    <svg-analysis name="horizontal-distribution"></svg-analysis>
-                  </el-icon>
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="垂直分布" placement="bottom" effect="dark">
-                <el-button text circle size="small" @click="alignSelected('vertical-distribution')">
-                  <el-icon :size="20">
-                    <svg-analysis name="vertical-distribution"></svg-analysis>
-                  </el-icon>
-                </el-button>
-              </el-tooltip>
+              <el-button
+                text
+                size="small"
+                class="header-action-button"
+                @click="alignSelected('left')"
+              >
+                <el-icon :size="20">
+                  <svg-analysis name="align-left"></svg-analysis>
+                </el-icon>
+                <span class="header-action-label">左对齐</span>
+              </el-button>
+              <el-button
+                text
+                size="small"
+                class="header-action-button"
+                @click="alignSelected('right')"
+              >
+                <el-icon :size="20">
+                  <svg-analysis name="align-right"></svg-analysis>
+                </el-icon>
+                <span class="header-action-label">右对齐</span>
+              </el-button>
+              <el-button
+                text
+                size="small"
+                class="header-action-button"
+                @click="alignSelected('horizontally')"
+              >
+                <el-icon :size="20">
+                  <svg-analysis name="align-horizontally"></svg-analysis>
+                </el-icon>
+                <span class="header-action-label">水平居中</span>
+              </el-button>
+              <el-button
+                text
+                size="small"
+                class="header-action-button"
+                @click="alignSelected('vertically')"
+              >
+                <el-icon :size="20">
+                  <svg-analysis name="align-vertical"></svg-analysis>
+                </el-icon>
+                <span class="header-action-label">垂直居中</span>
+              </el-button>
             </el-button-group>
           </div>
         </el-popover>
         <el-divider direction="vertical"></el-divider>
         <el-button-group>
-          <el-tooltip content="组合" placement="bottom" effect="dark">
-            <el-button
-              text
-              circle
-              size="small"
-              :disabled="!headerPanelProps.groupEnabled"
-              @click="onGroupClick"
-            >
-              <el-icon :size="20">
-                <svg-analysis name="group"></svg-analysis>
-              </el-icon>
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="取消组合" placement="bottom" effect="dark">
-            <el-button
-              text
-              circle
-              size="small"
-              :disabled="!headerPanelProps.unGroupEnabled"
-              @click="onUngroupClick"
-            >
-              <el-icon :size="20">
-                <svg-analysis name="ungroup"></svg-analysis>
-              </el-icon>
-            </el-button>
-          </el-tooltip>
+          <el-button
+            text
+            size="small"
+            class="header-action-button"
+            :disabled="!headerPanelProps.groupEnabled"
+            @click="onGroupClick"
+          >
+            <el-icon :size="20">
+              <svg-analysis name="group"></svg-analysis>
+            </el-icon>
+            <span class="header-action-label">组合</span>
+          </el-button>
+          <el-button
+            text
+            size="small"
+            class="header-action-button"
+            :disabled="!headerPanelProps.unGroupEnabled"
+            @click="onUngroupClick"
+          >
+            <el-icon :size="20">
+              <svg-analysis name="ungroup"></svg-analysis>
+            </el-icon>
+            <span class="header-action-label">取消组合</span>
+          </el-button>
         </el-button-group>
         <el-divider direction="vertical" v-if="!is_npm_env"></el-divider>
-        <el-tooltip v-if="!is_npm_env" content="连线编辑模式" placement="bottom" effect="dark">
-          <el-button text circle size="small" @click="onDrawLineClick">
-            <el-icon :size="20" :class="drawline_selected ? 'icon-selected' : ''">
-              <svg-analysis name="pen-line"></svg-analysis>
-            </el-icon>
-          </el-button>
-        </el-tooltip>
+        <el-button
+          v-if="!is_npm_env"
+          text
+          size="small"
+          class="header-action-button"
+          @click="onDrawLineClick"
+        >
+          <el-icon :size="20" :class="drawline_selected ? 'icon-selected' : ''">
+            <svg-analysis name="pen-line"></svg-analysis>
+          </el-icon>
+          <span class="header-action-label">连线</span>
+        </el-button>
       </div>
       <div class="flex justify-center items-center">
         <el-tag v-if="headerPanelProps.realTimeData.show" size="small">{{
@@ -231,50 +222,47 @@
           </el-button>
         </el-tooltip> -->
         <el-divider direction="vertical"></el-divider>
-        <el-tooltip content="保存" placement="bottom" effect="dark">
-          <el-button text circle size="small" @click="emits('onSaveClick')">
-            <el-icon :size="20">
-              <svg-analysis name="save"></svg-analysis>
-            </el-icon>
-          </el-button>
-        </el-tooltip>
+        <el-button text size="small" class="header-action-button" @click="emits('onSaveClick')">
+          <el-icon :size="20">
+            <svg-analysis name="save"></svg-analysis>
+          </el-icon>
+          <span class="header-action-label">保存</span>
+        </el-button>
         <el-divider v-if="headerPanelProps.useThumbnail" direction="vertical"></el-divider>
-        <el-tooltip
+        <el-button
           v-if="headerPanelProps.useThumbnail"
-          content="生成缩略图"
-          placement="bottom"
-          effect="dark"
+          text
+          size="small"
+          class="header-action-button"
+          @click="emits('onThumbnailClick')"
         >
-          <el-button text circle size="small" @click="emits('onThumbnailClick')">
-            <el-icon :size="20">
-              <svg-analysis name="thumbnail"></svg-analysis>
-            </el-icon>
-          </el-button>
-        </el-tooltip>
+          <el-icon :size="20">
+            <svg-analysis name="thumbnail"></svg-analysis>
+          </el-icon>
+          <span class="header-action-label">缩略图</span>
+        </el-button>
         <el-divider direction="vertical"></el-divider>
-        <el-tooltip content="预览" placement="bottom" effect="dark">
-          <el-button text circle size="small" @click="emits('onPreviewClick')">
-            <el-icon :size="20">
-              <svg-analysis name="preview"></svg-analysis>
-            </el-icon>
-          </el-button>
-        </el-tooltip>
+        <el-button text size="small" class="header-action-button" @click="emits('onPreviewClick')">
+          <el-icon :size="20">
+            <svg-analysis name="preview"></svg-analysis>
+          </el-icon>
+          <span class="header-action-label">预览</span>
+        </el-button>
         <el-divider direction="vertical"></el-divider>
-        <el-tooltip content="发布" placement="bottom" effect="dark">
-          <el-button text circle size="small" @click="emits('onPublishClick')">
-            <el-icon :size="20">
-              <Promotion />
-            </el-icon>
-          </el-button>
-        </el-tooltip>
+        <el-button text size="small" class="header-action-button" @click="emits('onPublishClick')">
+          <el-icon :size="20">
+            <Promotion />
+          </el-icon>
+          <span class="header-action-label">发布</span>
+        </el-button>
         <el-divider direction="vertical"></el-divider>
-        <el-tooltip content="在线校验" placement="bottom" effect="dark">
+        <!-- <el-tooltip content="在线校验" placement="bottom" effect="dark">
           <el-button text circle size="small" @click="emits('onOnlineCheckClick')">
             <el-icon :size="20">
               <Aim />
             </el-icon>
           </el-button>
-        </el-tooltip>
+        </el-tooltip> -->
       </div>
     </div>
     <div class="flex items-center justify-between w-240px shrink-0">
@@ -433,6 +421,24 @@ const onDrawLineClick = () => {
 };
 </script>
 <style scoped>
+.header-action-button {
+  min-width: 42px;
+  height: 42px;
+  padding: 3px 6px;
+}
+
+.header-action-button :deep(> span) {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.header-action-label {
+  font-size: 11px;
+  line-height: 1;
+  margin-left: 0 !important;
+  white-space: nowrap;
+}
+
 .icon-selected {
   background-color: #ecf5ff;
   color: #409eff;

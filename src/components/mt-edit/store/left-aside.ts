@@ -12,10 +12,13 @@ export const leftAsideStore: ILeftAside = reactive({
     ['新能源', configStore.newEnergy],
     ['储能', configStore.storage],
     ['负荷', configStore.load],
-    ['通信辅助', configStore.comm],
-    ['系统图元', configStore.sysPrimitive]
+    ['通信辅助', configStore.comm]
   ]),
-  registerConfig: (title: string, config: ILeftAsideConfigItemPublic[]) => {
+  registerConfig: (
+    title: string,
+    config: ILeftAsideConfigItemPublic[],
+    options: { replaceExisting?: boolean } = {}
+  ) => {
     if (title == '系统组件') {
       ElMessage.info(`title:${title}已被系统占用，请更换名称！`);
       return;
@@ -50,11 +53,18 @@ export const leftAsideStore: ILeftAside = reactive({
         }
       };
     });
-    // 分类已存在时追加合并（按 id 去重），避免覆盖原有图元
+    // 分类已存在时追加合并；需要时可按 id 替换已注册项，便于开发环境热更新生效。
     if (leftAsideStore.config.has(title)) {
       const exist = leftAsideStore.config.get(title)!;
       const existIds = new Set(exist.map((i) => i.id));
-      leftAsideStore.config.set(title, [...exist, ...cfg.filter((i) => !existIds.has(i.id))]);
+      const cfgById = new Map(cfg.map((item) => [item.id, item]));
+      const mergedExist = options.replaceExisting
+        ? exist.map((item) => cfgById.get(item.id) ?? item)
+        : exist;
+      leftAsideStore.config.set(title, [
+        ...mergedExist,
+        ...cfg.filter((item) => !existIds.has(item.id))
+      ]);
     } else {
       leftAsideStore.config.set(title, cfg);
     }

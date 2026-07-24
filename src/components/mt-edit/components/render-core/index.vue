@@ -21,7 +21,7 @@
     @move-mouse-up="onMoveMouseUp()"
     @on-mouse-enter="onMouseEnter($event, item)"
     @on-mouse-leave="onMouseLeave($event, item)"
-    @on-resize-move="onResizeMove($event)"
+    @on-resize-move="onResizeMove(item, $event)"
     @on-resize-done="onResizeDone(item)"
     @on-rotate-move="onRotateMove($event)"
     @on-rotate-done="onRotateDone(item)"
@@ -97,6 +97,12 @@ import KvVue from '@/components/custom-components/kv-vue/index.vue';
 import SysButtonVue from '@/components/custom-components/sys-button-vue/index.vue';
 import Busbar from '@/components/custom-components/busbar/index.vue';
 import { ElPopover } from 'element-plus';
+import type { IDzrResizeMovePayload } from '@/components/mt-dzr/types';
+import {
+  collectResizeVisualMetrics,
+  scaleResizeVisualMetrics,
+  type ResizeVisualSnapshot
+} from './text-resize';
 const instance = getCurrentInstance();
 const now_include_keys = Object.keys(instance?.appContext?.components as any);
 if (!now_include_keys.includes('text-vue')) {
@@ -158,6 +164,7 @@ const renderCoreEmits = defineEmits([
 ]);
 // 记录多选的情况除了本次移动组件其他的组件位置信息
 const other_selected_items_binfo = ref<{ id: string; left: number; top: number }[]>([]);
+const resize_initial_visual_metrics = new Map<string, ResizeVisualSnapshot>();
 const onMouseDown = (item: IDoneJson, e: MouseTouchEvent) => {
   other_selected_items_binfo.value = globalStore.done_json
     .filter((m) => m.id !== item.id)
@@ -260,13 +267,38 @@ const onMouseEnter = (e: MouseEvent, item: IDoneJson) => {
 const onMouseLeave = (e: MouseEvent, item: IDoneJson) => {
   renderCoreEmits('onItemMouseLeave', e, item);
 };
-const onResizeMove = (val: any) => {
+const onResizeMove = (item: IDoneJson, val: IDzrResizeMovePayload) => {
+  let initial_visual_metrics = resize_initial_visual_metrics.get(item.id);
+  if (!initial_visual_metrics) {
+    initial_visual_metrics = collectResizeVisualMetrics(item);
+    resize_initial_visual_metrics.set(item.id, initial_visual_metrics);
+  }
+  const visual_metrics_snapshot = initial_visual_metrics;
+  if (visual_metrics_snapshot.size > 0) {
+    renderCoreEmits(
+      'update:doneJson',
+      renderCoreProps.doneJson.map((done_item) =>
+        done_item.id === item.id
+          ? {
+              ...scaleResizeVisualMetrics(
+                done_item,
+                visual_metrics_snapshot,
+                val.widthScale,
+                val.heightScale
+              ),
+              binfo: val.binfo
+            }
+          : done_item
+      )
+    );
+  }
   globalStore.setRealTimeData({
     show: true,
     text: `${val?.width}x${val?.height}`
   });
 };
 const onResizeDone = (item: IDoneJson) => {
+  resize_initial_visual_metrics.delete(item.id);
   renderCoreEmits('onItemResizeDone', item);
   globalStore.setRealTimeData({
     show: false,

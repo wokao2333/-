@@ -23,6 +23,8 @@ export interface DeviceBindInfo {
   deviceType?: string;
   /** 设备类型展示名称（来自 EMS 返回的 deviceTypeName，便于回显） */
   deviceTypeName?: string;
+  /** 设备名称（来自 EMS 返回，便于回显已绑定的设备） */
+  deviceName?: string;
 }
 
 /** EMS 设备列表项（来自 /business/microgrid/device/detail?deviceType=...） */

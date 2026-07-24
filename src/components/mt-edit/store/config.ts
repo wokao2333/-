@@ -27,7 +27,7 @@ const sysComponentItems: ILeftAsideConfigItem[] = [
       'marker-end': {
         title: '终点箭头',
         type: 'switch',
-        val: true
+        val: false
       },
       point_position: {
         title: '点坐标',
@@ -112,7 +112,7 @@ const sysComponentItems: ILeftAsideConfigItem[] = [
       'marker-end': {
         title: '终点箭头',
         type: 'switch',
-        val: true
+        val: false
       },
       point_position: {
         title: '点坐标',
@@ -262,40 +262,6 @@ const sysComponentItems: ILeftAsideConfigItem[] = [
     }
   },
   {
-    id: 'now-time-vue',
-    title: '当前时间',
-    type: 'vue',
-    thumbnail: `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxZW0iIGhlaWdodD0iMWVtIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+PHBhdGggZmlsbD0ibm9uZSIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIHN0cm9rZS1taXRlcmxpbWl0PSIxMCIgc3Ryb2tlLXdpZHRoPSIzMiIgZD0iTTI1NiA2NEMxNTAgNjQgNjQgMTUwIDY0IDI1NnM4NiAxOTIgMTkyIDE5MnMxOTItODYgMTkyLTE5MlMzNjIgNjQgMjU2IDY0WiIvPjxwYXRoIGZpbGw9Im5vbmUiIHN0cm9rZT0iY3VycmVudENvbG9yIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMzIiIGQ9Ik0yNTYgMTI4djE0NGg5NiIvPjwvc3ZnPg==`,
-    props: {
-      fontColor: {
-        title: '文字颜色',
-        type: 'color',
-        val: '#000000'
-      },
-      dateSize: {
-        title: '日期文字大小',
-        type: 'number',
-        val: 12
-      },
-      weekSize: {
-        title: '星期文字大小',
-        type: 'number',
-        val: 12
-      },
-      timeSize: {
-        title: '时间文字大小',
-        type: 'number',
-        val: 24
-      }
-    },
-    common_animations: {
-      val: '',
-      delay: 'delay-0s',
-      speed: 'slow',
-      repeat: 'infinite'
-    }
-  },
-  {
     id: 'kv-vue',
     title: '键值对',
     type: 'vue',
@@ -386,6 +352,18 @@ const sysComponentItems: ILeftAsideConfigItem[] = [
         type: 'number',
         val: 4
       },
+      paddingX: {
+        title: '水平内边距',
+        type: 'number',
+        val: 10,
+        disabled: true
+      },
+      paddingY: {
+        title: '垂直内边距',
+        type: 'number',
+        val: 6,
+        disabled: true
+      },
       color: {
         title: '默认文字颜色',
         type: 'color',
@@ -401,12 +379,7 @@ const sysComponentItems: ILeftAsideConfigItem[] = [
   }
 ];
 
-// 将“键值对”从系统组件移动到“系统图元”分类
 const sysPrimitiveItems: ILeftAsideConfigItem[] = [];
-const kvIndex = sysComponentItems.findIndex((i) => i.id === 'kv-vue');
-if (kvIndex !== -1) {
-  sysPrimitiveItems.push(sysComponentItems.splice(kvIndex, 1)[0]);
-}
 
 // 系统组件中追加的电气 stroke 图标
 const sysSvgIconNames = new Set([

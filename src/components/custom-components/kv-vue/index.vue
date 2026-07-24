@@ -17,6 +17,8 @@ interface KvVueProps {
   unitGap?: number;
   unitFontSize?: number;
   unitColor?: string;
+  paddingX?: number;
+  paddingY?: number;
   color?: string;
   border?: boolean;
   borderColor?: string;
@@ -38,6 +40,8 @@ const props = withDefaults(defineProps<KvVueProps>(), {
   unitGap: 4,
   unitFontSize: 0,
   unitColor: '',
+  paddingX: 10,
+  paddingY: 6,
   color: ''
 });
 
@@ -55,7 +59,7 @@ const computedTableWidth = computed(
 </script>
 
 <template>
-  <div class="w-1/1 h-1/1 kvWrap">
+  <div class="w-1/1 h-1/1 kvWrap" :style="{ padding: `${props.paddingY}px ${props.paddingX}px` }">
     <table class="kvTable" :style="{ width: `${computedTableWidth}px` }">
       <colgroup>
         <col :style="{ width: `${props.labelWidth}px` }" />
@@ -79,7 +83,6 @@ const computedTableWidth = computed(
   box-sizing: border-box;
   width: 100%;
   height: 100%;
-  padding: 6px 10px;
   display: flex;
   align-items: center;
 }

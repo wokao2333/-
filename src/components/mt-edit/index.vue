@@ -67,7 +67,11 @@
                   v-if="left_aside_active_tab === 'graphic'"
                   :leftAsideConfig="leftAsideStore.config"
                 ></left-aside>
-                <device-template v-else-if="left_aside_active_tab === 'template'"></device-template>
+                <device-template
+                  v-else-if="left_aside_active_tab === 'template'"
+                  ref="deviceTemplateRef"
+                  @selection-saved="onDeviceTemplateSelectionSaved"
+                ></device-template>
                 <slot v-else-if="hasStationAsideSlot" name="stationAside" />
                 <div v-else class="h-1/1 flex items-center justify-center p-10px">
                   <el-empty description="暂无场站内容" />
@@ -195,7 +199,7 @@ import {
 } from 'element-plus';
 import { Grid, OfficeBuilding, Files } from '@element-plus/icons-vue';
 import { globalStore } from '@/components/mt-edit/store/global';
-import { computed, onUnmounted, reactive, ref, watch, useSlots } from 'vue';
+import { computed, nextTick, onUnmounted, reactive, ref, watch, useSlots } from 'vue';
 import DoneTree from '@/components/mt-edit/components/done-tree/index.vue';
 import { cacheStore } from './store/cache';
 
@@ -203,6 +207,7 @@ import { objectDeepClone } from './utils';
 import { genExportJson, useExportJsonToDoneJson } from './composables';
 import { collectUnboundDevices, type UnboundDeviceItem } from '@/composables/useDeviceBinding';
 import type { IExportJson } from './components/types';
+import type { DeviceTemplateSelectionChange } from './components/layout/device-template/types';
 type MtEditProps = {
   useThumbnail?: boolean;
   exportExtra?: Record<string, unknown>;
@@ -229,10 +234,12 @@ const emits = defineEmits([
   'onSaveClick',
   'onThumbnailClick',
   'onImportSuccess',
-  'onPublishClick'
+  'onPublishClick',
+  'onDeviceTemplateChange'
 ]);
 const slots = useSlots();
 const mainPanelRef = ref<InstanceType<typeof MainPanel>>();
+const deviceTemplateRef = ref<InstanceType<typeof DeviceTemplate>>();
 
 const aside_state = reactive({
   left_show: true,
@@ -266,7 +273,7 @@ const header_align_enabled = computed(() => {
 
 const done_json_tree_visiable = ref(false);
 const line_append_enable = ref(false);
-const left_aside_active_tab = ref('graphic');
+const left_aside_active_tab = ref('station');
 
 const tabs = [
   { name: 'station', label: '场站', icon: OfficeBuilding },
@@ -420,6 +427,18 @@ const onDrawLineClick = (val: boolean) => {
   line_append_enable.value = val;
 };
 
+const onDeviceTemplateSelectionSaved = (payload: DeviceTemplateSelectionChange) => {
+  emits('onDeviceTemplateChange', payload);
+};
+
+const openDevicePointConfig = async (deviceType: string) => {
+  aside_state.left_show = true;
+  left_aside_active_tab.value = 'template';
+  // DeviceTemplate 由 v-else-if 按需挂载，切换页签后等待实例可用再打开弹窗
+  await nextTick();
+  await deviceTemplateRef.value?.openDevicePointConfig(deviceType);
+};
+
 /* 在线校验：基于当前一次接线图收集所有未绑定设备图元，并支持定位跳转 */
 const onlineCheckVisible = ref(false);
 const unboundDevices = ref<UnboundDeviceItem[]>([]);
@@ -455,7 +474,8 @@ const setImportJson = (exportJson: IExportJson) => {
   return true;
 };
 defineExpose({
-  setImportJson
+  setImportJson,
+  openDevicePointConfig
 });
 </script>
 <style scoped>

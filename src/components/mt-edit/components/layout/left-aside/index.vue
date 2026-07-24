@@ -6,7 +6,7 @@
       placeholder="请输入关键字进行搜索"
     ></el-input>
     <div class="h-85/100">
-      <el-scrollbar class="pr-10px" :view-style="{ height: '100%' }">
+      <el-scrollbar :view-style="{ height: '100%' }">
         <el-collapse v-model="active_names">
           <el-collapse-item
             v-for="config_item_key in checked_keys"
@@ -19,7 +19,8 @@
                 draggable="true"
                 @dragstart="onDragStart(config_item_key, item.id)"
                 @touchstart.passive="onDragStart(config_item_key, item.id)"
-                class="w-40px h-40px"
+                class="w-60px h-66px flex flex-col items-center justify-start pt-6px gap-2px cursor-grab select-none rounded-1 hover:bg-gray-100"
+                :class="isDark ? 'hover:bg-[#ffffff17]' : ''"
                 v-for="(item, index) in getFilteritems(
                   leftAsideProps.leftAsideConfig.get(config_item_key)
                 )"
@@ -55,6 +56,11 @@
                     </div>
                   </template>
                 </el-tooltip>
+                <span
+                  class="w-full truncate text-center text-12px leading-tight text-gray-500 px-2px"
+                  :title="item.title"
+                  >{{ item.title }}</span
+                >
               </div>
             </div>
           </el-collapse-item>

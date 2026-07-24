@@ -1,139 +1,109 @@
 <template>
-  <el-tabs v-model="activeName" class="select-none">
-    <!-- 页面设置面板 -->
-    <el-tab-pane label="页面" name="page">
-      <el-form label-width="70px" label-position="left">
-        <!-- 1. 画布尺寸配置 -->
-        <el-form-item label="画布尺寸" size="small">
-          <el-select v-model="canvas_size" placeholder="请设置画布尺寸">
-            <!-- 自定义画布宽高输入框 -->
-            <el-option-group label="自定义">
-              <div class="flex justify-between">
-                <el-input-number
-                  v-model="canvas_size_width"
-                  size="small"
-                  :controls="false"
-                  class="w-5/10 pl-5px"
-                ></el-input-number>
-                <el-text>*</el-text>
-                <el-input-number
-                  v-model="canvas_size_height"
-                  size="small"
-                  :controls="false"
-                  class="w-5/10 pr-5px"
-                ></el-input-number>
-              </div>
-            </el-option-group>
-            <!-- 预设画布尺寸分组列表（如PC端、移动端） -->
-            <el-option-group
-              v-for="group in canvas_size_options"
-              :key="group.label"
-              :label="group.label"
-            >
+  <el-config-provider :locale="zhCn">
+    <el-tabs v-model="activeName" class="select-none">
+      <!-- 页面设置面板 -->
+      <el-tab-pane label="页面" name="page">
+        <el-form label-width="70px" label-position="left">
+          <!-- 1. 画布尺寸配置 -->
+          <el-form-item label="画布尺寸" size="small">
+            <el-input :model-value="canvas_size" disabled size="small" />
+          </el-form-item>
+
+          <!-- 2. 缩放倍数配置 -->
+          <el-form-item label="缩放倍数" size="small">
+            <el-select v-model="canvas_size_scale" placeholder="请设置缩放比例" size="small">
+              <!-- 预设的缩放比例选项 -->
               <el-option
-                v-for="item in group.options"
+                v-for="item in canvas_size_scale_options"
                 :key="item.value"
                 :label="item.label"
                 :value="item.value"
               />
-            </el-option-group>
-          </el-select>
-        </el-form-item>
-
-        <!-- 2. 缩放倍数配置 -->
-        <el-form-item label="缩放倍数" size="small">
-          <el-select v-model="canvas_size_scale" placeholder="请设置缩放比例" size="small">
-            <!-- 预设的缩放比例选项 -->
-            <el-option
-              v-for="item in canvas_size_scale_options"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-            <!-- 自定义缩放比例输入框 -->
-            <div class="flex justify-between px-10px ct-border pt-10px">
-              <el-text>自定义:</el-text>
-              <el-input-number
-                v-model="canvas_size_scale_input"
-                size="small"
-                :step="0.1"
-                :min="0.1"
-                class="mx-5px"
-              ></el-input-number>
-            </div>
-          </el-select>
-        </el-form-item>
-
-        <!-- 3. 背景颜色选择器 -->
-        <el-form-item label="背景颜色" size="small">
-          <el-color-picker v-model="canvas_bg_color"></el-color-picker>
-        </el-form-item>
-
-        <!-- 4. 背景图片上传 -->
-        <el-form-item label="背景图片" size="small">
-          <el-upload
-            ref="canvasBgImgUploadRef"
-            class="w-24px h-24px"
-            v-model:file-list="bg_img_list"
-            :auto-upload="false"
-            :limit="1"
-            :show-file-list="false"
-            :on-change="onBgImgChange"
-            accept="image/*"
-            @mouseenter="show_clear_bg_img = true"
-            @mouseleave="show_clear_bg_img = false"
-          >
-            <div class="flex justify-center items-center relative">
-              <!-- 已有背景图时展示图片缩略图，否则展示上传按钮 -->
-              <img
-                class="w-40px h-40px absolute left-0"
-                v-if="rightAsideProps.canvasCfg.img"
-                :src="rightAsideProps.canvasCfg.img"
-              />
-              <el-button v-else size="small" class="w-40px h-40px absolute left-0">
-                <el-icon title="上传" :size="20">
-                  <svg-analysis name="upload"></svg-analysis>
-                </el-icon>
-              </el-button>
-              <!-- 鼠标悬浮在已有背景图上时显示删除/清除按钮 -->
-              <div
-                v-if="rightAsideProps.canvasCfg.img && show_clear_bg_img"
-                class="absolute w-40px h-40px left-0 opacity-80 bg-light-300 flex justify-center items-center"
-                @click.stop="clearBgImg"
-              >
-                <el-icon title="删除" :size="25">
-                  <svg-analysis name="delete"></svg-analysis>
-                </el-icon>
+              <!-- 自定义缩放比例输入框 -->
+              <div class="flex justify-between px-10px ct-border pt-10px">
+                <el-text>自定义:</el-text>
+                <el-input-number
+                  v-model="canvas_size_scale_input"
+                  size="small"
+                  :step="0.1"
+                  :min="0.1"
+                  class="mx-5px"
+                ></el-input-number>
               </div>
-            </div>
-          </el-upload>
-        </el-form-item>
+            </el-select>
+          </el-form-item>
 
-        <!-- 5. 辅助功能开关：参考线 -->
-        <el-form-item label="参考线" size="small">
-          <el-switch v-model="canvas_guide"></el-switch>
-        </el-form-item>
+          <!-- 3. 背景颜色选择器 -->
+          <el-form-item label="背景颜色" size="small">
+            <el-color-picker v-model="canvas_bg_color"></el-color-picker>
+          </el-form-item>
 
-        <!-- 6. 辅助功能开关：吸附 -->
-        <el-form-item label="吸附" size="small">
-          <el-switch v-model="canvas_adsorp"></el-switch>
-        </el-form-item>
+          <!-- 4. 背景图片上传 -->
+          <el-form-item label="背景图片" size="small">
+            <el-upload
+              ref="canvasBgImgUploadRef"
+              class="w-24px h-24px"
+              v-model:file-list="bg_img_list"
+              :auto-upload="false"
+              :limit="1"
+              :show-file-list="false"
+              :on-change="onBgImgChange"
+              accept="image/*"
+              @mouseenter="show_clear_bg_img = true"
+              @mouseleave="show_clear_bg_img = false"
+            >
+              <div class="flex justify-center items-center relative">
+                <!-- 已有背景图时展示图片缩略图，否则展示上传按钮 -->
+                <img
+                  class="w-40px h-40px absolute left-0"
+                  v-if="rightAsideProps.canvasCfg.img"
+                  :src="rightAsideProps.canvasCfg.img"
+                />
+                <el-button v-else size="small" class="w-40px h-40px absolute left-0">
+                  <el-icon title="上传" :size="20">
+                    <svg-analysis name="upload"></svg-analysis>
+                  </el-icon>
+                </el-button>
+                <!-- 鼠标悬浮在已有背景图上时显示删除/清除按钮 -->
+                <div
+                  v-if="rightAsideProps.canvasCfg.img && show_clear_bg_img"
+                  class="absolute w-40px h-40px left-0 opacity-80 bg-light-300 flex justify-center items-center"
+                  @click.stop="clearBgImg"
+                >
+                  <el-icon title="删除" :size="25">
+                    <svg-analysis name="delete"></svg-analysis>
+                  </el-icon>
+                </div>
+              </div>
+            </el-upload>
+          </el-form-item>
 
-        <!-- 7. 网格开关与配置 -->
-        <el-form-item label="网格" size="small">
-          <el-switch v-model="grid_enabled"></el-switch>
-        </el-form-item>
-        <!-- 仅在启用网格时展示网格对齐开关 -->
-        <el-form-item label="网格对齐" size="small" v-if="grid_enabled">
-          <el-switch v-model="grid_align"></el-switch>
-        </el-form-item>
-        <!-- 仅在启用网格时展示网格大小输入框 -->
-        <el-form-item label="网格大小" size="small" v-if="grid_enabled">
-          <el-input-number v-model="grid_size" :min="1"></el-input-number>
-        </el-form-item>
-      </el-form>
-    </el-tab-pane>
-  </el-tabs>
+          <!-- 5. 辅助功能开关：参考线 -->
+          <el-form-item label="参考线" size="small">
+            <el-switch v-model="canvas_guide"></el-switch>
+          </el-form-item>
+
+          <!-- 6. 辅助功能开关：吸附 -->
+          <el-form-item label="吸附" size="small">
+            <el-switch v-model="canvas_adsorp"></el-switch>
+          </el-form-item>
+
+          <!-- 7. 网格开关与配置 -->
+          <el-form-item label="网格" size="small">
+            <el-switch v-model="grid_enabled"></el-switch>
+          </el-form-item>
+          <!-- 仅在启用网格时展示网格对齐开关 -->
+          <el-form-item label="网格对齐" size="small" v-if="grid_enabled">
+            <el-switch v-model="grid_align"></el-switch>
+          </el-form-item>
+          <!-- 仅在启用网格时展示网格大小输入框 -->
+          <el-form-item label="网格大小" size="small" v-if="grid_enabled">
+            <el-input-number v-model="grid_size" :min="1"></el-input-number>
+          </el-form-item>
+        </el-form>
+      </el-tab-pane>
+    </el-tabs>
+  </el-config-provider>
 </template>
 <script setup lang="ts">
 import type { IGlobalStoreCanvasCfg, IGlobalStoreGridCfg } from '@/components/mt-edit/store/types';
@@ -142,10 +112,10 @@ import {
   ElTabPane,
   ElForm,
   ElFormItem,
+  ElInput,
   ElInputNumber,
   ElSelect,
   ElOption,
-  ElOptionGroup,
   ElSwitch,
   ElText,
   ElColorPicker,
@@ -154,8 +124,10 @@ import {
   type UploadUserFile,
   ElButton,
   type UploadFile,
-  ElMessage
+  ElMessage,
+  ElConfigProvider
 } from 'element-plus';
+import zhCn from 'element-plus/es/locale/lang/zh-cn';
 import { computed, ref } from 'vue';
 import SvgAnalysis from '@/components/mt-edit/components/svg-analysis/index.vue';
 import { blobToBase64 } from '@/components/mt-edit/utils';
@@ -180,97 +152,11 @@ const canvasBgImgUploadRef = ref();
 
 /**
  * 画布尺寸的计算属性（格式化为 "宽*高"）
- * 用于 Select 下拉选择器展示和选择预设尺寸
+ * 用于展示当前画布尺寸
  */
-const canvas_size = computed({
-  get: () => {
-    return `${rightAsideProps.canvasCfg.width}*${rightAsideProps.canvasCfg.height}`;
-  },
-  set: (value) => {
-    const [width, height] = value.split('*');
-    emits('update:canvasCfg', {
-      ...rightAsideProps.canvasCfg,
-      width: Number(width),
-      height: Number(height)
-    });
-  }
-});
-
-// 画布宽度计算属性，供自定义宽度输入框双向绑定
-const canvas_size_width = computed({
-  get: () => {
-    return rightAsideProps.canvasCfg.width;
-  },
-  set: (value) => {
-    emits('update:canvasCfg', {
-      ...rightAsideProps.canvasCfg,
-      width: value
-    });
-  }
-});
-
-// 画布高度计算属性，供自定义高度输入框双向绑定
-const canvas_size_height = computed({
-  get: () => {
-    return rightAsideProps.canvasCfg.height;
-  },
-  set: (value) => {
-    emits('update:canvasCfg', {
-      ...rightAsideProps.canvasCfg,
-      height: value
-    });
-  }
-});
-
-// 画布预设尺寸选项，按 PC端 和 移动端 进行分组
-const canvas_size_options = [
-  {
-    label: 'pc端',
-    options: [
-      {
-        value: '1920*1080',
-        label: '1920*1080'
-      },
-      {
-        value: '1600*900',
-        label: '1600*900'
-      },
-      {
-        value: '1366*768',
-        label: '1366*768'
-      },
-      {
-        value: '1280*720',
-        label: '1280*720'
-      },
-      {
-        value: '1280*750',
-        label: '1280*750'
-      },
-      {
-        value: '1280*800',
-        label: '1280*800'
-      }
-    ]
-  },
-  {
-    label: '移动端',
-    options: [
-      {
-        value: '1024*1366',
-        label: '1024*1366'
-      },
-      {
-        value: '768*1024',
-        label: '768*1024'
-      },
-      {
-        value: '480*800',
-        label: '480*800'
-      }
-    ]
-  }
-];
+const canvas_size = computed(
+  () => `${rightAsideProps.canvasCfg.width || 1280}*${rightAsideProps.canvasCfg.height || 750}`
+);
 
 // 自定义画布缩放比例输入框的计算属性
 const canvas_size_scale_input = computed({

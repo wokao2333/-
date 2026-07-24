@@ -5,11 +5,12 @@
         <el-collapse-item title="边界和属性" name="1">
           <el-form label-width="60px" label-position="left">
             <el-form-item label="标题" size="small">
-              <el-input size="small" v-model="item_title"></el-input>
+              <el-input size="small" v-model="item_title" disabled></el-input>
             </el-form-item>
             <el-form-item label="x轴坐标" size="small">
               <el-input-number
                 size="small"
+                :precision="2"
                 v-model="item_binfo_left"
                 @change="emits('addHistory')"
               ></el-input-number>
@@ -17,6 +18,7 @@
             <el-form-item label="y轴坐标" size="small">
               <el-input-number
                 size="small"
+                :precision="2"
                 v-model="item_binfo_top"
                 @change="emits('addHistory')"
               ></el-input-number>
@@ -24,6 +26,7 @@
             <el-form-item label="宽度" size="small" v-if="!is_line">
               <el-input-number
                 size="small"
+                :precision="2"
                 v-model="item_binfo_width"
                 @change="emits('addHistory')"
               ></el-input-number>
@@ -31,6 +34,7 @@
             <el-form-item label="高度" size="small" v-if="!is_line">
               <el-input-number
                 size="small"
+                :precision="2"
                 v-model="item_binfo_height"
                 @change="emits('addHistory')"
               ></el-input-number>
@@ -38,6 +42,7 @@
             <el-form-item label="旋转角度" size="small" v-if="!is_line">
               <el-input-number
                 size="small"
+                :precision="2"
                 v-model="item_binfo_angle"
                 @change="emits('addHistory')"
               ></el-input-number>
@@ -77,14 +82,14 @@
         v-model:item-events="item_events"
       ></select-item-event-setting>
     </el-tab-pane> -->
-    <el-tab-pane label="绑定" name="bind_device">
+    <el-tab-pane v-if="showDeviceBindTab" label="绑定" name="bind_device">
       <slot v-if="hasDeviceBindSlot" name="deviceBind" :item="selectItemSettingProps.itemJson" />
       <el-empty v-else description="请传递插槽进行设备绑定页面显示" />
     </el-tab-pane>
   </el-tabs>
 </template>
 <script setup lang="ts">
-import { computed, ref, useSlots } from 'vue';
+import { computed, ref, useSlots, watch } from 'vue';
 import {
   ElTabs,
   ElTabPane,
@@ -294,4 +299,33 @@ const item_events = computed({
 const hasDeviceBindSlot = computed(() => {
   return !!slots.deviceBind;
 });
+
+const hasPresetPointBinding = (item?: IDoneJson) =>
+  !!item?.deviceBind?.deviceType &&
+  !!item.deviceBind.dataKey &&
+  item.deviceBind.targetAttr === 'props.value.val';
+
+// 新面板使用显式标记；后两个条件兼容已保存在画布或数据库中的旧测点面板。
+const isDevicePanelGenerated = computed(() => {
+  const item = selectItemSettingProps.itemJson;
+  if (!item) return false;
+
+  if (item.devicePanelGenerated || item.devicePanelFor) return true;
+  if (item.type === 'group' && item.children?.some(hasPresetPointBinding)) return true;
+
+  return item.tag === 'kv-vue' && hasPresetPointBinding(item) && item.props.label?.val === '';
+});
+
+const showDeviceBindTab = computed(() => !isDevicePanelGenerated.value);
+
+// 若此前停留在“绑定”，随后选中模板测点面板，需要回到仍然存在的“配置”页签。
+watch(
+  showDeviceBindTab,
+  (visible) => {
+    if (!visible && activeName.value === 'bind_device') {
+      activeName.value = 'config';
+    }
+  },
+  { immediate: true }
+);
 </script>

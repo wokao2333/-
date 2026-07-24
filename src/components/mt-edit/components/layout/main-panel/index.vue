@@ -125,6 +125,8 @@ import ContextMenu from '@/components/mt-edit/components/context-menu/index.vue'
 import { contextMenuStore } from '@/components/mt-edit/store/context-menu';
 import DrawLineRender from '@/components/mt-edit/components/draw-line-render/index.vue';
 import { configStore } from '@/components/mt-edit/store/config';
+import { getTextBoxWidth } from './text-measure';
+import { buildDeviceLabelGroup, restoreDeviceFromLabelGroup } from './device-label-group';
 type MainPanelProps = {
   groupEnabled: boolean;
   unGroupEnabled: boolean;
@@ -201,10 +203,15 @@ const DEVICE_LABEL_GAP = 20;
 const createDeviceLabel = (deviceItem: IDoneJson): IDoneJson => {
   const textCfg = configStore.sysComponent.find((f) => f.id === 'text-vue')!;
   const cfg = objectDeepClone<ILeftAsideConfigItem>(textCfg);
+  const fontSize = 30;
   cfg.props.text.val = deviceItem.title;
-  cfg.props.fontSize.val = 30;
+  cfg.props.fontSize.val = fontSize;
   cfg.props.fill.val = '#FFFFFF';
-  const labelW = Math.max(140, deviceItem.title.length * 30 + 20);
+  const labelW = getTextBoxWidth(
+    deviceItem.title,
+    fontSize,
+    String(cfg.props.fontFamily.val || 'sans-serif')
+  );
   const labelH = 40;
   return {
     id: 'text-vue-' + randomString(),
@@ -413,14 +420,12 @@ const onDrop = (e: DragEvent | TouchEvent, isTouch?: boolean) => {
   } else if (deep_find_cfg.type === 'img') {
     create_item.thumbnail = deep_find_cfg.thumbnail;
   }
-  const done_json_temp = [...globalStore.done_json];
-  done_json_temp.push(create_item);
-  // 设备类图元拖入画布时，默认附带一个可自由编辑的设备名称标签（文字组件）
-  if (create_item.device) {
-    done_json_temp.push(createDeviceLabel(create_item));
-  }
+  const added_item = create_item.device
+    ? buildDeviceLabelGroup(create_item, createDeviceLabel(create_item))
+    : create_item;
+  const done_json_temp = [...globalStore.done_json, added_item];
   globalStore.setGlobalStoreDoneJson(done_json_temp);
-  globalStore.setSingleSelect(create_item.id);
+  globalStore.setSingleSelect(added_item.id);
   globalStore.setIntention('none');
   globalStore.setCreateItemInfo(null);
   cacheStore.addHistory(done_json_temp);
@@ -627,15 +632,27 @@ const onUngroup = () => {
     return;
   }
   //获取拆分后的组件信息
-  const split_group_items = cancelGroup(
+  const split_group_items = restoreDeviceFromLabelGroup(
     selected_item_info,
-    canvasAreaRef.value,
-    globalStore.canvasCfg.scale,
-    grid_align_size.value
+    cancelGroup(
+      selected_item_info,
+      canvasAreaRef.value,
+      globalStore.canvasCfg.scale,
+      grid_align_size.value
+    )
   );
-  const done_json_temp = [...globalStore.done_json].filter(
-    (f) => !globalStore.selected_items_id.includes(f.id)
-  );
+  const restored_device = selected_item_info.deviceLabelGroup ? split_group_items[0] : undefined;
+  const done_json_temp = [...globalStore.done_json]
+    .filter((f) => !globalStore.selected_items_id.includes(f.id))
+    .map((item) =>
+      restored_device && item.devicePanelFor === selected_item_info.id
+        ? {
+            ...item,
+            id: 'device-panel-' + restored_device.id,
+            devicePanelFor: restored_device.id
+          }
+        : item
+    );
   globalStore.setGlobalStoreDoneJson([...done_json_temp, ...split_group_items]);
   globalStore.setSelectItems(split_group_items.map((m) => m.id));
   cacheStore.addHistory(globalStore.done_json);
@@ -1528,7 +1545,11 @@ const onCanvasMove = () => {};
  * 绘制线结束事件
  * @param line_item 绘制好的线
  */
-const onDrawLineEnd = (line_item: IDoneJson) => {
+const onDrawLineEnd = (line_item?: IDoneJson | null) => {
+  if (!line_item) {
+    globalStore.setIntention('none');
+    return;
+  }
   const done_json_temp = [...globalStore.done_json];
   const new_line_item = { ...line_item, id: line_item.tag + '-' + randomString() };
   done_json_temp.push(new_line_item);

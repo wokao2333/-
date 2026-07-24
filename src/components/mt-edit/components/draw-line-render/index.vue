@@ -132,10 +132,14 @@ const onMouseDown = (de: MouseTouchEvent, point_index: number, item: { x: number
   const d_y = de instanceof MouseEvent ? de.clientY : de.touches[0].pageY;
   let new_x = 0;
   let new_y = 0;
+  let hasDragged = false;
   const onMouseMove = (e: MouseTouchEvent) => {
     // 记录鼠标移动的位置
     const m_x = e instanceof MouseEvent ? e.clientX : e.touches[0].pageX;
     const m_y = e instanceof MouseEvent ? e.clientY : e.touches[0].pageY;
+    if (Math.abs(m_x - d_x) > 3 || Math.abs(m_y - d_y) > 3) {
+      hasDragged = true;
+    }
     // 移动的距离
     const move_x = de.ctrlKey ? 0 : alignToGrid((m_x - d_x) / lineRenderProps.canvasCfg.scale, 1); //感觉对齐网格有点体验不好 所以固定为一了
     const move_y = de.shiftKey ? 0 : alignToGrid((m_y - d_y) / lineRenderProps.canvasCfg.scale, 1);
@@ -160,6 +164,16 @@ const onMouseDown = (de: MouseTouchEvent, point_index: number, item: { x: number
     document.removeEventListener('mouseup', onMouseUp);
     document.removeEventListener('touchmove', onMouseMove);
     document.removeEventListener('touchend', onMouseUp);
+
+    const pos = lineRenderProps.itemJson.props.point_position.val;
+    const isZeroLength =
+      pos.length >= 2 && pos[0].x === pos[pos.length - 1].x && pos[0].y === pos[pos.length - 1].y;
+
+    if (!hasDragged || isZeroLength) {
+      lineRenderEmits('drawLineEnd', null);
+      return;
+    }
+
     const itemRect = document
       .querySelector(`#${lineRenderProps.itemJson.id} g .real`)!
       .getBoundingClientRect();

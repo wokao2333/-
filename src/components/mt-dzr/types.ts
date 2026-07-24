@@ -24,6 +24,13 @@ export interface IDzrPropsModelValue {
   height: number;
   angle: number;
 }
+export interface IDzrResizeMovePayload {
+  binfo: IDzrPropsModelValue;
+  width: number;
+  height: number;
+  widthScale: number;
+  heightScale: number;
+}
 export interface IDzrPropsGrid {
   enabled: boolean; //开启网格
   align: boolean; //对齐到网格
