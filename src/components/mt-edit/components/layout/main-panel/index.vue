@@ -420,7 +420,7 @@ const onDrop = (e: DragEvent | TouchEvent, isTouch?: boolean) => {
   } else if (deep_find_cfg.type === 'img') {
     create_item.thumbnail = deep_find_cfg.thumbnail;
   }
-  const added_item = create_item.device
+  const added_item = create_item.device && deep_find_cfg.attachLabel !== false
     ? buildDeviceLabelGroup(create_item, createDeviceLabel(create_item))
     : create_item;
   const done_json_temp = [...globalStore.done_json, added_item];

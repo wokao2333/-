@@ -404,7 +404,8 @@ const sysSvgIconNames = new Set([
   '多功能电表',
   '微网控制单元',
   '通信网关',
-  '交换机'
+  '交换机',
+  '断路器-开关'
 ]);
 // 属于“新能源”分类的电气图标
 const newEnergyIconNames = new Set([
@@ -426,8 +427,11 @@ const loadItems: ILeftAsideConfigItem[] = [];
 // 属于“电网”分类的电气图标
 const gridClassIconNames = new Set(['变压器', '并网点', '电网']);
 const gridClassItems: ILeftAsideConfigItem[] = [];
-// 属于“一次设备”分类的电气图标（如母线）
+// 属于“一次设备”分类的电气图标（如母线、断路器）
+const gridIconNames = new Set(['断路器-开关']);
 const gridItems: ILeftAsideConfigItem[] = [];
+// 拖入画布时只显示图形、不自动附带“设备名称”文字标签的图标
+const noAutoLabelIconNames = new Set(['断路器-开关']);
 // 属于“通信辅助”分类的电气图标
 const commIconNames = new Set(['微网控制单元', '通信网关', '交换机']);
 const commItems: ILeftAsideConfigItem[] = [];
@@ -452,6 +456,8 @@ for (const key in sysSvgModules) {
     ? loadItems
     : gridClassIconNames.has(name)
     ? gridClassItems
+    : gridIconNames.has(name)
+    ? gridItems
     : commIconNames.has(name)
     ? commItems
     : sysComponentItems
@@ -476,6 +482,7 @@ for (const key in sysSvgModules) {
     },
     // 电网、新能源、储能、负荷、通信辅助 五个分类的图元均标记为设备类，用于统计
     device: true,
+    attachLabel: !noAutoLabelIconNames.has(name), // 默认拖入时附带名称标签，白名单内仅显示图形
     common_animations: {
       val: '',
       delay: 'delay-0s',

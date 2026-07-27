@@ -28,6 +28,7 @@ export interface ILeftAsideConfigItemPublic {
   svg?: string; //图形的svg代码
   props: ILeftAsideConfigItemPublicProps;
   device?: boolean; //是否为设备类图元（用于统计一次接线图设备总数及未绑定数据设备数）
+  attachLabel?: boolean; //拖入画布时是否自动附带“设备名称”文字标签，默认 true；设为 false 仅显示图形
 }
 export interface ILeftAsideConfigItemPrivateSymbol {
   symbol_id: string;
