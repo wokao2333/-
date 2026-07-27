@@ -405,7 +405,14 @@ const sysSvgIconNames = new Set([
   '微网控制单元',
   '通信网关',
   '交换机',
-  '断路器-开关'
+  '手车式断路器',
+  '避雷器',
+  '带电显示器',
+  '低压限流熔断器',
+  '电流互感器',
+  '断路器',
+  '接地刀闸',
+  '零序电流互感器'
 ]);
 // 属于“新能源”分类的电气图标
 const newEnergyIconNames = new Set([
@@ -425,13 +432,29 @@ const storageItems: ILeftAsideConfigItem[] = [];
 const loadIconNames = new Set(['电表', '电碳表', '配电箱', '充电桩', '多功能电表']);
 const loadItems: ILeftAsideConfigItem[] = [];
 // 属于“电网”分类的电气图标
-const gridClassIconNames = new Set(['变压器', '并网点', '电网']);
+const gridClassIconNames = new Set(['并网点', '电网']);
 const gridClassItems: ILeftAsideConfigItem[] = [];
-// 属于“一次设备”分类的电气图标（如母线、断路器）
-const gridIconNames = new Set(['断路器-开关']);
+// 属于“一次设备”分类的电气图标（如母线、断路器、变压器）
+const gridIconNames = new Set([
+  '变压器',
+  '手车式断路器',
+  '避雷器',
+  '带电显示器',
+  '低压限流熔断器',
+  '电流互感器',
+  '断路器',
+  '接地刀闸',
+  '零序电流互感器'
+]);
 const gridItems: ILeftAsideConfigItem[] = [];
 // 拖入画布时只显示图形、不自动附带“设备名称”文字标签的图标
-const noAutoLabelIconNames = new Set(['断路器-开关']);
+const noAutoLabelIconNames = new Set(['变压器', '手车式断路器','避雷器',
+  '带电显示器',
+  '低压限流熔断器',
+  '电流互感器',
+  '断路器',
+  '接地刀闸',
+  '零序电流互感器']);
 // 属于“通信辅助”分类的电气图标
 const commIconNames = new Set(['微网控制单元', '通信网关', '交换机']);
 const commItems: ILeftAsideConfigItem[] = [];
