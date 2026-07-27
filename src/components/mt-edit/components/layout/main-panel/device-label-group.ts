@@ -2,10 +2,7 @@ import type { IDoneJson } from '@/components/mt-edit/store/types';
 import { buildGroupFromItems } from '@/components/mt-edit/composables/template-builder';
 
 /** 将设备图元和名称标签组成默认设备组合。 */
-export const buildDeviceLabelGroup = (
-  deviceItem: IDoneJson,
-  labelItem: IDoneJson
-): IDoneJson => {
+export const buildDeviceLabelGroup = (deviceItem: IDoneJson, labelItem: IDoneJson): IDoneJson => {
   const group = buildGroupFromItems([deviceItem, labelItem]);
   if (!group?.children?.length) {
     throw new Error('创建设备名称组合失败');

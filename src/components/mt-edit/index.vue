@@ -481,6 +481,7 @@ defineExpose({
 <style scoped>
 .mt-edit-aside {
   transition: width 0.3s;
+  overflow: hidden;
 }
 
 .mt-edit-tab-bar {

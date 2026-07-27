@@ -920,9 +920,8 @@ const onDeviceListDialogOpened = async () => {
   await fetchDeviceList(item);
   const table = deviceListTableRef.value;
   if (!table) return;
-  const current = deviceList.value.find(
-    (d) => String(d.deviceId) === getDeviceBind(item).deviceId
-  ) || null;
+  const current =
+    deviceList.value.find((d) => String(d.deviceId) === getDeviceBind(item).deviceId) || null;
   table.setCurrentRow(current);
   deviceListSelectedId.value = getDeviceBind(item).deviceId || '';
 };
@@ -938,9 +937,8 @@ const onDeviceListPageChange = (page: number) => {
   nextTick(() => {
     const table = deviceListTableRef.value;
     if (!table) return;
-    const current = pagedDeviceList.value.find(
-      (d) => String(d.deviceId) === deviceListSelectedId.value
-    ) || null;
+    const current =
+      pagedDeviceList.value.find((d) => String(d.deviceId) === deviceListSelectedId.value) || null;
     table.setCurrentRow(current);
   });
 };
@@ -952,9 +950,8 @@ const onDeviceListSizeChange = (size: number) => {
   nextTick(() => {
     const table = deviceListTableRef.value;
     if (!table) return;
-    const current = pagedDeviceList.value.find(
-      (d) => String(d.deviceId) === deviceListSelectedId.value
-    ) || null;
+    const current =
+      pagedDeviceList.value.find((d) => String(d.deviceId) === deviceListSelectedId.value) || null;
     table.setCurrentRow(current);
   });
 };
@@ -1843,12 +1840,7 @@ const onThumbnailClick = () => {
                 >
                   加载设备列表
                 </el-button>
-                <el-text
-                  v-if="getDeviceBind(item).deviceId"
-                  size="small"
-                  type="success"
-                >
-                </el-text>
+                <el-text v-if="getDeviceBind(item).deviceId" size="small" type="success"> </el-text>
                 <div>
                   已绑定：{{ getDeviceBind(item).deviceName || getDeviceBind(item).deviceId }}
                 </div>
@@ -1942,7 +1934,9 @@ const onThumbnailClick = () => {
         @current-change="onDeviceListCurrentChange"
       >
         <el-table-column label="序号" width="80" align="center">
-          <template #default="{ $index }">{{ (deviceListPage - 1) * deviceListPageSize + $index + 1 }}</template>
+          <template #default="{ $index }">{{
+            (deviceListPage - 1) * deviceListPageSize + $index + 1
+          }}</template>
         </el-table-column>
         <el-table-column label="设备名称" min-width="280" show-overflow-tooltip>
           <template #default="{ row }">{{ row.deviceName }}</template>
@@ -1962,10 +1956,7 @@ const onThumbnailClick = () => {
       />
       <template #footer>
         <el-button @click="deviceListDialogVisible = false">取消</el-button>
-        <el-button
-          type="primary"
-          :disabled="!deviceListSelectedId"
-          @click="onConfirmDeviceSelect"
+        <el-button type="primary" :disabled="!deviceListSelectedId" @click="onConfirmDeviceSelect"
           >确定</el-button
         >
       </template>

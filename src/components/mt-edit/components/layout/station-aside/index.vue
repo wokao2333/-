@@ -71,7 +71,7 @@
         <el-button type="primary" size="small" @click="onAddStationClick">
           <el-icon class="mr-4px"><Plus /></el-icon>新增场站
         </el-button>
-         <el-button type="primary" size="small" @click="onImportClick">
+        <el-button type="primary" size="small" @click="onImportClick">
           <el-icon class="mr-4px"><Upload /></el-icon>导入场站工程包
         </el-button>
         <el-button type="primary" size="small" @click="onExportClick">

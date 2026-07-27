@@ -1,5 +1,5 @@
 <template>
-  <div id="mt-left-aside" class="pt-10px h-1/1 box-border p-x-10px">
+  <div id="mt-left-aside" class="pt-10px h-1/1 box-border p-x-6px">
     <el-input
       v-model="search_str"
       class="pb-10px pr-10px"
