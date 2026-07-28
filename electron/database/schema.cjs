@@ -40,6 +40,18 @@ const SCHEMA_SQL = [
     createTime INTEGER,
     updateTime INTEGER
   )`,
+  `CREATE TABLE IF NOT EXISTS custom_symbols (
+    id TEXT PRIMARY KEY,
+    category TEXT NOT NULL,
+    title TEXT NOT NULL,
+    svg TEXT NOT NULL,
+    props TEXT NOT NULL DEFAULT '{}',
+    device INTEGER NOT NULL DEFAULT 0,
+    attachLabel INTEGER NOT NULL DEFAULT 0,
+    createTime INTEGER NOT NULL,
+    updateTime INTEGER NOT NULL
+  )`,
+  'CREATE INDEX IF NOT EXISTS idx_custom_symbols_category ON custom_symbols(category)',
   `CREATE TABLE IF NOT EXISTS points (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     category TEXT,

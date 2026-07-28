@@ -1,4 +1,5 @@
 import type {
+  CustomSymbolRow,
   DatabaseService,
   DevicePointRow,
   DeviceTypeRow,
@@ -228,6 +229,63 @@ export const webDatabase: DatabaseService = {
     async remove(templateId) {
       const db = await getDB();
       db.run('DELETE FROM templates WHERE id = ?', [templateId]);
+      persist();
+    }
+  },
+  customSymbol: {
+    async list() {
+      const db = await getDB();
+      const stmt = db.prepare(
+        `SELECT id,category,title,svg,props,device,attachLabel,createTime,updateTime
+         FROM custom_symbols
+         ORDER BY category, updateTime, id`
+      );
+      const out: CustomSymbolRow[] = [];
+      while (stmt.step()) {
+        const row = stmt.getAsObject() as Record<string, unknown>;
+        out.push({
+          id: String(row.id ?? ''),
+          category: String(row.category ?? ''),
+          title: String(row.title ?? ''),
+          svg: String(row.svg ?? ''),
+          props: parseJson(row.props, {}),
+          device: Boolean(Number(row.device)),
+          attachLabel: Boolean(Number(row.attachLabel)),
+          createTime: Number(row.createTime) || 0,
+          updateTime: Number(row.updateTime) || 0
+        });
+      }
+      stmt.free();
+      return out;
+    },
+    async save(symbol) {
+      const db = await getDB();
+      db.run(
+        `INSERT OR REPLACE INTO custom_symbols
+         (id,category,title,svg,props,device,attachLabel,createTime,updateTime)
+         VALUES (?,?,?,?,?,?,?,?,?)`,
+        [
+          symbol.id,
+          symbol.category,
+          symbol.title,
+          symbol.svg,
+          JSON.stringify(symbol.props ?? {}),
+          symbol.device ? 1 : 0,
+          symbol.attachLabel ? 1 : 0,
+          symbol.createTime,
+          symbol.updateTime
+        ]
+      );
+      persist();
+    },
+    async remove(symbolId) {
+      const db = await getDB();
+      db.run('DELETE FROM custom_symbols WHERE id = ?', [symbolId]);
+      persist();
+    },
+    async removeByCategory(category) {
+      const db = await getDB();
+      db.run('DELETE FROM custom_symbols WHERE category = ?', [category]);
       persist();
     }
   },

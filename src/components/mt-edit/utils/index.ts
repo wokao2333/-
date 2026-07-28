@@ -125,7 +125,11 @@ export const cancelGroup = (
   });
   return split_items;
 };
-export const svgToSymbol = (svgStr: string, id: string) => {
+export const svgToSymbol = (
+  svgStr: string,
+  id: string,
+  options: { inheritPaint?: boolean; preserveAppearance?: boolean } = {}
+) => {
   const svgDocument = new DOMParser().parseFromString(svgStr, 'image/svg+xml').children[0];
   let width = '0';
   let height = '0';
@@ -142,12 +146,66 @@ export const svgToSymbol = (svgStr: string, id: string) => {
     symbol.setAttributeNS(null, 'viewBox', '0 0 ' + width + ' ' + height);
   }
   symbol.setAttributeNS(null, 'id', id);
-  symbol.innerHTML = svgDocument.innerHTML
-    .replaceAll('stroke:currentColor', '')
-    .replaceAll('stroke: currentColor', '')
-    .replaceAll('stroke="currentColor"', '')
-    // 移除内联 stroke 具体颜色值，使 <use> 的 stroke 可继承控制
-    .replace(/ stroke="[^"]*"/g, '');
+  if (options.inheritPaint) {
+    const elements = [svgDocument, ...Array.from(svgDocument.querySelectorAll('*'))];
+    for (const element of elements) {
+      for (const paintAttribute of ['fill', 'stroke']) {
+        const paintValue = element.getAttribute(paintAttribute)?.trim();
+        if (
+          paintValue &&
+          paintValue.toLowerCase() !== 'none' &&
+          paintValue.toLowerCase() !== 'transparent' &&
+          !/^url\(/i.test(paintValue)
+        ) {
+          element.removeAttribute(paintAttribute);
+        }
+
+        const style = (element as SVGElement).style;
+        const stylePaintValue = style?.getPropertyValue(paintAttribute).trim();
+        if (
+          stylePaintValue &&
+          stylePaintValue.toLowerCase() !== 'none' &&
+          stylePaintValue.toLowerCase() !== 'transparent' &&
+          !/^url\(/i.test(stylePaintValue)
+        ) {
+          style.removeProperty(paintAttribute);
+          if (!style.cssText) element.removeAttribute('style');
+        }
+      }
+    }
+  }
+  if (options.preserveAppearance) {
+    // 自定义分类需要保留根节点上的 currentColor/fill/stroke 等表现属性；
+    // 普通图库图元仍沿用原有的颜色继承策略。
+    const presentationAttributes = [
+      'fill',
+      'stroke',
+      'stroke-width',
+      'stroke-linecap',
+      'stroke-linejoin',
+      'fill-rule',
+      'clip-rule',
+      'fill-opacity',
+      'stroke-opacity',
+      'style',
+      'color',
+      'shape-rendering'
+    ];
+    for (const attributeName of presentationAttributes) {
+      const value = svgDocument.getAttribute(attributeName);
+      if (value !== null) symbol.setAttribute(attributeName, value);
+    }
+  }
+  const innerHtml = svgDocument.innerHTML;
+  symbol.innerHTML =
+    options.preserveAppearance || options.inheritPaint
+      ? innerHtml
+      : innerHtml
+          .replaceAll('stroke:currentColor', '')
+          .replaceAll('stroke: currentColor', '')
+          .replaceAll('stroke="currentColor"', '')
+          // 移除内联 stroke 具体颜色值，使 <use> 的 stroke 可继承控制
+          .replace(/ stroke="[^"]*"/g, '');
   return { symbol_str: symbol.outerHTML, width, height };
 };
 export const symbolGenSvg = (

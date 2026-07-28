@@ -5,6 +5,8 @@ import { webDatabase } from './web';
 const db: DatabaseService = hasElectronDatabaseBridge() ? electronDatabase : webDatabase;
 
 export type {
+  CustomSymbolRepository,
+  CustomSymbolRow,
   DatabaseService,
   DevicePointImportRow,
   DevicePointRow,

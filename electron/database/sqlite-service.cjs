@@ -200,6 +200,51 @@ class SqliteService {
     }
   };
 
+  customSymbol = {
+    list: () =>
+      this.db
+        .prepare(
+          `SELECT id,category,title,svg,props,device,attachLabel,createTime,updateTime
+           FROM custom_symbols
+           ORDER BY category, updateTime, id`
+        )
+        .all()
+        .map((symbol) => ({
+          ...symbol,
+          props: parseJson(symbol.props, {}),
+          device: Boolean(Number(symbol.device)),
+          attachLabel: Boolean(Number(symbol.attachLabel))
+        })),
+
+    save: (symbol) => {
+      this.db
+        .prepare(
+          `INSERT OR REPLACE INTO custom_symbols
+           (id,category,title,svg,props,device,attachLabel,createTime,updateTime)
+           VALUES (?,?,?,?,?,?,?,?,?)`
+        )
+        .run(
+          symbol.id,
+          symbol.category,
+          symbol.title,
+          symbol.svg,
+          JSON.stringify(symbol.props ?? {}),
+          symbol.device ? 1 : 0,
+          symbol.attachLabel ? 1 : 0,
+          symbol.createTime,
+          symbol.updateTime
+        );
+    },
+
+    remove: (symbolId) => {
+      this.db.prepare('DELETE FROM custom_symbols WHERE id = ?').run(symbolId);
+    },
+
+    removeByCategory: (category) => {
+      this.db.prepare('DELETE FROM custom_symbols WHERE category = ?').run(category);
+    }
+  };
+
   point = {
     replaceCategory: (category, rows) => {
       const tx = this.db.transaction(() => {

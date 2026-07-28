@@ -74,6 +74,20 @@
       <div class="flex">
         <div>
           <div>
+            <div class="flex justify-end gap-8px pb-10px">
+              <el-button
+                v-if="is_selected_custom_category"
+                type="danger"
+                plain
+                size="small"
+                @click="onDeleteCustomCategory"
+              >
+                删除分类
+              </el-button>
+              <el-button type="primary" size="small" @click="upload_dialog_visible = true">
+                上传图元
+              </el-button>
+            </div>
             <div class="flex justify-center">
               <el-checkbox v-model="check_all" :indeterminate="is_indeterminate">全选</el-checkbox>
             </div>
@@ -101,6 +115,16 @@
                 :key="item.id"
                 class="w-160px h-160px flex flex-wrap justify-center items-center cursor-pointer relative"
               >
+                <el-button
+                  v-if="isCustomSymbol(item.id)"
+                  class="absolute right-4px top-4px z-1"
+                  type="danger"
+                  link
+                  size="small"
+                  @click.stop="onDeleteCustomSymbol(item)"
+                >
+                  删除
+                </el-button>
                 <el-tooltip
                   :effect="isDark ? 'dark' : 'light'"
                   :content="item.title"
@@ -123,10 +147,16 @@
         </div>
       </div>
     </el-dialog>
+    <custom-symbol-upload-dialog
+      v-model="upload_dialog_visible"
+      :default-category="upload_default_category"
+      :categories="upload_category_options"
+      @submit="onCustomSymbolSubmit"
+    />
   </div>
 </template>
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
+import { computed, nextTick, reactive, ref, watch } from 'vue';
 import {
   ElInput,
   ElCollapse,
@@ -139,9 +169,10 @@ import {
   ElDialog,
   ElCheckbox,
   ElDivider,
-  ElTree
+  ElTree,
+  ElMessage,
+  ElMessageBox
 } from 'element-plus';
-import SvgAnalysis from '@/components/mt-edit/components/svg-analysis/index.vue';
 import { useDark, useLocalStorage } from '@vueuse/core';
 import type {
   ILeftAsideConfig,
@@ -149,6 +180,13 @@ import type {
   ILeftAsideConfigItemPublic
 } from '@/components/mt-edit/store/types';
 import { globalStore } from '@/components/mt-edit/store/global';
+import CustomSymbolUploadDialog from './custom-symbol-upload-dialog.vue';
+import {
+  DEFAULT_CUSTOM_SYMBOL_CATEGORY,
+  useCustomSymbols,
+  type CustomSymbolDraft
+} from '@/components/mt-edit/composables/use-custom-symbols';
+import type { CustomSymbolRow } from '@/database';
 type LeftAsideProps = {
   leftAsideConfig: ILeftAsideConfig;
 };
@@ -165,6 +203,7 @@ const is_show_tooltip: Record<string, boolean> = reactive({});
 const active_names = ref<string[]>([]);
 const search_str = ref();
 const manage_dialog_visiable = ref(false);
+const upload_dialog_visible = ref(false);
 const classify_list = computed(() =>
   [...leftAsideProps.leftAsideConfig.keys()].map((m) => {
     return { label: m };
@@ -176,6 +215,59 @@ const checked_keys = ref<string[]>(
 // 默认展开全部分类
 active_names.value = [...checked_keys.value];
 const selected_node_key = ref();
+const upload_default_category = computed(() =>
+  selected_node_key.value && selected_node_key.value !== '系统组件'
+    ? selected_node_key.value
+    : DEFAULT_CUSTOM_SYMBOL_CATEGORY
+);
+const upload_category_options = computed(() =>
+  classify_list.value.map((item) => item.label).filter((label) => label !== '系统组件')
+);
+
+const {
+  symbols: custom_symbols,
+  save: saveCustomSymbol,
+  remove: removeCustomSymbol,
+  removeCategory: removeCustomSymbolCategory
+} = useCustomSymbols();
+const custom_symbol_ids = computed(() => new Set(custom_symbols.value.map((symbol) => symbol.id)));
+const isCustomSymbol = (itemId: string) => custom_symbol_ids.value.has(itemId);
+const isCustomCategory = (category: string) => {
+  const categorySymbolIds = new Set(
+    custom_symbols.value.filter((symbol) => symbol.category === category).map((symbol) => symbol.id)
+  );
+  const categoryItems = leftAsideProps.leftAsideConfig.get(category) ?? [];
+  return (
+    categorySymbolIds.size > 0 &&
+    categoryItems.length > 0 &&
+    categoryItems.every((item) => categorySymbolIds.has(item.id))
+  );
+};
+const is_selected_custom_category = computed(
+  () => Boolean(selected_node_key.value) && isCustomCategory(selected_node_key.value)
+);
+
+// 自定义分类是异步从本地数据库注册的，需要同步到树和分类勾选状态。
+watch(
+  classify_list,
+  (list) => {
+    const available = new Set(list.map((item) => item.label));
+    const disabled = new Set(disable_classify.value);
+    checked_keys.value = checked_keys.value.filter((label) => available.has(label));
+    active_names.value = active_names.value.filter((label) => available.has(label));
+    disable_classify.value = disable_classify.value.filter((label) => available.has(label));
+    for (const item of list) {
+      if (!disabled.has(item.label) && !checked_keys.value.includes(item.label)) {
+        checked_keys.value.push(item.label);
+      }
+      if (!disabled.has(item.label) && !active_names.value.includes(item.label)) {
+        active_names.value.push(item.label);
+      }
+    }
+    nextTick(() => treeRef.value?.setCheckedKeys(checked_keys.value));
+  },
+  { deep: true }
+);
 const check_all = computed({
   get: () => {
     return classify_list.value.length == checked_keys.value.length;
@@ -221,7 +313,98 @@ const onDragStart = (config_item_key: string, item_id: string) => {
 const onManageClick = () => {
   manage_dialog_visiable.value = true;
 };
-const handleCheckChange = (data: { label: string }, checked: boolean, indeterminate: boolean) => {
+const onCustomSymbolSubmit = async (draft: CustomSymbolDraft) => {
+  const now = Date.now();
+  const row: CustomSymbolRow = {
+    id: draft.id,
+    category: draft.category,
+    title: draft.title,
+    svg: draft.svg,
+    props: draft.props,
+    device: draft.device,
+    attachLabel: draft.attachLabel,
+    createTime: draft.createTime ?? now,
+    updateTime: draft.updateTime ?? now
+  };
+
+  try {
+    await saveCustomSymbol(row);
+    selected_node_key.value = row.category;
+    if (
+      !checked_keys.value.includes(row.category) &&
+      !disable_classify.value.includes(row.category)
+    ) {
+      checked_keys.value.push(row.category);
+    }
+    if (!active_names.value.includes(row.category)) active_names.value.push(row.category);
+    await nextTick();
+    treeRef.value?.setCheckedKeys(checked_keys.value);
+    upload_dialog_visible.value = false;
+    ElMessage.success(`图元“${row.title}”上传成功`);
+  } catch (error) {
+    console.error('保存自定义分类失败', error);
+    ElMessage.error('图元保存失败，请重试');
+  }
+};
+const clearCategoryUiState = (category: string) => {
+  checked_keys.value = checked_keys.value.filter((label) => label !== category);
+  active_names.value = active_names.value.filter((label) => label !== category);
+  disable_classify.value = disable_classify.value.filter((label) => label !== category);
+  if (selected_node_key.value === category) selected_node_key.value = undefined;
+};
+const isMessageBoxDismissed = (error: unknown) => error === 'cancel' || error === 'close';
+const onDeleteCustomSymbol = async (item: ILeftAsideConfigItemPublic) => {
+  const category = custom_symbols.value.find((symbol) => symbol.id === item.id)?.category;
+  const removeEmptyCategory = Boolean(category && isCustomCategory(category));
+  try {
+    await ElMessageBox.confirm(
+      `确定删除上传图元“${item.title}”吗？删除后，使用该图元的已保存图纸再次打开时可能无法还原该图元。`,
+      '删除上传图元',
+      {
+        type: 'warning',
+        confirmButtonText: '删除',
+        cancelButtonText: '取消'
+      }
+    );
+    const removed = await removeCustomSymbol(item.id, { removeEmptyCategory });
+    if (removed && !leftAsideProps.leftAsideConfig.has(removed.category)) {
+      clearCategoryUiState(removed.category);
+    }
+    await nextTick();
+    treeRef.value?.setCheckedKeys(checked_keys.value);
+    ElMessage.success(`图元“${item.title}”已删除`);
+  } catch (error) {
+    if (isMessageBoxDismissed(error)) return;
+    console.error('删除上传图元失败', error);
+    ElMessage.error('图元删除失败，请重试');
+  }
+};
+const onDeleteCustomCategory = async () => {
+  const category = selected_node_key.value as string | undefined;
+  if (!category || !isCustomCategory(category)) return;
+  const symbolCount = custom_symbols.value.filter((symbol) => symbol.category === category).length;
+  try {
+    await ElMessageBox.confirm(
+      `确定删除自定义分类“${category}”及其中的 ${symbolCount} 个上传图元吗？删除后，使用这些图元的已保存图纸再次打开时可能无法还原图元。`,
+      '删除自定义分类',
+      {
+        type: 'warning',
+        confirmButtonText: '删除分类',
+        cancelButtonText: '取消'
+      }
+    );
+    await removeCustomSymbolCategory(category);
+    clearCategoryUiState(category);
+    await nextTick();
+    treeRef.value?.setCheckedKeys(checked_keys.value);
+    ElMessage.success(`分类“${category}”已删除`);
+  } catch (error) {
+    if (isMessageBoxDismissed(error)) return;
+    console.error('删除自定义分类失败', error);
+    ElMessage.error('分类删除失败，请重试');
+  }
+};
+const handleCheckChange = (data: { label: string }, checked: boolean) => {
   if (checked && !checked_keys.value.includes(data.label)) {
     checked_keys.value.push(data.label);
   } else if (!checked) {

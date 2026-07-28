@@ -1,4 +1,4 @@
-import { getCurrentInstance, reactive } from 'vue';
+import { reactive } from 'vue';
 import type { ILeftAside, ILeftAsideConfigItemPublic, ILeftAsideConfigItem } from './types';
 import { ElMessage } from 'element-plus';
 import { svgToSymbol } from '../utils';
@@ -17,7 +17,7 @@ export const leftAsideStore: ILeftAside = reactive({
   registerConfig: (
     title: string,
     config: ILeftAsideConfigItemPublic[],
-    options: { replaceExisting?: boolean } = {}
+    options: { inheritSvgPaint?: boolean; replaceExisting?: boolean } = {}
   ) => {
     if (title == '系统组件') {
       ElMessage.info(`title:${title}已被系统占用，请更换名称！`);
@@ -26,7 +26,9 @@ export const leftAsideStore: ILeftAside = reactive({
 
     const cfg: ILeftAsideConfigItem[] = config.map((m) => {
       if (m.type == 'svg') {
-        const { symbol_str, width, height } = svgToSymbol(m.svg!, m.id);
+        const { symbol_str, width, height } = svgToSymbol(m.svg!, m.id, {
+          inheritPaint: options.inheritSvgPaint
+        });
         return {
           ...m,
           symbol: {
@@ -68,5 +70,16 @@ export const leftAsideStore: ILeftAside = reactive({
     } else {
       leftAsideStore.config.set(title, cfg);
     }
+  },
+  removeConfigItem: (title: string, itemId: string) => {
+    const config = leftAsideStore.config.get(title);
+    if (!config) return;
+    leftAsideStore.config.set(
+      title,
+      config.filter((item) => item.id !== itemId)
+    );
+  },
+  removeConfigGroup: (title: string) => {
+    leftAsideStore.config.delete(title);
   }
 });

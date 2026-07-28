@@ -245,8 +245,10 @@ export interface ILeftAside {
   registerConfig: (
     title: string,
     config: ILeftAsideConfigItemPublic[],
-    options?: { replaceExisting?: boolean }
+    options?: { inheritSvgPaint?: boolean; replaceExisting?: boolean }
   ) => void;
+  removeConfigItem: (title: string, itemId: string) => void;
+  removeConfigGroup: (title: string) => void;
 }
 // 缓存配置
 export interface ICache {

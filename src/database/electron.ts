@@ -43,6 +43,12 @@ export const electronDatabase: DatabaseService = {
     save: (template) => getBridge().template.save(toPlain(template)),
     remove: (templateId) => getBridge().template.remove(templateId)
   },
+  customSymbol: {
+    list: () => getBridge().customSymbol.list(),
+    save: (symbol) => getBridge().customSymbol.save(toPlain(symbol)),
+    remove: (symbolId) => getBridge().customSymbol.remove(symbolId),
+    removeByCategory: (category) => getBridge().customSymbol.removeByCategory(category)
+  },
   point: {
     replaceCategory: (category, rows) => getBridge().point.replaceCategory(category, toPlain(rows)),
     list: () => getBridge().point.list(),

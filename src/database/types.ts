@@ -1,5 +1,6 @@
 import type { McuItem, Station } from '@/components/mt-edit/components/layout/station-aside/types';
 import type { TemplateItem } from '@/components/mt-edit/components/layout/template-aside/types';
+import type { ILeftAsideConfigItemPublicProps } from '@/components/mt-edit/store/types';
 
 export interface PointRow {
   id: number;
@@ -37,6 +38,26 @@ export interface TemplateRepository {
   list(): Promise<TemplateItem[]>;
   save(template: TemplateItem): Promise<void>;
   remove(templateId: string): Promise<void>;
+}
+
+/** 用户上传的 SVG 图元原始数据。symbol 在渲染端按 svg 重新生成，避免把 DOM 对象写入数据库。 */
+export interface CustomSymbolRow {
+  id: string;
+  category: string;
+  title: string;
+  svg: string;
+  props: ILeftAsideConfigItemPublicProps;
+  device: boolean;
+  attachLabel: boolean;
+  createTime: number;
+  updateTime: number;
+}
+
+export interface CustomSymbolRepository {
+  list(): Promise<CustomSymbolRow[]>;
+  save(symbol: CustomSymbolRow): Promise<void>;
+  remove(symbolId: string): Promise<void>;
+  removeByCategory(category: string): Promise<void>;
 }
 
 export interface PointRepository {
@@ -118,6 +139,7 @@ export interface DatabaseService {
   station: StationRepository;
   mcu: McuRepository;
   template: TemplateRepository;
+  customSymbol: CustomSymbolRepository;
   point: PointRepository;
   deviceTemplate: DeviceTemplateRepository;
   project: ProjectRepository;
@@ -127,6 +149,7 @@ export interface ElectronDatabaseBridge {
   station: StationRepository;
   mcu: McuRepository;
   template: TemplateRepository;
+  customSymbol: CustomSymbolRepository;
   point: PointRepository;
   deviceTemplate: DeviceTemplateRepository;
   project: {

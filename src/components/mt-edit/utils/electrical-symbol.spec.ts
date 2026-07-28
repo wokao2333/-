@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { symbolGenSvg } from './index';
+import { svgToSymbol, symbolGenSvg } from './index';
 import { prepareAtsCanvasSvg } from './electrical-symbol';
 
 describe('ATS canvas symbol colors', () => {
@@ -19,5 +19,23 @@ describe('ATS canvas symbol colors', () => {
 
     expect(svg).toContain('color="#FF0000"');
     expect(svg).not.toContain('fill="#FF0000"');
+  });
+});
+
+describe('uploaded SVG canvas colors', () => {
+  it('lets fixed fill and stroke colors inherit from the use element', () => {
+    const { symbol_str } = svgToSymbol(
+      `<svg viewBox="0 0 20 20">
+        <path fill="#000000" stroke="currentColor" d="M0 0h10v10z" />
+        <path fill="none" stroke="url(#paint)" style="stroke-width: 2;" d="M0 0h5v5z" />
+      </svg>`,
+      'custom-symbol',
+      { inheritPaint: true }
+    );
+
+    expect(symbol_str).not.toContain('#000000');
+    expect(symbol_str).not.toContain('stroke="currentColor"');
+    expect(symbol_str).toContain('fill="none"');
+    expect(symbol_str).toContain('stroke="url(#paint)"');
   });
 });

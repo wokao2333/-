@@ -43,6 +43,17 @@ function registerDatabaseIpc() {
     getSqliteService().template.remove(templateId)
   );
 
+  ipcMain.handle('database:custom-symbol:list', () => getSqliteService().customSymbol.list());
+  ipcMain.handle('database:custom-symbol:save', (_event, symbol) =>
+    getSqliteService().customSymbol.save(symbol)
+  );
+  ipcMain.handle('database:custom-symbol:remove', (_event, symbolId) =>
+    getSqliteService().customSymbol.remove(symbolId)
+  );
+  ipcMain.handle('database:custom-symbol:remove-by-category', (_event, category) =>
+    getSqliteService().customSymbol.removeByCategory(category)
+  );
+
   ipcMain.handle('database:point:replace-category', (_event, category, rows) =>
     getSqliteService().point.replaceCategory(category, rows)
   );

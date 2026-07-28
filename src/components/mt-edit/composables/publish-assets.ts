@@ -119,7 +119,7 @@ const validateDimension = (value: unknown, fieldName: string): string | null => 
     : `${fieldName} 必须大于 0 且不超过 ${maxSvgDimension}`;
 };
 
-const validateSymbol = (symbol: ILeftAsideConfigItemPrivateSymbol): string[] => {
+export const validateSymbol = (symbol: ILeftAsideConfigItemPrivateSymbol): string[] => {
   const issues: string[] = [];
   const source = symbol.symbol_str;
 

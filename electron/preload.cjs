@@ -21,6 +21,12 @@ contextBridge.exposeInMainWorld('api', {
       save: (template) => invoke('database:template:save', template),
       remove: (templateId) => invoke('database:template:remove', templateId)
     },
+    customSymbol: {
+      list: () => invoke('database:custom-symbol:list'),
+      save: (symbol) => invoke('database:custom-symbol:save', symbol),
+      remove: (symbolId) => invoke('database:custom-symbol:remove', symbolId),
+      removeByCategory: (category) => invoke('database:custom-symbol:remove-by-category', category)
+    },
     point: {
       replaceCategory: (category, rows) =>
         invoke('database:point:replace-category', category, rows),
