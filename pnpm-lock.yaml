@@ -38,6 +38,9 @@ importers:
       less:
         specifier: ^4.2.0
         version: 4.2.0
+      pinyin-pro:
+        specifier: ^3.28.2
+        version: 3.28.2
       sql.js:
         specifier: ^1.14.1
         version: 1.14.1
@@ -2885,6 +2888,9 @@ packages:
   pify@4.0.1:
     resolution: {integrity: sha512-uB80kBFb/tfd68bVleG9T5GGsGPjJrLAUpR5PZIrhBnIaRTQRjqdJSsIKkOP6OAIFbj7GOrcudc5pNjZ+geV2g==}
     engines: {node: '>=6'}
+
+  pinyin-pro@3.28.2:
+    resolution: {integrity: sha512-jV38yxXHLfidirMC4hrXasLDozLCSq/4DfX88GnHcSEJ2+GpSedG6I9VOiEXJu6iQ5dbJC/RjmzyMuS5h/wH5A==}
 
   pkg-types@1.0.3:
     resolution: {integrity: sha512-nN7pYi0AQqJnoLPC9eHFQ8AcyaixBUOwvqc5TDnIKCMEE6I0y8P7OKA7fPexsXGCGxQDl/cmrLAp26LhcwxZ4A==}
@@ -7127,6 +7133,8 @@ snapshots:
 
   pify@4.0.1:
     optional: true
+
+  pinyin-pro@3.28.2: {}
 
   pkg-types@1.0.3:
     dependencies:

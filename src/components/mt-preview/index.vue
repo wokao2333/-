@@ -256,6 +256,7 @@ defineExpose({
 
 .canvasArea {
   position: relative;
+  overflow: hidden;
   transform: v-bind('`scale(${effectiveScale})`');
   transform-origin: left top;
   width: v-bind('canvas_cfg.width + "px"');

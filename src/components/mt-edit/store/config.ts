@@ -1,11 +1,12 @@
 import { reactive } from 'vue';
 import type { IConfig, ILeftAsideConfigItem } from './types';
 import { svgToSymbol, svgToImgSrc } from '../utils';
+import { protectFilledGeometryFromInheritedStroke } from '../utils/electrical-symbol';
 
 const sysComponentItems: ILeftAsideConfigItem[] = [
   {
     id: 'sys-line',
-    title: '自由连线',
+    title: '自由连线-横线',
     type: 'sys-line',
     thumbnail: `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxZW0iIGhlaWdodD0iMWVtIiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGZpbGw9Im5vbmUiIHN0cm9rZT0iY3VycmVudENvbG9yIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMiIgZD0iTTQgMThhMiAyIDAgMSAwIDQgMGEyIDIgMCAxIDAtNCAwTTE2IDZhMiAyIDAgMSAwIDQgMGEyIDIgMCAxIDAtNCAwTTcuNSAxNi41bDktOSIvPjwvc3ZnPg==`,
     props: {
@@ -467,7 +468,11 @@ for (const key in sysSvgModules) {
   if (!sysSvgIconNames.has(name)) continue;
   // 去掉原图标中的显式 fill，让 <use> 的 fill 能控制内部填充色
   // 同时移除根 svg 上的 fill="none"，避免内部元素继承透明填充
-  const svg = (sysSvgModules[key] as string)
+  const rawSvg = sysSvgModules[key] as string;
+  const normalizedSvg = gridIconNames.has(name)
+    ? protectFilledGeometryFromInheritedStroke(rawSvg)
+    : rawSvg;
+  const svg = normalizedSvg
     .replace(/<svg\b([^>]*)\s+fill="none"\s*([^>]*)>/g, '<svg$1 $2>')
     .replace(/fill="(?!none)[^"]*"/g, '');
   const { symbol_str, width, height } = svgToSymbol(svg, name);

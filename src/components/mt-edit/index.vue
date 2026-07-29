@@ -235,7 +235,8 @@ const emits = defineEmits([
   'onThumbnailClick',
   'onImportSuccess',
   'onPublishClick',
-  'onDeviceTemplateChange'
+  'onDeviceTemplateChange',
+  'onConnectionStatusChange'
 ]);
 const slots = useSlots();
 const mainPanelRef = ref<InstanceType<typeof MainPanel>>();
@@ -347,6 +348,19 @@ const statusText = computed(() => {
   if (connected.value === true) return '已连接';
   return '未连接';
 });
+
+const connectionStatus = computed<'checking' | 'connected' | 'disconnected'>(() => {
+  if (checking.value) return 'checking';
+  return connected.value === true ? 'connected' : 'disconnected';
+});
+
+watch(
+  connectionStatus,
+  (status) => {
+    emits('onConnectionStatusChange', status);
+  },
+  { immediate: true }
+);
 
 /** 将时间戳格式化为可读的最近更新时间 */
 const formatTime = (ts?: number): string => {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref, shallowRef, watch } from 'vue';
 import type { IExportJson } from '@/components/mt-edit/components/types';
 import type { IDoneJson, ILeftAsideConfigItem } from '@/components/mt-edit/store/types';
 import { useGenThumbnail } from '@/components/mt-edit/composables/thumbnail';
@@ -8,7 +8,7 @@ import { useRouter } from 'vue-router';
 import { createDefaultCanvasCfg, globalStore } from '@/components/mt-edit/store/global';
 import { cacheStore } from '@/components/mt-edit/store/cache';
 import { genCanvasDataUrl } from '@/components/mt-edit/composables/canvas-thumbnail';
-import { useExportJsonToDoneJson } from '@/components/mt-edit/composables';
+import { genExportJson, useExportJsonToDoneJson } from '@/components/mt-edit/composables';
 import { buildPublishExportJson } from '@/components/mt-edit/composables/publish-assets';
 import { randomString, objectDeepClone } from '@/components/mt-edit/utils';
 import StationAside from '@/components/mt-edit/components/layout/station-aside/index.vue';
@@ -21,6 +21,7 @@ import type {
 } from '@/components/mt-edit/components/layout/station-aside/types';
 import { useStationDB } from '@/composables/useStationDB';
 import { useMcuDB } from '@/composables/useMcuDB';
+import { validateDiagramNameUnique, validateStationImport } from '@/composables/useStationDedup';
 import { configStore } from '@/components/mt-edit/store/config';
 import { useDeviceTemplateDB } from '@/composables/useDeviceTemplateDB';
 import { useDeviceTypes } from '@/composables/useDeviceTypes';
@@ -34,6 +35,7 @@ import {
   ElForm,
   ElFormItem,
   ElMessage,
+  ElMessageBox,
   ElOption,
   ElPagination,
   ElSelect,
@@ -80,6 +82,7 @@ const deviceListType = ref('');
 const deviceListDialogVisible = ref(false);
 const deviceListDialogItem = ref<DeviceBindableItem | null>(null);
 const deviceListSelectedId = ref('');
+const connectionStatus = shallowRef<'checking' | 'connected' | 'disconnected'>('disconnected');
 const deviceListTableRef = ref<InstanceType<typeof ElTable> | null>(null);
 // 设备列表弹窗分页状态
 const deviceListPage = ref(1);
@@ -91,6 +94,8 @@ const pagedDeviceList = computed<DeviceListItem[]>(() => {
 });
 
 const stations = ref<Station[]>([]);
+// 当前画布最近一次成功加载/保存后的快照，用于切换一次图前判断是否有未保存修改。
+const savedCanvasSnapshot = ref('');
 const drawingDiagram = ref<{
   stationId: string;
   diagramId: string;
@@ -250,6 +255,35 @@ const currentStationName = computed(() => {
 });
 /** 传递给编辑器底部状态栏：当前一次接线图名称 */
 const currentDiagramName = computed(() => currentDiagram.value?.name ?? '');
+
+const getCurrentCanvasExportJson = (): IExportJson =>
+  genExportJson(globalStore.canvasCfg, globalStore.gridCfg, globalStore.done_json).exportJson;
+
+const captureSavedCanvasSnapshot = (exportJson = getCurrentCanvasExportJson()) => {
+  savedCanvasSnapshot.value = JSON.stringify(exportJson);
+};
+
+const hasUnsavedCanvasChanges = () =>
+  !!drawingDiagram.value &&
+  !!savedCanvasSnapshot.value &&
+  JSON.stringify(getCurrentCanvasExportJson()) !== savedCanvasSnapshot.value;
+
+const confirmCanvasTransition = async (): Promise<boolean> => {
+  if (!hasUnsavedCanvasChanges()) return true;
+
+  try {
+    await ElMessageBox.confirm('当前画布有未保存的修改，是否保存后再继续？', '未保存的修改', {
+      confirmButtonText: '保存',
+      cancelButtonText: '不保存',
+      distinguishCancelAndClose: true,
+      type: 'warning'
+    });
+    return await onSaveDiagram(getCurrentCanvasExportJson());
+  } catch (action) {
+    // 点击“不保存”继续操作；关闭弹窗或按 Esc 则留在当前画布。
+    return action === 'cancel';
+  }
+};
 
 onMounted(async () => {
   try {
@@ -722,18 +756,15 @@ const syncDeviceFields = (deviceType: string, points: DevicePointRow[]) => {
   }));
 };
 
-const collectBoundDevicesByType = (deviceType: string): IDoneJson[] => {
+// 收集已配置指定设备类型的图元。测点面板属于模板配置，即使尚未绑定真实 deviceId 也应同步刷新。
+const collectDevicesByType = (deviceType: string): IDoneJson[] => {
   const result: IDoneJson[] = [];
   const visit = (items: IDoneJson[]) => {
     for (const item of items) {
       // 自动生成的测点面板也带 deviceBind，不能把面板内的 kv 当成设备再次重建。
       if (item.devicePanelFor) continue;
 
-      if (
-        item.device === true &&
-        item.deviceBind?.deviceType === deviceType &&
-        String(item.deviceBind.deviceId || '').trim()
-      ) {
+      if (item.device === true && item.deviceBind?.deviceType === deviceType) {
         result.push(item);
       }
 
@@ -747,7 +778,7 @@ const collectBoundDevicesByType = (deviceType: string): IDoneJson[] => {
 
 const onDeviceTemplateChange = ({ deviceType, points }: DeviceTemplateSelectionChange) => {
   syncDeviceFields(deviceType, points);
-  const devices = collectBoundDevicesByType(deviceType);
+  const devices = collectDevicesByType(deviceType);
   if (!devices.length) return;
 
   replaceDevicePointPanels(
@@ -901,13 +932,34 @@ const fetchDeviceList = async (item: DeviceBindableItem) => {
   }
 };
 
-// 点击「加载设备列表」：记录当前图元并打开弹窗，由弹窗在 @opened 时拉取设备列表
-const openDeviceListDialog = (item: DeviceBindableItem) => {
+// 点击「加载设备列表」：先确认当前一次图有可用的 MCU 连接，再打开弹窗。
+const openDeviceListDialog = async (item: DeviceBindableItem) => {
   const bind = ensureDeviceBind(item);
   if (!bind.deviceType) {
     ElMessage.warning('请先选择设备类型');
     return;
   }
+  if (connectionStatus.value !== 'connected') {
+    ElMessage.warning(
+      connectionStatus.value === 'checking' ? '连接状态检测中，请稍后再试' : '当前未连接'
+    );
+    return;
+  }
+  if (!currentStationId.value) {
+    ElMessage.error('请先进入场站后再获取设备列表');
+    return;
+  }
+  const station = stations.value.find((f) => f.id === currentStationId.value);
+  if (!station) return;
+
+  await refreshStationMcus(station.id);
+  const mcu = getDiagramConnectionMcu(station.id, currentDiagram.value);
+  if (!mcu?.ip) {
+    deviceListError.value = '该场站尚未绑定MCU或未配置IP，无法获取设备列表';
+    ElMessage.error(deviceListError.value);
+    return;
+  }
+
   deviceListDialogItem.value = item;
   deviceListDialogVisible.value = true;
 };
@@ -1342,9 +1394,37 @@ const onEditStation = async (updated: Station) => {
   }
 };
 
-// StationAside 保存 MCU 后同步父级缓存，保证预览、发布等后续操作立即读取最新 IP。
-const onMcuSaved = (stationId: string, mcus: McuItem[]) => {
+// StationAside 保存 MCU 后同步父级缓存，并按稳定的 MCU id 刷新一次图中的绑定快照。
+// 编辑 SN / IP / 端口等属性不会改变 MCU id，因此一次图仍保持原绑定，无需再次手动绑定。
+const onMcuSaved = async (stationId: string, mcus: McuItem[]) => {
   replaceStationMcus(stationId, mcus);
+
+  const stationIndex = stations.value.findIndex((station) => station.id === stationId);
+  if (stationIndex < 0) return;
+
+  const station = stations.value[stationIndex];
+  const mcuById = new Map(mcus.map((mcu) => [mcu.id, mcu]));
+  let hasUpdatedBinding = false;
+  const nextDiagrams = station.diagrams.map((diagram) => {
+    if (!diagram.boundMcuId) return diagram;
+    const boundMcu = mcuById.get(diagram.boundMcuId);
+    if (!boundMcu) return diagram;
+    hasUpdatedBinding = true;
+    return { ...diagram, boundMcuInfo: { ...boundMcu } };
+  });
+
+  if (!hasUpdatedBinding) return;
+
+  const updatedStation: Station = { ...station, diagrams: nextDiagrams };
+  stations.value.splice(stationIndex, 1, updatedStation);
+  try {
+    await stationDB.save(updatedStation);
+  } catch (e) {
+    // MCU 本身已经保存成功；这里只回滚未能持久化的一次图快照。
+    stations.value.splice(stationIndex, 1, station);
+    console.error('同步一次图的 MCU 绑定信息失败', e);
+    ElMessage.error('MCU已保存，但同步一次图绑定信息失败，请重试');
+  }
 };
 
 const onDeleteStation = async (stationId: string) => {
@@ -1460,7 +1540,7 @@ const onBindDiagramMcu = async (stationId: string, diagramId: string, mcu: McuIt
   }
 };
 
-const onLoadDiagram = (stationId: string, diagramId: string) => {
+const loadDiagram = (stationId: string, diagramId: string) => {
   // 预加载该场站绑定的 MCU，使底部状态栏连接状态能基于 MCU 的 IP 派生
   ensureStationMcus(stationId);
   const station = stations.value.find((f) => f.id === stationId);
@@ -1481,12 +1561,31 @@ const onLoadDiagram = (stationId: string, diagramId: string) => {
   globalStore.setGlobalStoreDoneJson(importDoneJson);
   cacheStore.history = [importDoneJson];
   cacheStore.historyIndex = 0;
+  captureSavedCanvasSnapshot();
   // 记录当前正在编辑的一次图，使保存时能更新原图
   drawingDiagram.value = { stationId, diagramId };
   currentStationId.value = stationId;
   // 持久化当前场站上下文，避免组件重挂载后丢失“进入场站”状态
   persistCurrentContext();
   ElMessage.success('一次图加载成功');
+};
+
+const onLoadDiagram = async (stationId: string, diagramId: string) => {
+  if (
+    drawingDiagram.value?.stationId === stationId &&
+    drawingDiagram.value?.diagramId === diagramId
+  ) {
+    return;
+  }
+
+  if (!(await confirmCanvasTransition())) return;
+
+  loadDiagram(stationId, diagramId);
+};
+
+const onRequestAddDiagram = async (openDialog: () => void) => {
+  if (!(await confirmCanvasTransition())) return;
+  openDialog();
 };
 
 // 进入场站：加载该场站的首张一次接线图
@@ -1580,6 +1679,12 @@ const onImportDiagram = async (stationId: string, diagram: StationDiagram) => {
       return;
     }
     const station = stations.value[stationIndex];
+    // 规则3（图纸校验）：同一场站下禁止同名一次图；同 id 导入视为覆盖更新，排除自身后查重
+    const dup = await validateDiagramNameUnique(stationId, diagram.name, diagram.id);
+    if (!dup.ok) {
+      ElMessage.error(`导入失败，${dup.summary}`);
+      return;
+    }
     // 合并：同 id 则覆盖，否则追加，写入完整性以本地数据库为准
     const existsIdx = station.diagrams.findIndex((d) => d.id === diagram.id);
     const nextDiagrams = [...station.diagrams];
@@ -1615,15 +1720,29 @@ const onImportStations = async (file: File) => {
       return;
     }
     let count = 0;
+    const rejected: string[] = [];
     for (const item of list) {
       if (!item || typeof item.id !== 'string' || !Array.isArray(item.diagrams)) {
+        continue;
+      }
+      // 去重校验（规则1+规则3）：同名场站（排除同 id 覆盖更新）、
+      // 场站内部同名一次图均禁止导入；因逐条 await 保存，同一文件内的同名数据也会被拦截
+      const dup = await validateStationImport(item as Station);
+      if (!dup.ok) {
+        rejected.push(...dup.errors.map((e) => e.message));
         continue;
       }
       await stationDB.save(item as Station);
       count++;
     }
     stations.value = await stationDB.loadAll();
-    ElMessage.success(`已导入 ${count} 个场站工程包`);
+    if (rejected.length) {
+      ElMessage.warning(
+        `已导入 ${count} 个场站，跳过 ${rejected.length} 项重复数据：${rejected.join('；')}`
+      );
+    } else {
+      ElMessage.success(`已导入 ${count} 个场站工程包`);
+    }
   } catch (e) {
     console.error('导入场站工程包失败', e);
     ElMessage.error('导入失败，文件格式不正确');
@@ -1690,6 +1809,7 @@ const onAddDiagram = async (payload: AddDiagramPayload) => {
 
   try {
     await stationDB.save(updatedStation);
+    captureSavedCanvasSnapshot(defaultExportJson);
     persistCurrentContext();
     ElMessage.success(`一次接线图「${payload.name}」已添加并选中`);
   } catch (e) {
@@ -1700,19 +1820,19 @@ const onAddDiagram = async (payload: AddDiagramPayload) => {
   }
 };
 
-const onSaveDiagram = async (exportJson: IExportJson) => {
+const onSaveDiagram = async (exportJson: IExportJson): Promise<boolean> => {
   if (!drawingDiagram.value) {
-    return;
+    return false;
   }
   const thumbnail = await genCanvasDataUrl();
   if (!thumbnail) {
     ElMessage.error('生成缩略图失败');
-    return;
+    return false;
   }
   const station = stations.value.find((f) => f.id === drawingDiagram.value!.stationId);
   if (!station) {
     drawingDiagram.value = null;
-    return;
+    return false;
   }
   const diagramId = drawingDiagram.value.diagramId;
   const existingDiagram = station.diagrams.find((f) => f.id === diagramId);
@@ -1725,6 +1845,9 @@ const onSaveDiagram = async (exportJson: IExportJson) => {
   const now = Date.now();
   const bindingStats = collectDeviceBindingStats(exportJson);
   const diagram: StationDiagram = {
+    // 更新画布时保留 MCU 绑定等一次图元数据，只覆盖本次保存实际变更的字段。
+    // 若是新建一次图，展开 undefined 不会写入任何属性。
+    ...existingDiagram,
     id: diagramId,
     // 新增时优先使用弹窗填写的名称；更新已有图时保留原名称。
     // 注意用 || 而非 ??：空字符串 "" 不是 nullish，用 ?? 会原样存为 ""，
@@ -1749,12 +1872,15 @@ const onSaveDiagram = async (exportJson: IExportJson) => {
   }
   try {
     await stationDB.save(station);
+    captureSavedCanvasSnapshot(exportJson);
     // 保存成功后一次图已落库，重新持久化上下文（确保下次重挂载可完整恢复画布）
     persistCurrentContext();
     ElMessage.success('一次图保存成功');
+    return true;
   } catch (e) {
     console.error('保存一次图失败', e);
     ElMessage.error('保存一次图失败，请重试');
+    return false;
   }
 };
 
@@ -1781,6 +1907,7 @@ const onThumbnailClick = () => {
         @on-thumbnail-click="onThumbnailClick"
         @on-publish-click="onPublishClick"
         @on-device-template-change="onDeviceTemplateChange"
+        @on-connection-status-change="connectionStatus = $event"
       >
         <template #stationAside>
           <station-aside
@@ -1790,6 +1917,7 @@ const onThumbnailClick = () => {
             @add-station="onAddStation"
             @edit-station="onEditStation"
             @add-diagram="onAddDiagram"
+            @request-add-diagram="onRequestAddDiagram"
             @edit-diagram="onEditDiagram"
             @load-diagram="onLoadDiagram"
             @delete-station="onDeleteStation"

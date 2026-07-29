@@ -162,7 +162,7 @@ const getNumberPropDefault = (config: ILeftAsideConfigItem, key: string, fallbac
 
   return Number.isFinite(value) ? value : fallback;
 };
-const getCreateItemSize = (config: ILeftAsideConfigItem) => {
+const getCreateItemSize = (config: ILeftAsideConfigItem, configKey?: string) => {
   if (config.id === 'kv-vue') {
     return {
       width:
@@ -179,7 +179,15 @@ const getCreateItemSize = (config: ILeftAsideConfigItem) => {
     const target = Math.round((canvas_w * 0.7) / grid_align_size.value) * grid_align_size.value;
     return { width: Math.max(target, 200), height: 24 };
   }
-  // SVG 类型组件使用其原始宽高比例，但限制最大初始尺寸为 100px
+  // 一次设备必须按 SVG 原始尺寸创建，避免最小/最大尺寸规则造成单轴拉伸或整体缩放。
+  if (configKey === '一次设备' && config.type === 'svg' && config.symbol) {
+    const width = Number(config.symbol.width);
+    const height = Number(config.symbol.height);
+    if (Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0) {
+      return { width, height };
+    }
+  }
+  // 其他分类的 SVG 使用其原始宽高比例，但限制最大初始尺寸为 100px
   if ((config.type === 'svg' || config.type === 'custom-svg') && config.symbol) {
     const w = Number(config.symbol.width) || 50;
     const h = Number(config.symbol.height) || 50;
@@ -380,11 +388,12 @@ const onDrop = (e: DragEvent | TouchEvent, isTouch?: boolean) => {
   const deep_find_cfg = objectDeepClone<ILeftAsideConfigItem>(find_cfg);
   // 自由连线 直角连线都有自定义宽高以及禁止缩放和旋转
   const is_line = deep_find_cfg.type === 'sys-line';
-  // 横线
-  const is_vertical_line = deep_find_cfg.id === 'sys-line';
-  // 竖线
-  const is_horizontal_line = deep_find_cfg.id === 'sys-line-vertical';
-  const create_item_size = getCreateItemSize(deep_find_cfg);
+  const is_horizontal_line = deep_find_cfg.id === 'sys-line';
+  const is_vertical_line = deep_find_cfg.id === 'sys-line-vertical';
+  const create_item_size = getCreateItemSize(
+    deep_find_cfg,
+    globalStore.create_item_info.config_key
+  );
   //根据配置创建图形
   const { x, y } = getCanvasXY(
     e,
@@ -392,15 +401,27 @@ const onDrop = (e: DragEvent | TouchEvent, isTouch?: boolean) => {
     globalStore.canvasCfg.scale,
     globalStore.canvasCfg.transform_origin
   );
+  const item_width = is_horizontal_line ? 100 : is_vertical_line ? 0 : create_item_size.width;
+  const item_height = is_vertical_line ? 100 : is_horizontal_line ? 0 : create_item_size.height;
+  const aligned_left = alignToGrid(x, grid_align_size.value);
+  const aligned_top = alignToGrid(y, grid_align_size.value);
+  const item_left = Math.max(
+    0,
+    Math.min(aligned_left, Math.max(0, globalStore.canvasCfg.width - item_width))
+  );
+  const item_top = Math.max(
+    0,
+    Math.min(aligned_top, Math.max(0, globalStore.canvasCfg.height - item_height))
+  );
   const create_item: IDoneJson = {
     id: deep_find_cfg.id + '-' + randomString(),
     title: deep_find_cfg.title,
     type: deep_find_cfg.type,
     binfo: {
-      left: alignToGrid(x, grid_align_size.value),
-      top: alignToGrid(y, grid_align_size.value),
-      width: is_vertical_line ? 100 : is_horizontal_line ? 0 : create_item_size.width,
-      height: is_horizontal_line ? 100 : is_vertical_line ? 0 : create_item_size.height,
+      left: item_left,
+      top: item_top,
+      width: item_width,
+      height: item_height,
       angle: 0
     },
     resize: is_line ? false : true,
@@ -411,6 +432,11 @@ const onDrop = (e: DragEvent | TouchEvent, isTouch?: boolean) => {
     use_proportional_scaling: true,
     props: deep_find_cfg.props,
     tag: deep_find_cfg.id,
+    lineAxisLock: is_horizontal_line
+      ? 'horizontal'
+      : is_vertical_line
+        ? 'vertical'
+        : undefined,
     device: deep_find_cfg.device,
     common_animations: deep_find_cfg.common_animations,
     events: []
@@ -1300,6 +1326,9 @@ const resetSpaceDragShortcut = () => {
     globalStore.setIntention('none');
   }
 };
+const NUDGE_STEP = 0.5;
+const FAST_NUDGE_STEP = 5;
+const getNudgeStep = (e: KeyboardEvent) => (e.shiftKey ? FAST_NUDGE_STEP : NUDGE_STEP);
 const onKeydown = (e: KeyboardEvent) => {
   if (isSpaceDragShortcut(e)) {
     e.preventDefault();
@@ -1373,25 +1402,22 @@ const onKeydown = (e: KeyboardEvent) => {
     onRedo();
   }
 
-  // 上移一个像素
+  // 方向键精细移动 0.5px，Shift + 方向键快速移动 5px
   else if (e.key === 'ArrowUp') {
     e.preventDefault();
-    upDateLeftAndTop(0, -1);
+    upDateLeftAndTop(0, -getNudgeStep(e));
   }
-  // 下移一个像素
   else if (e.key === 'ArrowDown') {
     e.preventDefault();
-    upDateLeftAndTop(0, 1);
+    upDateLeftAndTop(0, getNudgeStep(e));
   }
-  // 左移一个像素
   else if (e.key === 'ArrowLeft') {
     e.preventDefault();
-    upDateLeftAndTop(-1, 0);
+    upDateLeftAndTop(-getNudgeStep(e), 0);
   }
-  // 右移一个像素
   else if (e.key === 'ArrowRight') {
     e.preventDefault();
-    upDateLeftAndTop(1, 0);
+    upDateLeftAndTop(getNudgeStep(e), 0);
   }
   function upDateLeftAndTop(left: number, top: number) {
     if (globalStore.selected_items_id.length < 1) {
@@ -1581,6 +1607,7 @@ defineExpose({
 <style scoped>
 .canvasArea {
   position: relative;
+  overflow: hidden;
   width: v-bind('globalStore.canvasCfg.width + "px"');
   height: v-bind('globalStore.canvasCfg.height + "px"');
   transform: v-bind('`scale(${globalStore.canvasCfg.scale})`');

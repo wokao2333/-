@@ -91,6 +91,7 @@
     "element-plus": "^2.4.2",
     "html2canvas": "^1.4.1",
     "less": "^4.2.0",
+    "pinyin-pro": "^3.28.2",
     "sql.js": "^1.14.1",
     "vue": "^3.3.4",
     "vue-echarts": "^6.6.5",

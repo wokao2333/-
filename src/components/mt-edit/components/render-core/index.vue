@@ -192,10 +192,6 @@ const onUpdateModelValue = (id: string, value: IDoneJsonBinfo) => {
   ]);
 };
 const onItemMove = (e: any, id: string) => {
-  globalStore.setRealTimeData({
-    show: true,
-    text: `${e.new_lt.left},${e.new_lt.top}`
-  });
   //如果同时选中多个组件，除去当前正在移动这个，手动更新其它的组件
   nextTick(() => {
     // 将所有移动组件的边界信息提供给父组件
@@ -245,10 +241,6 @@ const onItemMove = (e: any, id: string) => {
 };
 const onMoveMouseUp = () => {
   renderCoreEmits('onMoveMouseUp');
-  globalStore.setRealTimeData({
-    show: false,
-    text: ``
-  });
 };
 const getCommonAni = (item: IDoneJson) => {
   if (!item.common_animations || !item.common_animations.val) {

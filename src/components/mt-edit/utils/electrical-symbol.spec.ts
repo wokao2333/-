@@ -1,6 +1,27 @@
 import { describe, expect, it } from 'vitest';
 import { svgToSymbol, symbolGenSvg } from './index';
-import { prepareAtsCanvasSvg } from './electrical-symbol';
+import {
+  prepareAtsCanvasSvg,
+  protectFilledGeometryFromInheritedStroke
+} from './electrical-symbol';
+
+describe('primary-device SVG stroke normalization', () => {
+  it('prevents filled geometry from inheriting an extra stroke', () => {
+    const svg = protectFilledGeometryFromInheritedStroke(
+      '<svg><rect fill="#000" width="2"/><path fill="#000" stroke="#000"/><ellipse fill="none" stroke="#000" stroke-width="2"/></svg>'
+    );
+
+    expect(svg).toMatch(/<rect[^>]*style="stroke: none;"/);
+    expect(svg).not.toMatch(/<path[^>]*style="stroke: none;"/);
+    expect(svg).not.toMatch(/<ellipse[^>]*style="stroke: none;"/);
+  });
+
+  it('returns invalid SVG unchanged', () => {
+    const svg = '<svg><path></svg>';
+
+    expect(protectFilledGeometryFromInheritedStroke(svg)).toBe(svg);
+  });
+});
 
 describe('ATS canvas symbol colors', () => {
   it('maps only black shapes to currentColor and preserves green shapes', () => {

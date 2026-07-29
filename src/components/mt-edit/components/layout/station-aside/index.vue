@@ -12,36 +12,48 @@
             <template #title>
               <div class="flex items-center w-1/1 pr-10px">
                 <el-text truncated class="max-w-140px">{{ station.name }}</el-text>
+                <span class="ml-auto text-[11px] text-gray-400 flex-none">
+                  已绑 {{ stationBoundCount(station) }}/{{ station.diagrams.length }}
+                </span>
               </div>
             </template>
-            <div class="grid grid-cols-2 gap-10px">
+            <div class="grid grid-cols-2 gap-10px p-4px">
               <div
                 v-for="diagram in station.diagrams"
                 :key="diagram.id"
                 class="relative group"
                 @contextmenu.prevent="onDiagramContextMenu($event, station.id, diagram)"
               >
+                <!-- MCU 绑定状态角标：已绑定的图在缩略图右上角显示绿色「MCU」角标，未绑定则不显示，靠视觉留白反衬 -->
                 <div
-                  class="w-1/1 h-50px border-2 rounded cursor-pointer transition-all box-border flex items-center justify-center bg-gray-50 overflow-hidden"
+                  v-if="isDiagramBound(diagram)"
+                  class="absolute top-2px right-0px z-10 flex items-center gap-2px px-4px py-1px text-[10px] leading-none text-white bg-green-600 shadow-sm pointer-events-none"
+                  :title="`已绑定MCU：${diagram.boundMcuInfo?.sn || diagram.boundMcuInfo?.ip || diagram.boundMcuId}`"
+                >
+                  <el-icon :size="10"><Link /></el-icon>
+                  <span>MCU</span>
+                </div>
+                <div
+                  class="w-1/1 h-50px border-2 rounded cursor-pointer transition-all box-border flex items-center justify-center overflow-hidden"
                   :class="[
                     isDiagramActive(station.id, diagram.id)
-                      ? 'border-blue-500 ring-2 ring-blue-100 shadow-sm'
-                      : 'border-transparent hover:border-blue-400'
+                      ? 'border-blue-600 ring-2 ring-blue-400 ring-offset-1 shadow-md bg-blue-50'
+                      : 'border-transparent bg-gray-50 hover:border-blue-400'
                   ]"
                   @click="onLoadDiagram(station.id, diagram.id)"
                 >
                   <img
                     :src="diagram.thumbnail"
-                    class="max-w-1/1 max-h-1/1 object-cover"
+                    class="max-w-1/1 max-h-1/1 object-contain p-2px"
                     alt="diagram thumbnail"
                   />
                 </div>
                 <div
-                  class="mt-4px text-xs text-center truncate px-2px cursor-pointer"
+                  class="mt-4px text-xs text-center truncate px-2px cursor-pointer rounded transition-colors"
                   :class="
                     isDiagramActive(station.id, diagram.id)
-                      ? 'text-blue-600 font-semibold'
-                      : 'text-gray-700'
+                      ? 'bg-blue-600 text-white font-semibold'
+                      : 'text-gray-700 hover:text-blue-500'
                   "
                   :title="diagram.name || diagram.id"
                   @click="onLoadDiagram(station.id, diagram.id)"
@@ -51,7 +63,7 @@
               </div>
               <div
                 class="h-80px border border-dashed border-gray-400 rounded flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:text-blue-500 transition-all"
-                @click="onAddDiagram(station.id)"
+                @click="onRequestAddDiagram(station.id)"
               >
                 <el-icon :size="20"><Plus /></el-icon>
                 <span class="mt-4px text-sm">添加</span>
@@ -99,7 +111,7 @@
                 >MCU列表</el-button
               >
               <el-button text type="success" size="small" @click="onEnterStationClick(row)"
-                >进入场站</el-button
+                >一次图列表</el-button
               >
             </div>
           </template>
@@ -511,10 +523,15 @@ import {
   type UploadInstance,
   type UploadFile
 } from 'element-plus';
-import { Plus, Delete, Download, Upload } from '@element-plus/icons-vue';
+import { Plus, Delete, Download, Upload, Link } from '@element-plus/icons-vue';
 import type { Station, StationForm, McuItem, AddDiagramPayload, StationDiagram } from './types';
 import { randomString } from '@/components/mt-edit/utils';
 import { useMcuDB } from '@/composables/useMcuDB';
+import {
+  validateDiagramNameUnique,
+  validateStationMcus,
+  validateStationNameUnique
+} from '@/composables/useStationDedup';
 
 type StationAsideProps = {
   stations: Station[];
@@ -530,6 +547,7 @@ const emits = defineEmits<{
   addStation: [station: Station];
   editStation: [station: Station];
   addDiagram: [payload: AddDiagramPayload];
+  requestAddDiagram: [openDialog: () => void];
   editDiagram: [payload: { stationId: string; diagramId: string; name: string; remark: string }];
   loadDiagram: [stationId: string, diagramId: string];
   deleteStation: [stationId: string];
@@ -558,6 +576,12 @@ const isDiagramActive = (stationId: string, diagramId: string) => {
     stationAsideProps.activeDiagramId === diagramId
   );
 };
+
+// 一次图是否已绑定 MCU：基于 diagram.boundMcuId 判断（绑定后父组件会实时回填）
+const isDiagramBound = (diagram: StationDiagram) => !!diagram.boundMcuId;
+// 场站下已绑定 MCU 的一次图数量，用于折叠标题的覆盖度统计
+const stationBoundCount = (station: Station) =>
+  station.diagrams.filter((d) => d.boundMcuId).length;
 
 watch(
   () => stationAsideProps.activeStationId,
@@ -722,8 +746,21 @@ const onDelStationConfirm = (stationId: string) => {
 };
 
 const onConfirm = () => {
-  formRef.value?.validate((valid) => {
+  formRef.value?.validate(async (valid) => {
     if (!valid) {
+      return;
+    }
+    // 统一去空格，避免「站A」与「站A 」被视为不同名称绕过查重
+    form.name = form.name.trim();
+    form.address = form.address.trim();
+    if (!form.name) {
+      ElMessage.warning('场站名称不能为空或纯空格');
+      return;
+    }
+    // 规则1（全局校验）：禁止同名场站；编辑模式排除自身，基于本地数据库查重
+    const dup = await validateStationNameUnique(form.name, editingStationId.value ?? undefined);
+    if (!dup.ok) {
+      ElMessage.error(dup.summary);
       return;
     }
     if (editingStationId.value) {
@@ -826,6 +863,10 @@ const onAddDiagram = (stationId: string) => {
   addDiagramVisible.value = true;
 };
 
+const onRequestAddDiagram = (stationId: string) => {
+  emits('requestAddDiagram', () => onAddDiagram(stationId));
+};
+
 const onEditDiagramClick = (stationId: string, diagram: StationDiagram) => {
   editingDiagramId.value = diagram.id;
   addDiagramStationId.value = stationId;
@@ -842,13 +883,12 @@ const onAddBlankDiagram = () => {
     ElMessage.error('未定位到当前场站，无法新增一次图');
     return;
   }
-  const stationId = station.id;
-  // 关闭当前弹窗（场站详情弹窗通常由“管理场站”弹窗内点击“进入场站”打开，
-  // 此处一并隐藏管理弹窗，避免多层弹窗叠加残留）
-  enterVisible.value = false;
-  manageVisible.value = false;
-  // 复用与“添加”卡片一致的“新增一次接线图”弹窗，要求先填写名称与备注
-  onAddDiagram(stationId);
+  emits('requestAddDiagram', () => {
+    // 确认可以离开当前画布后再关闭场站弹窗，避免取消新增时丢失当前操作位置。
+    enterVisible.value = false;
+    manageVisible.value = false;
+    onAddDiagram(station.id);
+  });
 };
 
 // 确认新增/编辑一次接线图：校验名称后提交给父组件持久化
@@ -856,12 +896,22 @@ const onConfirmAddDiagram = () => {
   // 先统一去空格，使后续校验与提交的值一致
   diagramForm.name = diagramForm.name.trim();
   diagramForm.remark = diagramForm.remark.trim();
-  diagramFormRef.value?.validate((valid) => {
+  diagramFormRef.value?.validate(async (valid) => {
     if (!valid) {
       return;
     }
     // 兜底：即便校验被绕过，也不允许空名称入库（空名称会让列表回退显示 id）
     if (!diagramForm.name) {
+      return;
+    }
+    // 规则3（图纸校验）：同一场站下禁止同名一次图；编辑模式排除自身，基于本地数据库查重
+    const dup = await validateDiagramNameUnique(
+      addDiagramStationId.value,
+      diagramForm.name,
+      editingDiagramId.value ?? undefined
+    );
+    if (!dup.ok) {
+      ElMessage.error(dup.summary);
       return;
     }
     if (editingDiagramId.value) {
@@ -1116,6 +1166,13 @@ const onSaveMcu = async () => {
       // 每次成功保存即捕获当前系统时间，准确反映最后一次编辑完成时间
       updateTime: now
     });
+  }
+  // 规则2（场站内部校验）：同一场站下禁止 SN 或 IP 地址相同的 MCU。
+  // 保存方式为整场站覆盖式替换，保存后的最终数据即 items 本身，直接对其查重。
+  const dup = await validateStationMcus(currentStationId.value, items);
+  if (!dup.ok) {
+    ElMessage.error(dup.summary);
+    return;
   }
   const db = useMcuDB();
   try {

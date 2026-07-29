@@ -2,7 +2,10 @@
 import { ElConfigProvider } from 'element-plus';
 import zhCn from 'element-plus/es/locale/lang/zh-cn';
 import { leftAsideStore } from '@/export';
-import { prepareAtsCanvasSvg } from '@/components/mt-edit/utils/electrical-symbol';
+import {
+  prepareAtsCanvasSvg,
+  protectFilledGeometryFromInheritedStroke
+} from '@/components/mt-edit/utils/electrical-symbol';
 const electrical_modules_files = import.meta.glob('./assets/svgs/electrical/**/*.svg', {
   eager: true,
   as: 'raw'
@@ -15,16 +18,32 @@ const electrical_stroke_modules_files = import.meta.glob(
   }
 );
 const electrical_register_config: any = [];
+const primaryDeviceStrokeSvgNames = new Set([
+  '电力-电流互感器',
+  '电力-站用变压器',
+  '电力-双铁芯双绕组电流互感器_右',
+  '接地',
+  '电力-避雷器1',
+  '电力-避雷器2',
+  '双绕组变压器',
+  '隔离开关 copy',
+  'ATS',
+  '开关手车'
+]);
 for (const key in electrical_modules_files) {
   if (key.includes('/stroke/')) continue;
   //根据路径获取svg文件名
   const name = key.split('/').pop()!.split('.')[0];
+  const sourceSvg = electrical_modules_files[key] as string;
+  const rawSvg = primaryDeviceStrokeSvgNames.has(name)
+    ? protectFilledGeometryFromInheritedStroke(sourceSvg)
+    : sourceSvg;
   electrical_register_config.push({
     id: name,
     title: name,
     type: 'svg',
-    thumbnail: 'data:image/svg+xml;utf8,' + encodeURIComponent(electrical_modules_files[key]),
-    svg: electrical_modules_files[key],
+    thumbnail: 'data:image/svg+xml;utf8,' + encodeURIComponent(rawSvg),
+    svg: rawSvg,
     props: {
       fill: {
         type: 'color',
@@ -43,10 +62,13 @@ for (const key in electrical_stroke_modules_files) {
     '隔离开关 copy': '隔离开关'
   };
   const title = titleMap[name] || name;
-  const rawSvg = electrical_stroke_modules_files[key] as string;
+  const sourceSvg = electrical_stroke_modules_files[key] as string;
+  const rawSvg = primaryDeviceStrokeSvgNames.has(name)
+    ? protectFilledGeometryFromInheritedStroke(sourceSvg)
+    : sourceSvg;
   // 画布 symbol 可按图元需求处理颜色，左侧缩略图仍使用原始 SVG
   let symbolSvg = rawSvg;
-  if (name === '隔离开关 copy' || name === '开关手车') {
+  if (name === '接地' || name === '隔离开关 copy' || name === '开关手车') {
     symbolSvg = rawSvg.replace(/fill="#000000"/g, '').replace(/fill-opacity="1"/g, '');
   } else if (name === 'ATS') {
     // ATS 通过 color/currentColor 单独控制原黑色部分，避免 <use> 的 fill 覆盖绿色标识。

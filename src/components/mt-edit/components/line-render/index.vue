@@ -183,7 +183,7 @@
           repeatCount="indefinite"
         ></animateMotion>
       </circle>
-      <g v-if="lineRenderProps.itemJson.active">
+      <g v-if="lineRenderProps.itemJson.active && !lineRenderProps.itemJson.lineAxisLock">
         <circle
           v-for="(item, index) in addPointPosition"
           :key="index"
@@ -201,25 +201,25 @@
       </g>
       <g v-if="lineRenderProps.itemJson.active">
         <circle
-          v-for="(item, index) in lineRenderProps.itemJson.props.point_position.val"
-          :key="index"
+          v-for="item in editablePointPositions"
+          :key="item.index"
           pointer-events="fill"
-          :id="`point-${lineRenderProps.itemJson.id}-${index}`"
-          :cx="item.x + lineRenderProps.itemJson.binfo.left + offset"
-          :cy="item.y + lineRenderProps.itemJson.binfo.top + offset"
+          :id="`point-${lineRenderProps.itemJson.id}-${item.index}`"
+          :cx="item.point.x + lineRenderProps.itemJson.binfo.left + offset"
+          :cy="item.point.y + lineRenderProps.itemJson.binfo.top + offset"
           r="4"
           stroke-width="1"
           :stroke="lineRenderProps.itemJson.props.stroke.val"
           fill="#fff"
           :class="
             lineRenderProps.mode === 'line-edit' &&
-            index !== 0 &&
-            index !== lineRenderProps.itemJson.props.point_position.val.length - 1
+            item.index !== 0 &&
+            item.index !== lineRenderProps.itemJson.props.point_position.val.length - 1
               ? 'cursor-remove'
               : 'cursor-pointer'
           "
-          @mousedown="onMouseDown($event, index, 'edit', item)"
-          @touchstart.passive="onMouseDown($event, index, 'edit', item)"
+          @mousedown="onMouseDown($event, item.index, 'edit', item.point)"
+          @touchstart.passive="onMouseDown($event, item.index, 'edit', item.point)"
         />
       </g>
     </g>
@@ -258,6 +258,15 @@ const offset = configStore.lineRenderOffset;
 const grid_align_size = computed(() =>
   !lineRenderProps.grid.align || !lineRenderProps.grid.enabled ? 1 : lineRenderProps.grid.size
 );
+const editablePointPositions = computed(() => {
+  const points = lineRenderProps.itemJson.props.point_position.val as { x: number; y: number }[];
+  return points
+    .map((point, index) => ({ point, index }))
+    .filter(
+      ({ index }) =>
+        !lineRenderProps.itemJson.lineAxisLock || index === 0 || index === points.length - 1
+    );
+});
 const addPointPosition = ref();
 const onMouseDown = (
   de: MouseTouchEvent,
@@ -309,6 +318,11 @@ const onMouseDown = (
     const move_y = de.shiftKey ? 0 : alignToGrid((m_y - d_y) / lineRenderProps.canvasCfg.scale, 1);
     new_x = realityX + move_x;
     new_y = realityY + move_y;
+    if (lineRenderProps.itemJson.lineAxisLock === 'horizontal') {
+      new_y = realityY;
+    } else if (lineRenderProps.itemJson.lineAxisLock === 'vertical') {
+      new_x = realityX;
+    }
     if (type === 'add') {
       item.x = new_x;
       item.y = new_y;
@@ -351,7 +365,7 @@ const onMouseDown = (
       const new_point_position = lineRenderProps.itemJson.props.point_position.val;
       if (point_index === 0) {
         lineRenderEmits('setIntention', 'adsorbStart');
-        if (lineRenderProps.mode === 'line-edit') {
+        if (lineRenderProps.mode === 'line-edit' && !lineRenderProps.itemJson.lineAxisLock) {
           if (first_click) {
             const new_point_position = lineRenderProps.itemJson.props.point_position.val;
             new_point_position.unshift({
@@ -374,7 +388,7 @@ const onMouseDown = (
         }
       } else if (point_index === new_point_position.length - 1) {
         lineRenderEmits('setIntention', 'adsorbEnd');
-        if (lineRenderProps.mode === 'line-edit') {
+        if (lineRenderProps.mode === 'line-edit' && !lineRenderProps.itemJson.lineAxisLock) {
           if (first_click) {
             const new_point_position = lineRenderProps.itemJson.props.point_position.val;
             new_point_position.push({
@@ -483,6 +497,20 @@ const getCenterPositions = (point_position: { x: number; y: number }[]) => {
 watch(
   () => lineRenderProps.itemJson.props.point_position.val,
   (new_val: { x: number; y: number }[]) => {
+    if (lineRenderProps.itemJson.lineAxisLock && new_val.length > 2) {
+      lineRenderEmits('update:itemJson', {
+        ...lineRenderProps.itemJson,
+        props: {
+          ...lineRenderProps.itemJson.props,
+          point_position: {
+            ...lineRenderProps.itemJson.props.point_position,
+            val: [new_val[0], new_val[new_val.length - 1]]
+          }
+        }
+      });
+      addPointPosition.value = [];
+      return;
+    }
     addPointPosition.value = getCenterPositions(new_val);
   },
   {

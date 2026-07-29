@@ -173,7 +173,8 @@ import {
   ElMessage,
   ElMessageBox
 } from 'element-plus';
-import { useDark, useLocalStorage } from '@vueuse/core';
+import { useDark, useLocalStorage, useDebounce } from '@vueuse/core';
+import { pinyin } from 'pinyin-pro';
 import type {
   ILeftAsideConfig,
   ILeftAsideConfigItem,
@@ -201,7 +202,44 @@ const disable_classify = useLocalStorage<string[]>('mt-disable-classify', []);
 const treeRef = ref();
 const is_show_tooltip: Record<string, boolean> = reactive({});
 const active_names = ref<string[]>([]);
-const search_str = ref();
+const search_str = ref('');
+// 输入防抖：输入停止 300ms 后才真正触发过滤，避免频繁触发搜索
+const debounced_search = useDebounce(search_str, 300);
+// 实际用于匹配的关键字（小写、去首尾空白）
+const search_keyword = computed(() => (debounced_search.value ?? '').trim().toLowerCase());
+// 拼音转换结果缓存，避免每次过滤重复计算
+const pinyin_cache = new Map<string, { full: string; initials: string }>();
+const toPinyin = (text: string) => {
+  const cached = pinyin_cache.get(text);
+  if (cached) return cached;
+  const full = pinyin(text, { toneType: 'none', type: 'string' })
+    .replace(/\s+/g, '')
+    .toLowerCase();
+  const initials = pinyin(text, { pattern: 'first', toneType: 'none', type: 'string' })
+    .replace(/\s+/g, '')
+    .toLowerCase();
+  const result = { full, initials };
+  pinyin_cache.set(text, result);
+  return result;
+};
+// 单段文本匹配：标题/别名原文，以及其全拼、拼音首字母
+const matchText = (text: string, keyword: string) => {
+  if (!text) return false;
+  if (text.toLowerCase().includes(keyword)) return true;
+  const { full, initials } = toPinyin(text);
+  return full.includes(keyword) || initials.includes(keyword);
+};
+// 物料匹配：标题 + 别名（别名支持逗号/分号/空格分隔的多个值）
+const matchItem = (item: ILeftAsideConfigItemPublic, keyword: string) => {
+  if (matchText(item.title, keyword)) return true;
+  if (item.alias) {
+    return item.alias
+      .split(/[,;，；\s]+/)
+      .filter(Boolean)
+      .some((alias) => matchText(alias, keyword));
+  }
+  return false;
+};
 const manage_dialog_visiable = ref(false);
 const upload_dialog_visible = ref(false);
 const classify_list = computed(() =>
@@ -293,10 +331,11 @@ const getFilteritems = (
   if (!arr) {
     return [];
   }
-  if (search_str.value) {
-    return arr.filter((f) => f.title.includes(search_str.value));
+  const keyword = search_keyword.value;
+  if (!keyword) {
+    return arr;
   }
-  return arr;
+  return arr.filter((item) => matchItem(item, keyword));
 };
 const onDragStart = (config_item_key: string, item_id: string) => {
   if (!config_item_key || !item_id) {

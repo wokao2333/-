@@ -56,6 +56,16 @@ export const genCanvasDataUrl = async (canvas_id: string = 'mtCanvasArea'): Prom
     allowTaint: true,
     windowHeight: height,
     logging: false,
+    onclone: (clonedDocument) => {
+      const clonedCanvas = clonedDocument.querySelector<HTMLElement>(`#${canvas_id}`);
+      if (!clonedCanvas) return;
+
+      // 缩略图应反映画布本身，而不是用户当前的缩放、平移视图。
+      clonedCanvas.style.transform = 'none';
+      clonedCanvas.style.transformOrigin = '0 0';
+      clonedCanvas.style.left = '0';
+      clonedCanvas.style.top = '0';
+    },
     ignoreElements: (element) => {
       if (element.classList.contains('mt-line-render')) {
         return true;
