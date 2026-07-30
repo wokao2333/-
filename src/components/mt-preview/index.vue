@@ -24,7 +24,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
 import RenderCore from '@/components/mt-edit/components/render-core/index.vue';
 import type { IExportJson } from '../mt-edit/components/types';
 import { useExportJsonToDoneJson } from '../mt-edit/composables';
@@ -97,6 +97,16 @@ const calcFitScale = () => {
 
   // 取较小的比例，确保画布完整显示在容器中
   fitScale.value = Math.min(scaleX, scaleY);
+};
+
+let pendingFitFrame = 0;
+const scheduleFitScale = async () => {
+  await nextTick();
+  cancelAnimationFrame(pendingFitFrame);
+  pendingFitFrame = requestAnimationFrame(() => {
+    pendingFitFrame = 0;
+    calcFitScale();
+  });
 };
 
 /**
@@ -197,7 +207,7 @@ const setItemAttrByIDAsync = (id: string, key: string, val: any) => {
   emits('onEventCallBack', type, item_id, ...args);
 
 const handleResize = () => {
-  calcFitScale();
+  void scheduleFitScale();
 };
 
 let resizeObserver: ResizeObserver | null = null;
@@ -210,11 +220,11 @@ onMounted(() => {
     grid_cfg.value = gridCfg;
     done_json.value = importDoneJson;
   }
-  calcFitScale();
+  void scheduleFitScale();
   window.addEventListener('resize', handleResize);
   // 监听承载容器尺寸变化（弹窗尺寸/窗口调整），实时重新计算自适应缩放
   if (previewShellRef.value && typeof ResizeObserver !== 'undefined') {
-    resizeObserver = new ResizeObserver(() => calcFitScale());
+    resizeObserver = new ResizeObserver(() => void scheduleFitScale());
     resizeObserver.observe(previewShellRef.value);
   }
 });
@@ -223,6 +233,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
   resizeObserver?.disconnect();
   resizeObserver = null;
+  cancelAnimationFrame(pendingFitFrame);
   stopPreviewCanvasDrag();
 });
 
@@ -231,7 +242,7 @@ const setImportJson = (exportJson: IExportJson) => {
   canvas_cfg.value = canvasCfg;
   grid_cfg.value = gridCfg;
   done_json.value = importDoneJson;
-  calcFitScale();
+  void scheduleFitScale();
   return true;
 };
 defineExpose({

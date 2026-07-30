@@ -52,28 +52,21 @@ const computedValueColor = computed(() => props.valueColor || props.color);
 const computedUnitText = computed(() => props.unit || '单位');
 const computedUnitFontSize = computed(() => props.unitFontSize || props.fontSize);
 const computedUnitColor = computed(() => props.unitColor || props.color);
-const computedUnitColumnWidth = computed(() => props.unitWidth + props.unitGap);
-const computedTableWidth = computed(
-  () => props.labelWidth + props.valueWidth + computedUnitColumnWidth.value
-);
+const gridStyle = computed(() => ({
+  width: `${props.labelWidth + props.valueWidth + props.unitGap + props.unitWidth}px`,
+  gridTemplateColumns: `${props.labelWidth}px ${props.valueWidth}px ${
+    props.unitGap + props.unitWidth
+  }px`
+}));
 </script>
 
 <template>
   <div class="w-1/1 h-1/1 kvWrap" :style="{ padding: `${props.paddingY}px ${props.paddingX}px` }">
-    <table class="kvTable" :style="{ width: `${computedTableWidth}px` }">
-      <colgroup>
-        <col :style="{ width: `${props.labelWidth}px` }" />
-        <col :style="{ width: `${props.valueWidth}px` }" />
-        <col :style="{ width: `${computedUnitColumnWidth}px` }" />
-      </colgroup>
-      <tbody>
-        <tr>
-          <td class="kvKey kvKeyValue">{{ props.label }}</td>
-          <td class="kvValue kvKeyValue">{{ props.value }}</td>
-          <td class="kvUnit kvKeyValue">{{ computedUnitText }}</td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="kvGrid" :style="gridStyle">
+      <div class="kvKey kvKeyValue">{{ props.label }}</div>
+      <div class="kvValue kvKeyValue">{{ props.value }}</div>
+      <div class="kvUnit kvKeyValue">{{ computedUnitText }}</div>
+    </div>
   </div>
 </template>
 
@@ -87,10 +80,10 @@ const computedTableWidth = computed(
   align-items: center;
 }
 
-/* 表格和 colgroup 都使用明确宽度，确保 fixed 布局不会因 value 内容长度回退为自动列宽。 */
-.kvTable {
-  table-layout: fixed;
-  border-collapse: collapse;
+.kvGrid {
+  display: grid;
+  align-items: center;
+  min-width: 0;
   font-family: v-bind('`${props.fontFamily}`');
   white-space: nowrap;
 }
@@ -100,27 +93,24 @@ const computedTableWidth = computed(
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  vertical-align: middle;
+  min-width: 0;
+  line-height: 1.2;
 }
 
 .kvKey {
   font-size: v-bind('`${computedLabelFontSize}px`');
   color: v-bind('`${computedLabelColor}`');
-  width: v-bind('`${props.labelWidth}px`');
-  padding-right: 0px;
 }
 
 .kvValue {
   font-size: v-bind('`${computedValueFontSize}px`');
   color: v-bind('`${computedValueColor}`');
-  width: v-bind('`${props.valueWidth}px`');
   text-align: right;
 }
 
 .kvUnit {
   font-size: v-bind('`${computedUnitFontSize}px`');
   color: v-bind('`${computedUnitColor}`');
-  width: v-bind('`${props.unitWidth}px`');
   padding-left: v-bind('`${props.unitGap}px`');
 }
 </style>

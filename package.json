@@ -9,7 +9,7 @@
     "electron:start": "VITE_DEV_SERVER_URL=http://localhost:5173 electron electron/main.cjs",
     "electron:dev": "concurrently -k -n vite,electron -c blue,green \"pnpm run vite:serve\" \"pnpm run electron:start\"",
     "electron:preview": "pnpm run build-only && electron electron/main.cjs",
-    "electron:rebuild": "electron-rebuild -f -w better-sqlite3",
+    "electron:rebuild": "node electron/rebuild.cjs",
     "electron:build": "pnpm run build-only && pnpm run electron:rebuild && electron-builder",
     "preview": "vite preview",
     "test:unit": "vitest",
@@ -41,7 +41,20 @@
       "esbuild",
       "vue-demi",
       "vue-echarts"
-    ]
+    ],
+    "supportedArchitectures": {
+      "os": [
+        "current"
+      ],
+      "cpu": [
+        "current",
+        "x64",
+        "arm64"
+      ],
+      "libc": [
+        "current"
+      ]
+    }
   },
   "build": {
     "appId": "com.wokao.app",

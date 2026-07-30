@@ -15,16 +15,15 @@ describe('KvVue', () => {
         unitGap: 12
       }
     });
-    const getColumnWidths = () =>
-      wrapper.findAll('col').map((column) => column.attributes('style'));
+    const getGridStyle = () => wrapper.find('.kvGrid').attributes('style');
 
-    expect(wrapper.find('table').attributes('style')).toContain('width: 134px');
-    expect(getColumnWidths()).toEqual(['width: 30px;', 'width: 72px;', 'width: 32px;']);
+    expect(getGridStyle()).toContain('width: 134px');
+    expect(getGridStyle()).toContain('grid-template-columns: 30px 72px 32px');
 
     await wrapper.setProps({ value: '233.8' });
 
-    expect(wrapper.find('table').attributes('style')).toContain('width: 134px');
-    expect(getColumnWidths()).toEqual(['width: 30px;', 'width: 72px;', 'width: 32px;']);
+    expect(getGridStyle()).toContain('width: 134px');
+    expect(getGridStyle()).toContain('grid-template-columns: 30px 72px 32px');
   });
 
   it('uses scalable horizontal and vertical padding', () => {
