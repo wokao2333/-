@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { svgToSymbol, symbolGenSvg } from './index';
-import {
-  prepareAtsCanvasSvg,
-  protectFilledGeometryFromInheritedStroke
-} from './electrical-symbol';
+import { prepareAtsCanvasSvg, protectFilledGeometryFromInheritedStroke } from './electrical-symbol';
 
 describe('primary-device SVG stroke normalization', () => {
   it('prevents filled geometry from inheriting an extra stroke', () => {

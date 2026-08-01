@@ -17,12 +17,10 @@ describe('KvVue', () => {
     });
     const getGridStyle = () => wrapper.find('.kvGrid').attributes('style');
 
-    expect(getGridStyle()).toContain('width: 134px');
     expect(getGridStyle()).toContain('grid-template-columns: 30px 72px 32px');
 
     await wrapper.setProps({ value: '233.8' });
 
-    expect(getGridStyle()).toContain('width: 134px');
     expect(getGridStyle()).toContain('grid-template-columns: 30px 72px 32px');
   });
 

@@ -1,0 +1,77 @@
+{
+  "type": "maotu-stations-package",
+  "version": 1,
+  "exportedAt": 0,
+  "stations": [
+    {
+      "id": "codex-production-check-station",
+      "name": "生产缩放校验",
+      "address": "本地测试",
+      "remark": "",
+      "diagrams": [
+        {
+          "id": "codex-production-check-diagram",
+          "name": "400V母线缩放校验",
+          "remark": "",
+          "thumbnail": "",
+          "boundDeviceCount": 0,
+          "unboundDeviceCount": 0,
+          "published": false,
+          "createTime": 0,
+          "updateTime": 0,
+          "exportJson": {
+            "canvasCfg": {
+              "width": 1280,
+              "height": 750,
+              "scale": 0.7,
+              "color": "#000000",
+              "img": "",
+              "guide": true,
+              "adsorp": true,
+              "adsorp_diff": 3,
+              "transform_origin": { "x": 0, "y": 0 },
+              "drag_offset": { "x": 33, "y": 142 }
+            },
+            "gridCfg": { "enabled": false, "align": true, "size": 10 },
+            "json": [
+              {
+                "id": "busbar-production-check",
+                "title": "400V母线",
+                "type": "vue",
+                "binfo": {
+                  "left": 5.69140625,
+                  "top": 129.208587646484,
+                  "width": 1172,
+                  "height": 31,
+                  "angle": 0
+                },
+                "props": {
+                  "stroke": "#FF0000",
+                  "strokeWidth": 4,
+                  "label": "400V",
+                  "labelColor": "#FFFFFF",
+                  "fontSize": 20,
+                  "labelGap": 12
+                },
+                "resize": true,
+                "rotate": true,
+                "lock": false,
+                "active": false,
+                "hide": false,
+                "use_proportional_scaling": true,
+                "tag": "busbar-400v",
+                "common_animations": {
+                  "val": "",
+                  "delay": "",
+                  "speed": "",
+                  "repeat": ""
+                },
+                "events": []
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

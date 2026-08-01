@@ -410,6 +410,8 @@ const VALUE_COLUMN_LEFT_SHIFT = 18;
 const VALUE_FONT_SIZE = 22;
 const POINT_VALUE_WIDTH = 72;
 const POINT_UNIT_GAP = 12;
+// 绿色背景只包住值列，不包含右侧单位列。
+const POINT_VALUE_CARD_WIDTH = KV_INNER_PADDING_X * 2 + POINT_VALUE_WIDTH;
 const PANEL_GAP = 20; // 面板距设备右侧 20px
 const ROW_REL_PERCENT = [
   {
@@ -532,7 +534,10 @@ const buildDevicePointPanel = (
   const minLeft = Math.min(0, ...rows.map((row) => row.labelKvLeft));
   const maxRight = Math.max(
     GROUP_W,
-    ...rows.flatMap((row) => [row.rel.card.left + CARD_W_PX, row.valueKvLeft + row.valueKvWidth])
+    ...rows.flatMap((row) => [
+      row.valueKvLeft + POINT_VALUE_CARD_WIDTH,
+      row.valueKvLeft + row.valueKvWidth
+    ])
   );
   const panelWidth = Math.max(1, maxRight - minLeft);
   const panelHeight = Math.max(1, getPanelHeight(rows.length));
@@ -548,7 +553,7 @@ const buildDevicePointPanel = (
       valueKvWidth,
       rel
     } = row;
-    const cardLeft = rel.card.left - minLeft;
+    const cardLeft = valueKvLeft - minLeft;
     const normalizedLabelKvLeft = labelKvLeft - minLeft;
     const normalizedValueKvLeft = valueKvLeft - minLeft;
 
@@ -556,7 +561,8 @@ const buildDevicePointPanel = (
     const card = cloneConfigToDoneJson(cardCfg, {
       left: pxToPercent(cardLeft, panelWidth),
       top: pxToPercent(rel.card.top, panelHeight),
-      width: pxToPercent(CARD_W_PX, panelWidth),
+      // 卡片只覆盖 value 列，unit 列保持在绿色框外。
+      width: pxToPercent(POINT_VALUE_CARD_WIDTH, panelWidth),
       height: pxToPercent(CARD_H_PX, panelHeight),
       angle: 0
     });

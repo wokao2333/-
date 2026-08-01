@@ -99,7 +99,12 @@
 </template>
 <script setup lang="ts">
 import type { MouseTouchEvent } from '@/components/mt-dzr/utils/types';
-import type { IDoneJson, IGlobalStoreCanvasCfg, IGlobalStoreGridCfg } from '../../store/types';
+import type {
+  DrawLineMode,
+  IDoneJson,
+  IGlobalStoreCanvasCfg,
+  IGlobalStoreGridCfg
+} from '../../store/types';
 import {
   alignToGrid,
   getCanvasBinfoFromClientRect,
@@ -113,9 +118,12 @@ type LineRenderProps = {
   grid: IGlobalStoreGridCfg;
   canvasDom: HTMLElement | null;
   mode: 'pen' | 'pencil';
+  /** 连线绘制模式：free 自由绘制；vertical 始终垂直；horizontal 始终水平 */
+  lineMode?: DrawLineMode;
 };
 const lineRenderProps = withDefaults(defineProps<LineRenderProps>(), {
-  mode: 'pen'
+  mode: 'pen',
+  lineMode: 'free'
 });
 const lineRenderEmits = defineEmits(['drawLineEnd']);
 const offset = configStore.lineRenderOffset;
@@ -145,6 +153,12 @@ const onMouseDown = (de: MouseTouchEvent, point_index: number, item: { x: number
     const move_y = de.shiftKey ? 0 : alignToGrid((m_y - d_y) / lineRenderProps.canvasCfg.scale, 1);
     new_x = realityX + move_x;
     new_y = realityY + move_y;
+    // 连线模式约束：竖线模式锁定 x 保持垂直，横线模式锁定 y 保持水平；free 不约束
+    if (lineRenderProps.lineMode === 'vertical') {
+      new_x = realityX;
+    } else if (lineRenderProps.lineMode === 'horizontal') {
+      new_y = realityY;
+    }
     if (lineRenderProps.mode == 'pencil') {
       const new_point_position = lineRenderProps.itemJson.props.point_position.val;
       new_point_position.push({

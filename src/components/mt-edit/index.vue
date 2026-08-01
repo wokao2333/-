@@ -32,6 +32,7 @@
           @on-preview-click="onPreviewClick"
           @on-thumbnail-click="onThumbnailClick"
           @on-draw-line-click="onDrawLineClick"
+          @on-draw-line-mode-change="onDrawLineModeChange"
           @on-publish-click="onPublishClick"
           @on-online-check-click="onOnlineCheckClick"
         ></header-panel>
@@ -91,6 +92,7 @@
             :un-group-enabled="header_un_group_enabled"
             :delete-enabled="header_delete_enabled"
             :line-append-enable="line_append_enable"
+            :line-mode="line_mode"
           ></main-panel>
         </el-main>
         <el-aside
@@ -207,6 +209,7 @@ import { objectDeepClone } from './utils';
 import { genExportJson, useExportJsonToDoneJson } from './composables';
 import { collectUnboundDevices, type UnboundDeviceItem } from '@/composables/useDeviceBinding';
 import type { IExportJson } from './components/types';
+import type { DrawLineMode } from './store/types';
 import type { DeviceTemplateSelectionChange } from './components/layout/device-template/types';
 type MtEditProps = {
   useThumbnail?: boolean;
@@ -274,6 +277,8 @@ const header_align_enabled = computed(() => {
 
 const done_json_tree_visiable = ref(false);
 const line_append_enable = ref(false);
+// 连线绘制模式：free 自由绘制；vertical 始终垂直；horizontal 始终水平
+const line_mode = ref<DrawLineMode>('free');
 const left_aside_active_tab = ref('station');
 
 const tabs = [
@@ -439,6 +444,9 @@ const onThumbnailClick = () => {
 };
 const onDrawLineClick = (val: boolean) => {
   line_append_enable.value = val;
+};
+const onDrawLineModeChange = (mode: DrawLineMode) => {
+  line_mode.value = mode;
 };
 
 const onDeviceTemplateSelectionSaved = (payload: DeviceTemplateSelectionChange) => {

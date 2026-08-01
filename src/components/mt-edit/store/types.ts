@@ -60,6 +60,8 @@ export type GlobalStoreIntention =
   | 'endDragCanvas'
   | 'showContextMenu'
   | 'drawSysLineStart';
+/** 连线绘制模式：free 自由绘制（默认）；vertical 始终保持垂直；horizontal 始终保持水平 */
+export type DrawLineMode = 'free' | 'vertical' | 'horizontal';
 export interface IGlobalStoreCreateItemInfo {
   config_key: string; //也就是折叠面板的值
   item_id: string; //要创建组件的id

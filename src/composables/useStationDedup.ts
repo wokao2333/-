@@ -1,7 +1,4 @@
-import type {
-  McuItem,
-  Station
-} from '@/components/mt-edit/components/layout/station-aside/types';
+import type { McuItem, Station } from '@/components/mt-edit/components/layout/station-aside/types';
 import db from '@/database';
 
 /**
@@ -134,7 +131,9 @@ export async function validateDiagramNameUnique(
       field: '一次图名称',
       value: target,
       count: conflicts.length + 1,
-      message: `一次图名称重复：场站「${station.name || stationId}」下已存在同名一次图「${target}」（重复字段：一次图名称，重复值：${target}），请更换名称`
+      message: `一次图名称重复：场站「${
+        station.name || stationId
+      }」下已存在同名一次图「${target}」（重复字段：一次图名称，重复值：${target}），请更换名称`
     }
   ]);
 }

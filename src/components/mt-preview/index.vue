@@ -1,30 +1,32 @@
 <template>
-  <div class="preview-shell" ref="previewShellRef">
-    <div class="preview-canvas-wrapper" :style="wrapperStyle">
+  <div ref="previewShellRef" class="preview-shell">
+    <div class="preview-canvas-wrapper">
       <div
-        ref="canvasAreaRef"
-        :class="`canvasArea ${
+        :class="`preview-canvas-stage ${
           mtPreviewProps.canDrag ? (is_dragging_canvas ? 'cursor-grabbing' : 'cursor-grab') : ''
         } `"
+        :style="stageStyle"
         @mousedown="onMouseDown"
         @wheel="onMouseWheel"
       >
-        <render-core
-          v-model:done-json="done_json"
-          :canvas-cfg="canvas_cfg"
-          :grid-cfg="grid_cfg"
-          :show-ghost-dom="false"
-          :canvas-dom="canvasAreaRef"
-          :global-lock="false"
-          :preivew-mode="true"
-          :show-popover="mtPreviewProps.showPopover"
-        ></render-core>
+        <div ref="canvasAreaRef" class="canvasArea" :style="canvasStyle">
+          <render-core
+            v-model:done-json="done_json"
+            :canvas-cfg="canvas_cfg"
+            :grid-cfg="grid_cfg"
+            :show-ghost-dom="false"
+            :canvas-dom="canvasAreaRef"
+            :global-lock="false"
+            :preivew-mode="true"
+            :show-popover="mtPreviewProps.showPopover"
+          ></render-core>
+        </div>
       </div>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import RenderCore from '@/components/mt-edit/components/render-core/index.vue';
 import type { IExportJson } from '../mt-edit/components/types';
 import { useExportJsonToDoneJson } from '../mt-edit/composables';
@@ -43,8 +45,8 @@ const mtPreviewProps = withDefaults(defineProps<MtPreviewProps>(), {
   showPopover: true
 });
 const emits = defineEmits(['onEventCallBack']);
+const previewShellRef = ref<HTMLDivElement | null>(null);
 const canvasAreaRef = ref();
-const previewShellRef = ref<HTMLDivElement>();
 const is_dragging_canvas = ref(false);
 const canvas_cfg = ref({
   width: 1920,
@@ -70,66 +72,42 @@ const grid_cfg = ref({
   size: 10
 });
 const done_json = ref<IDoneJson[]>([]);
-const userScale = ref(1); // 用户手动缩放的比例（Ctrl+滚轮）
+const previewScale = ref(1);
+const previewZoomRatio = ref(1);
+const previewOffset = ref({ x: 0, y: 0 });
+const roundViewValue = (value: number) => Number(value.toFixed(4));
 
 /**
- * 计算自适应缩放比例，使画布铺满整个承载容器。
- * 优先使用组件自身的容器尺寸（弹窗/局部区域场景下可自适应），
- * 退化时回退到窗口尺寸，保证独立预览页也能正常工作。
+ * 编辑器使用 left/top + transform-origin + scale 表示视图变换。
+ * 预览统一换算成左上角原点的 translate + scale，只作用于固定尺寸的画布外层。
  */
-const fitScale = ref(1);
-const getViewportSize = () => {
-  const el = previewShellRef.value;
-  const w = el?.clientWidth || window.innerWidth;
-  const h = el?.clientHeight || window.innerHeight;
-  return { w, h };
-};
-const calcFitScale = () => {
-  const canvasW = canvas_cfg.value.width;
-  const canvasH = canvas_cfg.value.height;
-  const { w: viewW, h: viewH } = getViewportSize();
+const resetPreviewView = () => {
+  const savedScale = Number(canvas_cfg.value.scale);
+  const scale = Number.isFinite(savedScale) && savedScale > 0 ? savedScale : 1;
+  const origin = canvas_cfg.value.transform_origin ?? { x: 0, y: 0 };
+  const dragOffset = canvas_cfg.value.drag_offset ?? { x: 0, y: 0 };
 
-  if (canvasW === 0 || canvasH === 0 || viewW === 0 || viewH === 0) return;
-
-  // 计算宽高方向各自需要缩放到容器大小的比例
-  const scaleX = viewW / canvasW;
-  const scaleY = viewH / canvasH;
-
-  // 取较小的比例，确保画布完整显示在容器中
-  fitScale.value = Math.min(scaleX, scaleY);
+  previewScale.value = scale;
+  previewZoomRatio.value = 1;
+  previewOffset.value = {
+    x: roundViewValue(dragOffset.x + origin.x * (1 - scale)),
+    y: roundViewValue(dragOffset.y + origin.y * (1 - scale))
+  };
 };
 
-let pendingFitFrame = 0;
-const scheduleFitScale = async () => {
-  await nextTick();
-  cancelAnimationFrame(pendingFitFrame);
-  pendingFitFrame = requestAnimationFrame(() => {
-    pendingFitFrame = 0;
-    calcFitScale();
-  });
-};
+const stageStyle = computed(() => ({
+  width: `${canvas_cfg.value.width}px`,
+  height: `${canvas_cfg.value.height}px`,
+  transform: `translate(${previewOffset.value.x}px, ${previewOffset.value.y}px) scale(${previewScale.value})`
+}));
 
-/**
- * 最终画布缩放比例 = 自适应比例 * 用户缩放比例
- */
-const effectiveScale = computed(() => {
-  return fitScale.value * userScale.value;
-});
-
-/**
- * wrapper 居中样式：使画布在视口中居中
- */
-const wrapperStyle = computed(() => {
-  const canvasW = canvas_cfg.value.width * effectiveScale.value;
-  const canvasH = canvas_cfg.value.height * effectiveScale.value;
-  const { w: viewW, h: viewH } = getViewportSize();
-
-  const offsetX = (viewW - canvasW) / 2;
-  const offsetY = (viewH - canvasH) / 2;
-
+const canvasStyle = computed(() => {
+  const { width, height, color, img } = canvas_cfg.value;
   return {
-    paddingLeft: `${Math.max(0, offsetX)}px`,
-    paddingTop: `${Math.max(0, offsetY)}px`
+    width: `${width}px`,
+    height: `${height}px`,
+    backgroundColor: color,
+    backgroundImage: img ? `url(${img})` : ''
   };
 });
 
@@ -144,15 +122,39 @@ const setItemAttrs = (info: { id: string; key: string; val: any }[]) => {
 const getItemAttrByID = (id: string, key: string, val: any) => {
   return getItemAttr(id, key, done_json.value);
 };
-const onMouseWheel = (e: any) => {
+const onMouseWheel = (e: WheelEvent) => {
   if (e.ctrlKey && mtPreviewProps.canZoom) {
     e.preventDefault();
     e.stopPropagation();
-    if (e.deltaY > 0) {
-      userScale.value = Math.max(0.1, (userScale.value * 10 - 1) / 10);
-    } else if (e.deltaY < 0) {
-      userScale.value = Math.min(5, (userScale.value * 10 + 1) / 10);
-    }
+    const oldScale = previewScale.value;
+    const oldRatio = previewZoomRatio.value;
+    const nextRatio =
+      e.deltaY > 0
+        ? Math.max(0.1, (oldRatio * 10 - 1) / 10)
+        : e.deltaY < 0
+        ? Math.min(5, (oldRatio * 10 + 1) / 10)
+        : oldRatio;
+    if (nextRatio === oldRatio) return;
+
+    const savedScale = Number(canvas_cfg.value.scale);
+    const baseScale = Number.isFinite(savedScale) && savedScale > 0 ? savedScale : 1;
+    const nextScale = roundViewValue(baseScale * nextRatio);
+    const shellRect = previewShellRef.value?.getBoundingClientRect();
+    const anchor = {
+      x: e.clientX - (shellRect?.left ?? 0),
+      y: e.clientY - (shellRect?.top ?? 0)
+    };
+    const canvasPoint = {
+      x: (anchor.x - previewOffset.value.x) / oldScale,
+      y: (anchor.y - previewOffset.value.y) / oldScale
+    };
+
+    previewZoomRatio.value = nextRatio;
+    previewScale.value = nextScale;
+    previewOffset.value = {
+      x: roundViewValue(anchor.x - canvasPoint.x * nextScale),
+      y: roundViewValue(anchor.y - canvasPoint.y * nextScale)
+    };
   }
 };
 let removePreviewDragListeners: (() => void) | null = null;
@@ -171,14 +173,11 @@ const onMouseDown = (e: MouseEvent) => {
   is_dragging_canvas.value = true;
   const start_x = e.clientX;
   const start_y = e.clientY;
-  const start_offset = { ...canvas_cfg.value.drag_offset };
+  const start_offset = { ...previewOffset.value };
   const onMouseMove = (moveEvent: MouseEvent) => {
-    canvas_cfg.value = {
-      ...canvas_cfg.value,
-      drag_offset: {
-        x: start_offset.x + moveEvent.clientX - start_x,
-        y: start_offset.y + moveEvent.clientY - start_y
-      }
+    previewOffset.value = {
+      x: start_offset.x + moveEvent.clientX - start_x,
+      y: start_offset.y + moveEvent.clientY - start_y
     };
   };
   const onMouseUp = () => {
@@ -206,11 +205,6 @@ const setItemAttrByIDAsync = (id: string, key: string, val: any) => {
 (window as any).$mtEventCallBack = (type: string, item_id: string, ...args: any[]) =>
   emits('onEventCallBack', type, item_id, ...args);
 
-const handleResize = () => {
-  void scheduleFitScale();
-};
-
-let resizeObserver: ResizeObserver | null = null;
 onMounted(() => {
   if (mtPreviewProps.exportJson) {
     const { canvasCfg, gridCfg, importDoneJson } = useExportJsonToDoneJson(
@@ -219,21 +213,11 @@ onMounted(() => {
     canvas_cfg.value = canvasCfg;
     grid_cfg.value = gridCfg;
     done_json.value = importDoneJson;
-  }
-  void scheduleFitScale();
-  window.addEventListener('resize', handleResize);
-  // 监听承载容器尺寸变化（弹窗尺寸/窗口调整），实时重新计算自适应缩放
-  if (previewShellRef.value && typeof ResizeObserver !== 'undefined') {
-    resizeObserver = new ResizeObserver(() => void scheduleFitScale());
-    resizeObserver.observe(previewShellRef.value);
+    resetPreviewView();
   }
 });
 
 onUnmounted(() => {
-  window.removeEventListener('resize', handleResize);
-  resizeObserver?.disconnect();
-  resizeObserver = null;
-  cancelAnimationFrame(pendingFitFrame);
   stopPreviewCanvasDrag();
 });
 
@@ -242,7 +226,7 @@ const setImportJson = (exportJson: IExportJson) => {
   canvas_cfg.value = canvasCfg;
   grid_cfg.value = gridCfg;
   done_json.value = importDoneJson;
-  void scheduleFitScale();
+  resetPreviewView();
   return true;
 };
 defineExpose({
@@ -260,21 +244,21 @@ defineExpose({
 }
 
 .preview-canvas-wrapper {
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.preview-canvas-stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  flex: 0 0 auto;
+  transform-origin: 0 0;
 }
 
 .canvasArea {
   position: relative;
   overflow: hidden;
-  transform: v-bind('`scale(${effectiveScale})`');
-  transform-origin: left top;
-  width: v-bind('canvas_cfg.width + "px"');
-  height: v-bind('canvas_cfg.height + "px"');
-  left: v-bind('canvas_cfg.drag_offset.x + "px"');
-  top: v-bind('canvas_cfg.drag_offset.y + "px"');
-  background-color: v-bind('canvas_cfg.color');
-  background-image: v-bind('"url("+canvas_cfg.img+")"');
 }
 </style>

@@ -25,7 +25,6 @@ const primaryDeviceStrokeSvgNames = new Set([
   '接地',
   '电力-避雷器1',
   '电力-避雷器2',
-  '双绕组变压器',
   '隔离开关 copy',
   'ATS',
   '开关手车'
@@ -106,7 +105,6 @@ const electrical_keep_list = new Set([
   '接地',
   '电力-避雷器1',
   '电力-避雷器2',
-  '双绕组变压器',
   '隔离开关',
   'ATS',
   '开关手车'

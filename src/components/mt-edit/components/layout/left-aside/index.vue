@@ -212,9 +212,7 @@ const pinyin_cache = new Map<string, { full: string; initials: string }>();
 const toPinyin = (text: string) => {
   const cached = pinyin_cache.get(text);
   if (cached) return cached;
-  const full = pinyin(text, { toneType: 'none', type: 'string' })
-    .replace(/\s+/g, '')
-    .toLowerCase();
+  const full = pinyin(text, { toneType: 'none', type: 'string' }).replace(/\s+/g, '').toLowerCase();
   const initials = pinyin(text, { pattern: 'first', toneType: 'none', type: 'string' })
     .replace(/\s+/g, '')
     .toLowerCase();

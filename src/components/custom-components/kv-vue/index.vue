@@ -53,7 +53,6 @@ const computedUnitText = computed(() => props.unit || '单位');
 const computedUnitFontSize = computed(() => props.unitFontSize || props.fontSize);
 const computedUnitColor = computed(() => props.unitColor || props.color);
 const gridStyle = computed(() => ({
-  width: `${props.labelWidth + props.valueWidth + props.unitGap + props.unitWidth}px`,
   gridTemplateColumns: `${props.labelWidth}px ${props.valueWidth}px ${
     props.unitGap + props.unitWidth
   }px`
@@ -83,6 +82,8 @@ const gridStyle = computed(() => ({
 .kvGrid {
   display: grid;
   align-items: center;
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
   font-family: v-bind('`${props.fontFamily}`');
   white-space: nowrap;

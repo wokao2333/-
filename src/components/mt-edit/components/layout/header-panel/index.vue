@@ -195,18 +195,70 @@
           </el-button>
         </el-button-group>
         <el-divider direction="vertical" v-if="!is_npm_env"></el-divider>
-        <el-button
-          v-if="!is_npm_env"
-          text
-          size="small"
-          class="header-action-button"
-          @click="onDrawLineClick"
-        >
-          <el-icon :size="20" :class="drawline_selected ? 'icon-selected' : ''">
-            <svg-analysis name="pen-line"></svg-analysis>
-          </el-icon>
-          <span class="header-action-label">连线</span>
-        </el-button>
+        <el-popover v-if="!is_npm_env" placement="bottom" :width="220" trigger="hover">
+          <template #reference>
+            <el-button
+              text
+              size="small"
+              class="header-action-button"
+              aria-label="连线"
+              :aria-pressed="drawline_selected"
+              @click="onDrawLineClick"
+            >
+              <el-icon :size="20" :class="drawline_selected ? 'icon-selected' : ''">
+                <svg-analysis v-if="drawline_mode === 'free'" name="pen-line"></svg-analysis>
+                <Minus v-else-if="drawline_mode === 'horizontal'" />
+                <Minus v-else style="transform: rotate(90deg)" />
+              </el-icon>
+              <span class="header-action-label">连线</span>
+            </el-button>
+          </template>
+          <div class="flex flex-col gap-6px">
+            <div class="drawline-mode-title">连线模式</div>
+            <el-button-group class="flex">
+              <el-button
+                text
+                size="small"
+                class="header-action-button flex-1"
+                aria-label="自由绘制"
+                :aria-pressed="drawline_mode === 'free'"
+                @click="onDrawLineModeClick('free')"
+              >
+                <el-icon :size="20" :class="drawline_mode === 'free' ? 'icon-selected' : ''">
+                  <svg-analysis name="pen-line"></svg-analysis>
+                </el-icon>
+                <span class="header-action-label">自由</span>
+              </el-button>
+              <el-button
+                text
+                size="small"
+                class="header-action-button flex-1"
+                aria-label="竖线模式：连线始终保持垂直"
+                :aria-pressed="drawline_mode === 'vertical'"
+                @click="onDrawLineModeClick('vertical')"
+              >
+                <el-icon :size="20" :class="drawline_mode === 'vertical' ? 'icon-selected' : ''">
+                  <Minus style="transform: rotate(90deg)" />
+                </el-icon>
+                <span class="header-action-label">竖线</span>
+              </el-button>
+              <el-button
+                text
+                size="small"
+                class="header-action-button flex-1"
+                aria-label="横线模式：连线始终保持水平"
+                :aria-pressed="drawline_mode === 'horizontal'"
+                @click="onDrawLineModeClick('horizontal')"
+              >
+                <el-icon :size="20" :class="drawline_mode === 'horizontal' ? 'icon-selected' : ''">
+                  <Minus />
+                </el-icon>
+                <span class="header-action-label">横线</span>
+              </el-button>
+            </el-button-group>
+            <div class="drawline-mode-tip">{{ drawline_mode_tip }}</div>
+          </div>
+        </el-popover>
       </div>
       <div class="flex justify-center items-center">
         <el-tag v-if="headerPanelProps.realTimeData.show" size="small">{{
@@ -323,7 +375,7 @@
 </template>
 <script setup lang="ts">
 import { useDark, useToggle, useFullscreen } from '@vueuse/core';
-import { Promotion, Aim } from '@element-plus/icons-vue';
+import { Promotion, Aim, Minus } from '@element-plus/icons-vue';
 import {
   ElIcon,
   ElDivider,
@@ -335,8 +387,8 @@ import {
   ElTooltip
 } from 'element-plus';
 import SvgAnalysis from '@/components/mt-edit/components/svg-analysis/index.vue';
-import type { IRealTimeData } from '@/components/mt-edit/store/types';
-import { ref } from 'vue';
+import type { DrawLineMode, IRealTimeData } from '@/components/mt-edit/store/types';
+import { computed, ref } from 'vue';
 import lxLogo from '@/assets/LX.png';
 type HeaderPanelProps = {
   leftAside: boolean;
@@ -374,6 +426,7 @@ const emits = defineEmits([
   'onReturnClick',
   'onSaveClick',
   'onDrawLineClick',
+  'onDrawLineModeChange',
   'onThumbnailClick',
   'onPublishClick',
   'onOnlineCheckClick'
@@ -384,6 +437,13 @@ const isDark = useDark({
 const { isFullscreen, toggle } = useFullscreen();
 const toggleDark = useToggle(isDark);
 const drawline_selected = ref(false);
+// 连线绘制模式：free 自由绘制（默认）；vertical 始终垂直；horizontal 始终水平
+const drawline_mode = ref<DrawLineMode>('free');
+const drawline_mode_tip = computed(() => {
+  if (drawline_mode.value === 'vertical') return '当前：竖线模式，绘制的连线始终保持垂直';
+  if (drawline_mode.value === 'horizontal') return '当前：横线模式，绘制的连线始终保持水平';
+  return '当前：自由绘制，连线方向随鼠标/手指移动';
+});
 const is_npm_env = ref(import.meta.env.MODE === 'npm');
 const onGroupClick = () => {
   emits('onGroupClick');
@@ -419,6 +479,11 @@ const onDrawLineClick = () => {
   drawline_selected.value = !drawline_selected.value;
   emits('onDrawLineClick', drawline_selected.value);
 };
+const onDrawLineModeClick = (mode: DrawLineMode) => {
+  // 弹出层内直接选择模式（自由/竖线/横线），自由即为取消模式约束
+  drawline_mode.value = mode;
+  emits('onDrawLineModeChange', drawline_mode.value);
+};
 </script>
 <style scoped>
 .header-action-button {
@@ -442,5 +507,19 @@ const onDrawLineClick = () => {
 .icon-selected {
   background-color: #ecf5ff;
   color: #409eff;
+}
+
+.drawline-mode-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  padding: 0 2px;
+}
+
+.drawline-mode-tip {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--el-text-color-secondary);
+  padding: 0 2px;
 }
 </style>

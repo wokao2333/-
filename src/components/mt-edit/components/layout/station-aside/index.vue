@@ -28,7 +28,9 @@
                 <div
                   v-if="isDiagramBound(diagram)"
                   class="absolute top-2px right-0px z-10 flex items-center gap-2px px-4px py-1px text-[10px] leading-none text-white bg-green-600 shadow-sm pointer-events-none"
-                  :title="`已绑定MCU：${diagram.boundMcuInfo?.sn || diagram.boundMcuInfo?.ip || diagram.boundMcuId}`"
+                  :title="`已绑定MCU：${
+                    diagram.boundMcuInfo?.sn || diagram.boundMcuInfo?.ip || diagram.boundMcuId
+                  }`"
                 >
                   <el-icon :size="10"><Link /></el-icon>
                   <span>MCU</span>
@@ -580,8 +582,7 @@ const isDiagramActive = (stationId: string, diagramId: string) => {
 // 一次图是否已绑定 MCU：基于 diagram.boundMcuId 判断（绑定后父组件会实时回填）
 const isDiagramBound = (diagram: StationDiagram) => !!diagram.boundMcuId;
 // 场站下已绑定 MCU 的一次图数量，用于折叠标题的覆盖度统计
-const stationBoundCount = (station: Station) =>
-  station.diagrams.filter((d) => d.boundMcuId).length;
+const stationBoundCount = (station: Station) => station.diagrams.filter((d) => d.boundMcuId).length;
 
 watch(
   () => stationAsideProps.activeStationId,

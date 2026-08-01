@@ -59,9 +59,7 @@
             :src="previewUrl"
             fit="contain"
           />
-          <el-text type="info" size="small">
-            仅支持 SVG；文件和图元内容均不超过 256 KiB。
-          </el-text>
+          <el-text type="info" size="small"> 仅支持 SVG；文件和图元内容均不超过 256 KiB。 </el-text>
         </div>
       </el-form-item>
     </el-form>

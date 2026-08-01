@@ -60,6 +60,7 @@
           :canvas-dom="canvasAreaRef"
           :grid="globalStore.gridCfg"
           :mode="'pen'"
+          :line-mode="mainPanelProps.lineMode"
           @draw-line-end="onDrawLineEnd"
         ></draw-line-render>
         <div v-if="globalStore.intention == 'adsorbStart' || globalStore.intention == 'adsorbEnd'">
@@ -111,6 +112,7 @@ import {
 import type {
   AdsorbPointType,
   ContextMenuInfoType,
+  DrawLineMode,
   GlobalStoreIntention,
   IDoneJson,
   ILeftAsideConfigItem
@@ -132,9 +134,12 @@ type MainPanelProps = {
   unGroupEnabled: boolean;
   deleteEnabled: boolean;
   lineAppendEnable?: boolean;
+  /** 连线绘制模式：free 自由绘制；vertical 始终垂直；horizontal 始终水平 */
+  lineMode?: DrawLineMode;
 };
 const mainPanelProps = withDefaults(defineProps<MainPanelProps>(), {
-  lineAppendEnable: false
+  lineAppendEnable: false,
+  lineMode: 'free'
 });
 const canvasAreaRef = ref();
 const selectedAreaRef = ref<InstanceType<typeof SelectedArea>>();
@@ -187,11 +192,11 @@ const getCreateItemSize = (config: ILeftAsideConfigItem, configKey?: string) => 
       return { width, height };
     }
   }
-  // 其他分类的 SVG 使用其原始宽高比例，但限制最大初始尺寸为 100px
+  // 其他分类的 SVG 使用其原始宽高比例，但限制最大初始尺寸为 50px，与一次设备图元大小接近
   if ((config.type === 'svg' || config.type === 'custom-svg') && config.symbol) {
     const w = Number(config.symbol.width) || 50;
     const h = Number(config.symbol.height) || 50;
-    const MAX_SIZE = 100;
+    const MAX_SIZE = 50;
     if (w > MAX_SIZE || h > MAX_SIZE) {
       const ratio = Math.min(MAX_SIZE / w, MAX_SIZE / h);
       return { width: Math.max(w * ratio, 20), height: Math.max(h * ratio, 20) };
@@ -432,11 +437,7 @@ const onDrop = (e: DragEvent | TouchEvent, isTouch?: boolean) => {
     use_proportional_scaling: true,
     props: deep_find_cfg.props,
     tag: deep_find_cfg.id,
-    lineAxisLock: is_horizontal_line
-      ? 'horizontal'
-      : is_vertical_line
-        ? 'vertical'
-        : undefined,
+    lineAxisLock: is_horizontal_line ? 'horizontal' : is_vertical_line ? 'vertical' : undefined,
     device: deep_find_cfg.device,
     common_animations: deep_find_cfg.common_animations,
     events: []
@@ -446,9 +447,10 @@ const onDrop = (e: DragEvent | TouchEvent, isTouch?: boolean) => {
   } else if (deep_find_cfg.type === 'img') {
     create_item.thumbnail = deep_find_cfg.thumbnail;
   }
-  const added_item = create_item.device && deep_find_cfg.attachLabel !== false
-    ? buildDeviceLabelGroup(create_item, createDeviceLabel(create_item))
-    : create_item;
+  const added_item =
+    create_item.device && deep_find_cfg.attachLabel !== false
+      ? buildDeviceLabelGroup(create_item, createDeviceLabel(create_item))
+      : create_item;
   const done_json_temp = [...globalStore.done_json, added_item];
   globalStore.setGlobalStoreDoneJson(done_json_temp);
   globalStore.setSingleSelect(added_item.id);
@@ -1406,16 +1408,13 @@ const onKeydown = (e: KeyboardEvent) => {
   else if (e.key === 'ArrowUp') {
     e.preventDefault();
     upDateLeftAndTop(0, -getNudgeStep(e));
-  }
-  else if (e.key === 'ArrowDown') {
+  } else if (e.key === 'ArrowDown') {
     e.preventDefault();
     upDateLeftAndTop(0, getNudgeStep(e));
-  }
-  else if (e.key === 'ArrowLeft') {
+  } else if (e.key === 'ArrowLeft') {
     e.preventDefault();
     upDateLeftAndTop(-getNudgeStep(e), 0);
-  }
-  else if (e.key === 'ArrowRight') {
+  } else if (e.key === 'ArrowRight') {
     e.preventDefault();
     upDateLeftAndTop(getNudgeStep(e), 0);
   }
