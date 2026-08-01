@@ -437,7 +437,6 @@ const onDrop = (e: DragEvent | TouchEvent, isTouch?: boolean) => {
     use_proportional_scaling: true,
     props: deep_find_cfg.props,
     tag: deep_find_cfg.id,
-    lineAxisLock: is_horizontal_line ? 'horizontal' : is_vertical_line ? 'vertical' : undefined,
     device: deep_find_cfg.device,
     common_animations: deep_find_cfg.common_animations,
     events: []
