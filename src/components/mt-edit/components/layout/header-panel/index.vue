@@ -2,12 +2,12 @@
   <div class="flex justify-between" style="width: 100%">
     <div class="flex items-center justify-between shrink-0">
       <div class="flex items-center">
-        <el-image class="w-45px h-45px pl-10px" :src="lxLogo" />
+        <!-- <el-image class="w-45px h-45px pl-10px" :src="lxLogo" /> -->
         <div
           class="pl-8px flex items-center flex-nowrap whitespace-nowrap gap-6px leading-tight overflow-visible animate__animated animate__bounceIn animate__slow animate__1 animate__delay-0s"
         >
-          <span class="text-16px font-bold whitespace-nowrap shrink-0">砺行能源</span>
-          <span class="text-12px text-gray-500 whitespace-nowrap shrink-0">一次接线图组态工具</span>
+          <!-- <span class="text-16px font-bold whitespace-nowrap shrink-0">砺行能源</span> -->
+          <span class="text-20px text-gray-500 whitespace-nowrap shrink-0">一次接线图组态工具</span>
           <el-tag effect="dark" round size="small" class="shrink-0 mr-10px">v2.0</el-tag>
         </div>
       </div>
