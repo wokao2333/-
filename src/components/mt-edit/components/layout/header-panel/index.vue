@@ -2,7 +2,6 @@
   <div class="flex justify-between" style="width: 100%">
     <div class="flex items-center justify-between shrink-0">
       <div class="flex items-center">
-        <!-- <el-image class="w-45px h-45px pl-10px" :src="lxLogo" /> -->
         <div
           class="pl-8px flex items-center flex-nowrap whitespace-nowrap gap-6px leading-tight overflow-visible animate__animated animate__bounceIn animate__slow animate__1 animate__delay-0s"
         >
@@ -382,14 +381,12 @@ import {
   ElPopover,
   ElButton,
   ElButtonGroup,
-  ElImage,
   ElTag,
   ElTooltip
 } from 'element-plus';
 import SvgAnalysis from '@/components/mt-edit/components/svg-analysis/index.vue';
 import type { DrawLineMode, IRealTimeData } from '@/components/mt-edit/store/types';
 import { computed, ref } from 'vue';
-import lxLogo from '@/assets/LX.png';
 type HeaderPanelProps = {
   leftAside: boolean;
   rightAside: boolean;

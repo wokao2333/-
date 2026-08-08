@@ -10,7 +10,7 @@
     "electron:dev": "concurrently -k -n vite,electron -c blue,green \"pnpm run vite:serve\" \"pnpm run electron:start\"",
     "electron:preview": "pnpm run build-only && electron electron/main.cjs",
     "electron:rebuild": "node electron/rebuild.cjs",
-    "electron:build": "pnpm run build-only && pnpm run electron:rebuild && electron-builder",
+    "electron:build": "pnpm run build-only && pnpm run electron:rebuild && node electron/clean-build.cjs && electron-builder",
     "preview": "vite preview",
     "test:unit": "vitest",
     "build-only": "vite build",
