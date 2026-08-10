@@ -1,5 +1,5 @@
 {
-  "name": "maotu",
+  "name": "webtopo",
   "version": "0.3.1",
   "private": false,
   "scripts": {
@@ -30,8 +30,7 @@
       "import": "./dist/maotu.es.js",
       "require": "./dist/maotu.umd.js",
       "types": "./dist/src/export.d.ts"
-    },
-    "./*": "./*"
+    }
   },
   "typings": "dist/export.d.ts",
   "pnpm": {

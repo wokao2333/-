@@ -55,7 +55,7 @@ export default defineConfig(({ mode }) => {
         build: {
           lib: {
             entry: resolve(__dirname, 'src/export.ts'),
-            name: 'maotu',
+            name: '',
             fileName: (format: any) => `maotu.${format}.js`
           },
           rollupOptions: {

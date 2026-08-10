@@ -124,6 +124,7 @@ function waitForDevServer(url, { retries = 60, delay = 1000 } = {}) {
 
 async function createWindow() {
   mainWindow = new BrowserWindow({
+    title: '',
     width: 1440,
     height: 960,
     minWidth: 1180,
@@ -133,6 +134,11 @@ async function createWindow() {
       contextIsolation: true,
       nodeIntegration: false
     }
+  });
+
+  mainWindow.on('page-title-updated', (event) => {
+    event.preventDefault();
+    mainWindow?.setTitle('');
   });
 
   const devServerUrl = process.env.VITE_DEV_SERVER_URL;
