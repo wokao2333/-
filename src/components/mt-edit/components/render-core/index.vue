@@ -11,6 +11,8 @@
     :lock="renderCoreProps.globalLock ? true : item.lock"
     :active="renderCoreProps.preivewMode ? false : item.active"
     :useProportionalScaling="item.use_proportional_scaling !== false"
+    :min-width="getResizeMinSize(item).width"
+    :min-height="getResizeMinSize(item).height"
     :show-ghost-dom="renderCoreProps.showGhostDom"
     :hide="item.hide"
     :disabled="renderCoreProps.preivewMode || renderCoreProps.canvasDragActive"
@@ -98,6 +100,7 @@ import SysButtonVue from '@/components/custom-components/sys-button-vue/index.vu
 import Busbar from '@/components/custom-components/busbar/index.vue';
 import { ElPopover } from 'element-plus';
 import type { IDzrResizeMovePayload } from '@/components/mt-dzr/types';
+import { getResizeMinSize } from '@/components/mt-dzr/resize-constraints';
 import {
   collectResizeVisualMetrics,
   scaleResizeVisualMetrics,

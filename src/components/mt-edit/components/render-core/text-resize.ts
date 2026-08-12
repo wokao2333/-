@@ -10,13 +10,24 @@ type ResizeMetricKey =
   | 'unitWidth'
   | 'unitGap'
   | 'paddingX'
-  | 'paddingY';
+  | 'paddingY'
+  | 'strokeWidth'
+  | 'labelGap'
+  | 'stroke-width';
 
 type ResizeMetricValues = Partial<Record<ResizeMetricKey, number>>;
+type KvResizeMetricKey = Exclude<ResizeMetricKey, 'strokeWidth' | 'labelGap' | 'stroke-width'>;
 
-export type ResizeVisualSnapshot = Map<string, ResizeMetricValues>;
+type ResizePoint = { x: number; y: number };
 
-const KV_METRIC_DEFAULTS: Record<ResizeMetricKey, number> = {
+type ResizeVisualMetrics = {
+  metrics: ResizeMetricValues;
+  pointPositions?: ResizePoint[];
+};
+
+export type ResizeVisualSnapshot = Map<string, ResizeVisualMetrics>;
+
+const KV_METRIC_DEFAULTS: Record<KvResizeMetricKey, number> = {
   fontSize: 15,
   labelFontSize: 0,
   valueFontSize: 0,
@@ -39,23 +50,27 @@ const KV_METRIC_TITLES: Record<ResizeMetricKey, string> = {
   unitWidth: '单位宽度',
   unitGap: '单位左间距',
   paddingX: '水平内边距',
-  paddingY: '垂直内边距'
+  paddingY: '垂直内边距',
+  strokeWidth: '线条粗细',
+  labelGap: '标签间距',
+  'stroke-width': '线条宽度'
 };
 
-const KV_FONT_METRICS: ResizeMetricKey[] = [
+const KV_FONT_METRICS: KvResizeMetricKey[] = [
   'fontSize',
   'labelFontSize',
   'valueFontSize',
   'unitFontSize'
 ];
-const KV_HORIZONTAL_METRICS: ResizeMetricKey[] = [
+const KV_HORIZONTAL_METRICS: KvResizeMetricKey[] = [
   'labelWidth',
   'valueWidth',
   'unitWidth',
   'unitGap',
   'paddingX'
 ];
-const KV_VERTICAL_METRICS: ResizeMetricKey[] = ['paddingY'];
+const KV_VERTICAL_METRICS: KvResizeMetricKey[] = ['paddingY'];
+const BUSBAR_TAG_PREFIX = 'busbar-';
 
 const getMetricValue = (item: IDoneJson, key: ResizeMetricKey, fallback?: number) => {
   const value = Number(item.props[key]?.val ?? fallback);
@@ -91,16 +106,41 @@ export const collectResizeVisualMetrics = (
   if (item.tag === 'text-vue') {
     const fontSize = getMetricValue(item, 'fontSize');
     if (fontSize !== undefined) {
-      snapshot.set(item.id, { fontSize });
+      snapshot.set(item.id, { metrics: { fontSize } });
     }
   } else if (item.tag === 'kv-vue') {
     const metrics = Object.fromEntries(
-      (Object.keys(KV_METRIC_DEFAULTS) as ResizeMetricKey[]).map((key) => [
+      (Object.keys(KV_METRIC_DEFAULTS) as KvResizeMetricKey[]).map((key) => [
         key,
         getMetricValue(item, key, KV_METRIC_DEFAULTS[key])
       ])
     ) as ResizeMetricValues;
-    snapshot.set(item.id, metrics);
+    snapshot.set(item.id, { metrics });
+  } else if (item.type === 'sys-line') {
+    const strokeWidth = getMetricValue(item, 'stroke-width');
+    const pointPositions = Array.isArray(item.props.point_position?.val)
+      ? item.props.point_position.val.map((point: ResizePoint) => ({
+          x: Number(point.x),
+          y: Number(point.y)
+        }))
+      : undefined;
+
+    if (strokeWidth !== undefined || pointPositions?.length) {
+      snapshot.set(item.id, {
+        metrics: strokeWidth === undefined ? {} : { 'stroke-width': strokeWidth },
+        pointPositions
+      });
+    }
+  } else if (item.tag?.startsWith(BUSBAR_TAG_PREFIX)) {
+    const metrics = Object.fromEntries(
+      (['strokeWidth', 'fontSize', 'labelGap'] as ResizeMetricKey[])
+        .map((key) => [key, getMetricValue(item, key)])
+        .filter((entry): entry is [ResizeMetricKey, number] => entry[1] !== undefined)
+    ) as ResizeMetricValues;
+
+    if (Object.keys(metrics).length > 0) {
+      snapshot.set(item.id, { metrics });
+    }
   }
   item.children?.forEach((child) => collectResizeVisualMetrics(child, snapshot));
   return snapshot;
@@ -112,14 +152,14 @@ export const scaleResizeVisualMetrics = (
   width_scale: number,
   height_scale: number
 ): IDoneJson => {
-  const initialMetrics = snapshot.get(item.id);
+  const initialVisualMetrics = snapshot.get(item.id);
   const scaled_children = item.children?.map((child) =>
     scaleResizeVisualMetrics(child, snapshot, width_scale, height_scale)
   );
   const children_changed =
     scaled_children?.some((child, index) => child !== item.children?.[index]) ?? false;
 
-  if (!initialMetrics && !children_changed) {
+  if (!initialVisualMetrics && !children_changed) {
     return item;
   }
 
@@ -128,12 +168,12 @@ export const scaleResizeVisualMetrics = (
     ...(children_changed ? { children: scaled_children } : {})
   };
 
-  if (initialMetrics) {
+  if (initialVisualMetrics) {
     const widthScale = Number.isFinite(width_scale) ? Math.max(0, width_scale) : 1;
     const heightScale = Number.isFinite(height_scale) ? Math.max(0, height_scale) : 1;
     const props = { ...item.props };
 
-    for (const [key, initialValue] of Object.entries(initialMetrics) as [
+    for (const [key, initialValue] of Object.entries(initialVisualMetrics.metrics) as [
       ResizeMetricKey,
       number
     ][]) {
@@ -143,15 +183,26 @@ export const scaleResizeVisualMetrics = (
       if (item.tag === 'text-vue') {
         scale = item.props.vertical?.val ? widthScale : heightScale;
       } else if (item.tag === 'kv-vue') {
-        isFontSize = KV_FONT_METRICS.includes(key);
-        if (KV_FONT_METRICS.includes(key)) {
+        const kvKey = key as KvResizeMetricKey;
+        isFontSize = KV_FONT_METRICS.includes(kvKey);
+        if (KV_FONT_METRICS.includes(kvKey)) {
           // 非等比缩放时以较小方向为准，防止文字从收窄后的单元格中溢出。
           scale = Math.min(widthScale, heightScale);
-        } else if (KV_HORIZONTAL_METRICS.includes(key)) {
+        } else if (KV_HORIZONTAL_METRICS.includes(kvKey)) {
           scale = widthScale;
-        } else if (KV_VERTICAL_METRICS.includes(key)) {
+        } else if (KV_VERTICAL_METRICS.includes(kvKey)) {
           scale = heightScale;
         }
+      } else if (item.type === 'sys-line') {
+        scale = Math.min(widthScale, heightScale);
+      } else if (item.tag?.startsWith(BUSBAR_TAG_PREFIX)) {
+        isFontSize = key === 'fontSize';
+        scale =
+          key === 'labelGap'
+            ? widthScale
+            : key === 'strokeWidth'
+            ? heightScale
+            : Math.min(widthScale, heightScale);
       }
 
       props[key] = createMetricProp(
@@ -159,6 +210,16 @@ export const scaleResizeVisualMetrics = (
         item.props[key],
         scaleMetric(initialValue, scale, isFontSize)
       );
+    }
+
+    if (initialVisualMetrics.pointPositions && item.props.point_position) {
+      props.point_position = {
+        ...item.props.point_position,
+        val: initialVisualMetrics.pointPositions.map((point) => ({
+          x: roundMetric(point.x * widthScale),
+          y: roundMetric(point.y * heightScale)
+        }))
+      };
     }
 
     scaled_item.props = props;

@@ -62,6 +62,7 @@ export type GlobalStoreIntention =
   | 'drawSysLineStart';
 /** 连线绘制模式：free 自由绘制（默认）；vertical 始终保持垂直；horizontal 始终保持水平 */
 export type DrawLineMode = 'free' | 'vertical' | 'horizontal';
+export type LineAxisLock = Exclude<DrawLineMode, 'free'>;
 export interface IGlobalStoreCreateItemInfo {
   config_key: string; //也就是折叠面板的值
   item_id: string; //要创建组件的id
@@ -76,6 +77,8 @@ export interface IGlobalStoreCanvasCfg {
   guide: boolean; //参考线
   adsorp: boolean; //吸附
   adsorp_diff: number;
+  /** 方向键单次移动图元的距离，旧版数据未配置时使用默认值 */
+  keyboard_move_distance?: number;
   // 缩放中心
   transform_origin: {
     x: number;
@@ -127,10 +130,17 @@ export interface IDoneJson {
   hide: boolean; //隐藏
   common_animations: ICommonAnimations; //通用动画
   use_proportional_scaling?: boolean; //使用等比缩放
+  /** 缩放下限所依据的初始尺寸，旧数据导入时自动按当前尺寸补齐 */
+  resize_base_size?: {
+    width: number;
+    height: number;
+  };
+  /** 最小尺寸相对初始尺寸的比例，默认 0.5 */
+  resize_min_scale?: number;
   children?: IDoneJson[];
   tag?: string;
-  /** 限制预置自由连线只能沿指定轴调整；普通绘制连线不设置此字段 */
-  lineAxisLock?: 'horizontal' | 'vertical';
+  /** 限制连线端点只能沿指定轴调整；自由线不设置此字段 */
+  lineAxisLock?: LineAxisLock;
   /** 发布包中对应的内嵌 SVG 资产 ID；普通编辑/本地保存数据可不包含 */
   svgAssetId?: string;
   device?: boolean; //是否为设备类图元（用于统计一次接线图设备总数及未绑定数据设备数）

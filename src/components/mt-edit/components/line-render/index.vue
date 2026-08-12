@@ -54,6 +54,8 @@
             : lineRenderProps.itemJson.props.stroke.val
         "
         :stroke-width="lineRenderProps.itemJson.props['stroke-width'].val"
+        stroke-linecap="round"
+        stroke-linejoin="round"
         style="cursor: move"
         stroke-dashoffset="0"
         :stroke-dasharray="
@@ -107,6 +109,8 @@
         fill="none"
         stroke="transparent"
         :stroke-width="lineRenderProps.itemJson.props['stroke-width'].val"
+        stroke-linecap="round"
+        stroke-linejoin="round"
         style="cursor: move"
         stroke-dashoffset="0"
         :marker-start="
@@ -137,6 +141,7 @@
         :stroke-dasharray="lineRenderProps.itemJson.props['stroke-width'].val * 3"
         stroke-dashoffset="0"
         stroke-linecap="round"
+        stroke-linejoin="round"
       >
         <animate
           attributeName="stroke-dashoffset"
@@ -240,6 +245,7 @@ import {
 } from '@/components/mt-edit/utils';
 import { computed, reactive, ref, watch } from 'vue';
 import { configStore } from '../../store/config';
+import { constrainPointToLineAxis, moveLinePoint } from '../../utils/line-axis';
 type LineRenderProps = {
   itemJson: IDoneJson;
   canvasCfg: IGlobalStoreCanvasCfg;
@@ -316,13 +322,13 @@ const onMouseDown = (
     // 移动的距离
     const move_x = de.ctrlKey ? 0 : alignToGrid((m_x - d_x) / lineRenderProps.canvasCfg.scale, 1); //感觉对齐网格有点体验不好 所以固定为一了
     const move_y = de.shiftKey ? 0 : alignToGrid((m_y - d_y) / lineRenderProps.canvasCfg.scale, 1);
-    new_x = realityX + move_x;
-    new_y = realityY + move_y;
-    if (lineRenderProps.itemJson.lineAxisLock === 'horizontal') {
-      new_y = realityY;
-    } else if (lineRenderProps.itemJson.lineAxisLock === 'vertical') {
-      new_x = realityX;
-    }
+    const constrained_point = constrainPointToLineAxis(
+      { x: realityX, y: realityY },
+      { x: realityX + move_x, y: realityY + move_y },
+      lineRenderProps.itemJson.lineAxisLock
+    );
+    new_x = constrained_point.x;
+    new_y = constrained_point.y;
     if (type === 'add') {
       item.x = new_x;
       item.y = new_y;
@@ -362,57 +368,18 @@ const onMouseDown = (
       }
     }
     if (type === 'edit') {
-      const new_point_position = lineRenderProps.itemJson.props.point_position.val;
+      const current_point_position = lineRenderProps.itemJson.props.point_position.val;
       if (point_index === 0) {
         lineRenderEmits('setIntention', 'adsorbStart');
-        if (lineRenderProps.mode === 'line-edit' && !lineRenderProps.itemJson.lineAxisLock) {
-          if (first_click) {
-            const new_point_position = lineRenderProps.itemJson.props.point_position.val;
-            new_point_position.unshift({
-              x: new_x,
-              y: new_y
-            });
-            lineRenderEmits('update:itemJson', {
-              ...lineRenderProps.itemJson,
-              props: {
-                ...lineRenderProps.itemJson.props,
-                point_position: {
-                  ...lineRenderProps.itemJson.props.point_position,
-                  val: new_point_position
-                }
-              }
-            });
-            first_click = false;
-            return;
-          }
-        }
-      } else if (point_index === new_point_position.length - 1) {
+      } else if (point_index === current_point_position.length - 1) {
         lineRenderEmits('setIntention', 'adsorbEnd');
-        if (lineRenderProps.mode === 'line-edit' && !lineRenderProps.itemJson.lineAxisLock) {
-          if (first_click) {
-            const new_point_position = lineRenderProps.itemJson.props.point_position.val;
-            new_point_position.push({
-              x: new_x,
-              y: new_y
-            });
-            lineRenderEmits('update:itemJson', {
-              ...lineRenderProps.itemJson,
-              props: {
-                ...lineRenderProps.itemJson.props,
-                point_position: {
-                  ...lineRenderProps.itemJson.props.point_position,
-                  val: new_point_position
-                }
-              }
-            });
-            point_index += 1;
-            first_click = false;
-            return;
-          }
-        }
       }
-      new_point_position[point_index].x = new_x;
-      new_point_position[point_index].y = new_y;
+      const new_point_position = moveLinePoint(
+        current_point_position,
+        point_index,
+        { x: new_x, y: new_y },
+        lineRenderProps.itemJson.lineAxisLock
+      );
       lineRenderEmits('update:itemJson', {
         ...lineRenderProps.itemJson,
         props: {

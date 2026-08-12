@@ -1,6 +1,33 @@
 import { describe, expect, it } from 'vitest';
 import { svgToSymbol, symbolGenSvg } from './index';
 import { prepareAtsCanvasSvg, protectFilledGeometryFromInheritedStroke } from './electrical-symbol';
+import currentTransformerSvg from '@/assets/svgs/electrical/stroke/nuwa-power/电力-电流互感器.svg?raw';
+import dualCoreCurrentTransformerSvg from '@/assets/svgs/electrical/stroke/nuwa-power/电力-双铁芯双绕组电流互感器_右.svg?raw';
+import stationTransformerSvg from '@/assets/svgs/electrical/stroke/nuwa-power/电力-站用变压器.svg?raw';
+import surgeArrester1Svg from '@/assets/svgs/electrical/stroke/nuwa-power/电力-避雷器1.svg?raw';
+import surgeArrester2Svg from '@/assets/svgs/electrical/stroke/nuwa-power/电力-避雷器2.svg?raw';
+import groundingSvg from '@/assets/svgs/electrical/stroke/接地.svg?raw';
+import isolatingSwitchSvg from '@/assets/svgs/electrical/stroke/隔离开关 copy.svg?raw';
+import lowVoltageFuseSvg from '@/assets/svgs/electrical/stroke/低压限流熔断器.svg?raw';
+import switchCartSvg from '@/assets/svgs/electrical/stroke/开关手车.svg?raw';
+
+describe('primary-device SVG selection bounds', () => {
+  it.each([
+    ['接地', groundingSvg, '11', '44'],
+    ['隔离开关', isolatingSwitchSvg, '17', '44'],
+    ['电力-站用变压器', stationTransformerSvg, '30', '46'],
+    ['电力-避雷器1', surgeArrester1Svg, '16', '50'],
+    ['电力-避雷器2', surgeArrester2Svg, '16', '50'],
+    ['电力-双铁芯双绕组电流互感器_右', dualCoreCurrentTransformerSvg, '25', '42'],
+    ['电力-电流互感器', currentTransformerSvg, '25', '26'],
+    ['低压限流熔断器', lowVoltageFuseSvg, '71.1820068359375', '18'],
+    ['开关手车', switchCartSvg, '18', '70']
+  ])('%s registers its tight SVG dimensions', (name, rawSvg, expectedWidth, expectedHeight) => {
+    const { width, height } = svgToSymbol(rawSvg, name);
+
+    expect({ width, height }).toEqual({ width: expectedWidth, height: expectedHeight });
+  });
+});
 
 describe('primary-device SVG stroke normalization', () => {
   it('prevents filled geometry from inheriting an extra stroke', () => {

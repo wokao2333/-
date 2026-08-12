@@ -11,6 +11,7 @@ import { genCanvasDataUrl } from '@/components/mt-edit/composables/canvas-thumbn
 import { genExportJson, useExportJsonToDoneJson } from '@/components/mt-edit/composables';
 import { buildPublishExportJson } from '@/components/mt-edit/composables/publish-assets';
 import { randomString, objectDeepClone } from '@/components/mt-edit/utils';
+import { createResizeBaseSize } from '@/components/mt-dzr/resize-constraints';
 import StationAside from '@/components/mt-edit/components/layout/station-aside/index.vue';
 import PreviewDialog from '@/components/mt-preview/preview-dialog.vue';
 import type {
@@ -645,6 +646,13 @@ const buildDevicePointPanel = (
       height: panelHeight,
       angle: 0
     },
+    resize_base_size: createResizeBaseSize({
+      left: panelLeft + minLeft,
+      top: deviceItem.binfo.top,
+      width: panelWidth,
+      height: panelHeight,
+      angle: 0
+    }),
     resize: true,
     rotate: true,
     lock: false,

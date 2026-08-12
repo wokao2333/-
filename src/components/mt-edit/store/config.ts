@@ -6,9 +6,9 @@ import { protectFilledGeometryFromInheritedStroke } from '../utils/electrical-sy
 const sysComponentItems: ILeftAsideConfigItem[] = [
   {
     id: 'sys-line',
-    title: '自由连线-横线',
+    title: '水平线',
     type: 'sys-line',
-    thumbnail: `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxZW0iIGhlaWdodD0iMWVtIiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGZpbGw9Im5vbmUiIHN0cm9rZT0iY3VycmVudENvbG9yIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMiIgZD0iTTQgMThhMiAyIDAgMSAwIDQgMGEyIDIgMCAxIDAtNCAwTTE2IDZhMiAyIDAgMSAwIDQgMGEyIDIgMCAxIDAtNCAwTTcuNSAxNi41bDktOSIvPjwvc3ZnPg==`,
+    thumbnail: `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxZW0iIGhlaWdodD0iMWVtIiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGZpbGw9Im5vbmUiIHN0cm9rZT0iY3VycmVudENvbG9yIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMiIgZD0iTTQgMTJoMTYiLz48L3N2Zz4=`,
     props: {
       stroke: {
         title: '线条颜色',
@@ -91,9 +91,9 @@ const sysComponentItems: ILeftAsideConfigItem[] = [
   },
   {
     id: 'sys-line-vertical',
-    title: '自由连线-竖线',
+    title: '垂直线',
     type: 'sys-line',
-    thumbnail: `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxZW0iIGhlaWdodD0iMWVtIiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGZpbGw9Im5vbmUiIHN0cm9rZT0iY3VycmVudENvbG9yIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMiIgZD0iTTQgMThhMiAyIDAgMSAwIDQgMGEyIDIgMCAxIDAtNCAwTTE2IDZhMiAyIDAgMSAwIDQgMGEyIDIgMCAxIDAtNCAwTTcuNSAxNi41bDktOSIvPjwvc3ZnPg==`,
+    thumbnail: `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxZW0iIGhlaWdodD0iMWVtIiB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGZpbGw9Im5vbmUiIHN0cm9rZT0iY3VycmVudENvbG9yIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMiIgZD0iTTEyIDR2MTYiLz48L3N2Zz4=`,
     props: {
       stroke: {
         title: '线条颜色',

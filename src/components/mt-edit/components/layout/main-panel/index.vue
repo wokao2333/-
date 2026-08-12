@@ -87,7 +87,8 @@
   </div>
 </template>
 <script setup lang="ts">
-import { globalStore } from '@/components/mt-edit/store/global';
+import { globalStore, normalizeKeyboardMoveDistance } from '@/components/mt-edit/store/global';
+import { createResizeBaseSize } from '@/components/mt-dzr/resize-constraints';
 import { leftAsideStore } from '@/components/mt-edit/store/left-aside';
 import { ElMessage } from 'element-plus';
 import RenderCore from '@/components/mt-edit/components/render-core/index.vue';
@@ -129,6 +130,10 @@ import DrawLineRender from '@/components/mt-edit/components/draw-line-render/ind
 import { configStore } from '@/components/mt-edit/store/config';
 import { getTextBoxWidth } from './text-measure';
 import { buildDeviceLabelGroup, restoreDeviceFromLabelGroup } from './device-label-group';
+import {
+  drawLineModeToAxisLock,
+  systemLineIdToAxisLock
+} from '@/components/mt-edit/utils/line-axis';
 type MainPanelProps = {
   groupEnabled: boolean;
   unGroupEnabled: boolean;
@@ -153,6 +158,8 @@ const init_drag_offset = reactive(globalStore.canvasCfg.drag_offset);
 const grid_align_size = computed(() =>
   !globalStore.gridCfg.align || !globalStore.gridCfg.enabled ? 1 : globalStore.gridCfg.size
 );
+const NON_SYSTEM_COMPONENT_CREATE_SCALE = 2 / 3;
+const LOW_VOLTAGE_FUSE_CREATE_HEIGHT = 16;
 const done_json = computed({
   get() {
     return globalStore.done_json;
@@ -226,23 +233,25 @@ const createDeviceLabel = (deviceItem: IDoneJson): IDoneJson => {
     String(cfg.props.fontFamily.val || 'sans-serif')
   );
   const labelH = 40;
+  const binfo = {
+    left: alignToGrid(
+      deviceItem.binfo.left + deviceItem.binfo.width + DEVICE_LABEL_GAP,
+      grid_align_size.value
+    ),
+    top: alignToGrid(
+      deviceItem.binfo.top + deviceItem.binfo.height / 2 - labelH / 2,
+      grid_align_size.value
+    ),
+    width: labelW,
+    height: labelH,
+    angle: 0
+  };
   return {
     id: 'text-vue-' + randomString(),
     title: cfg.title,
     type: cfg.type,
-    binfo: {
-      left: alignToGrid(
-        deviceItem.binfo.left + deviceItem.binfo.width + DEVICE_LABEL_GAP,
-        grid_align_size.value
-      ),
-      top: alignToGrid(
-        deviceItem.binfo.top + deviceItem.binfo.height / 2 - labelH / 2,
-        grid_align_size.value
-      ),
-      width: labelW,
-      height: labelH,
-      angle: 0
-    },
+    binfo,
+    resize_base_size: createResizeBaseSize(binfo),
     resize: true,
     rotate: true,
     lock: false,
@@ -333,6 +342,7 @@ const onDrop = (e: DragEvent | TouchEvent, isTouch?: boolean) => {
       );
       draw_line_data.value = {
         ...objectDeepClone(draw_line_init_data),
+        lineAxisLock: drawLineModeToAxisLock(mainPanelProps.lineMode),
         binfo: {
           left: alignToGrid(x, grid_align_size.value),
           top: alignToGrid(y, grid_align_size.value),
@@ -399,6 +409,12 @@ const onDrop = (e: DragEvent | TouchEvent, isTouch?: boolean) => {
     deep_find_cfg,
     globalStore.create_item_info.config_key
   );
+  const create_item_scale =
+    globalStore.create_item_info.config_key === '系统组件'
+      ? 1
+      : deep_find_cfg.id === '低压限流熔断器'
+      ? LOW_VOLTAGE_FUSE_CREATE_HEIGHT / create_item_size.height
+      : NON_SYSTEM_COMPONENT_CREATE_SCALE;
   //根据配置创建图形
   const { x, y } = getCanvasXY(
     e,
@@ -406,8 +422,16 @@ const onDrop = (e: DragEvent | TouchEvent, isTouch?: boolean) => {
     globalStore.canvasCfg.scale,
     globalStore.canvasCfg.transform_origin
   );
-  const item_width = is_horizontal_line ? 100 : is_vertical_line ? 0 : create_item_size.width;
-  const item_height = is_vertical_line ? 100 : is_horizontal_line ? 0 : create_item_size.height;
+  const item_width = is_horizontal_line
+    ? 100
+    : is_vertical_line
+    ? 0
+    : create_item_size.width * create_item_scale;
+  const item_height = is_vertical_line
+    ? 100
+    : is_horizontal_line
+    ? 0
+    : create_item_size.height * create_item_scale;
   const aligned_left = alignToGrid(x, grid_align_size.value);
   const aligned_top = alignToGrid(y, grid_align_size.value);
   const item_left = Math.max(
@@ -429,12 +453,14 @@ const onDrop = (e: DragEvent | TouchEvent, isTouch?: boolean) => {
       height: item_height,
       angle: 0
     },
+    resize_base_size: { width: item_width, height: item_height },
     resize: is_line ? false : true,
     rotate: is_line ? false : true,
     lock: false,
     active: true,
     hide: false,
     use_proportional_scaling: true,
+    lineAxisLock: is_line ? systemLineIdToAxisLock(deep_find_cfg.id) : undefined,
     props: deep_find_cfg.props,
     tag: deep_find_cfg.id,
     device: deep_find_cfg.device,
@@ -482,6 +508,7 @@ const instantiateTemplateContent = (content: IDoneJson, x: number, y: number): I
     left: x,
     top: y
   };
+  instance.resize_base_size ??= createResizeBaseSize(instance.binfo);
   instance.active = true;
   return instance;
 };
@@ -556,6 +583,7 @@ const onMouseDown = (e: MouseEvent) => {
     );
     draw_line_data.value = {
       ...objectDeepClone(draw_line_init_data),
+      lineAxisLock: drawLineModeToAxisLock(mainPanelProps.lineMode),
       binfo: {
         left: alignToGrid(x, grid_align_size.value),
         top: alignToGrid(y, grid_align_size.value),
@@ -1327,9 +1355,12 @@ const resetSpaceDragShortcut = () => {
     globalStore.setIntention('none');
   }
 };
-const NUDGE_STEP = 0.5;
-const FAST_NUDGE_STEP = 5;
-const getNudgeStep = (e: KeyboardEvent) => (e.shiftKey ? FAST_NUDGE_STEP : NUDGE_STEP);
+const FAST_NUDGE_MULTIPLIER = 10;
+const getNudgeStep = (e: KeyboardEvent) => {
+  const distance = normalizeKeyboardMoveDistance(globalStore.canvasCfg.keyboard_move_distance);
+
+  return e.shiftKey ? distance * FAST_NUDGE_MULTIPLIER : distance;
+};
 const onKeydown = (e: KeyboardEvent) => {
   if (isSpaceDragShortcut(e)) {
     e.preventDefault();
@@ -1403,7 +1434,7 @@ const onKeydown = (e: KeyboardEvent) => {
     onRedo();
   }
 
-  // 方向键精细移动 0.5px，Shift + 方向键快速移动 5px
+  // 方向键按页面配置移动，Shift + 方向键按配置值的 10 倍快速移动
   else if (e.key === 'ArrowUp') {
     e.preventDefault();
     upDateLeftAndTop(0, -getNudgeStep(e));

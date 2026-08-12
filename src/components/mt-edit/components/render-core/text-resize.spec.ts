@@ -112,3 +112,71 @@ describe('组合文字缩放', () => {
     expect(scaled.props.paddingY.disabled).toBe(true);
   });
 });
+
+describe('组合线条缩放', () => {
+  it.each([
+    {
+      title: '水平线',
+      points: [
+        { x: 0, y: 0 },
+        { x: 100, y: 0 }
+      ],
+      expected: [
+        { x: 0, y: 0 },
+        { x: 50, y: 0 }
+      ]
+    },
+    {
+      title: '垂直线',
+      points: [
+        { x: 0, y: 0 },
+        { x: 0, y: 100 }
+      ],
+      expected: [
+        { x: 0, y: 0 },
+        { x: 0, y: 25 }
+      ]
+    }
+  ])('$title 的端点坐标和线宽随组合同步缩放', ({ points, expected }) => {
+    const line = createItem({
+      id: 'line',
+      type: 'sys-line',
+      props: {
+        'stroke-width': { title: '线条宽度', type: 'number', val: 4 },
+        point_position: { title: '点坐标', type: 'jsonEdit', val: points }
+      }
+    });
+    const group = createItem({ id: 'group', type: 'group', children: [line] });
+    const snapshot = collectResizeVisualMetrics(group);
+    const scaled = scaleResizeVisualMetrics(group, snapshot, 0.5, 0.25);
+    const restored = scaleResizeVisualMetrics(scaled, snapshot, 1, 1);
+
+    expect(scaled.children?.[0].props.point_position.val).toEqual(expected);
+    expect(scaled.children?.[0].props['stroke-width'].val).toBe(1);
+    expect(restored.children?.[0].props.point_position.val).toEqual(points);
+    expect(restored.children?.[0].props['stroke-width'].val).toBe(4);
+  });
+
+  it.each([
+    ['busbar-10kv', 18],
+    ['busbar-400v', 4],
+    ['busbar-600v', 10]
+  ])('%s 的线宽、标签字号和间距随组合同步缩放', (tag, stroke_width) => {
+    const busbar = createItem({
+      id: tag,
+      type: 'vue',
+      tag,
+      props: {
+        strokeWidth: { title: '线条粗细', type: 'number', val: stroke_width },
+        fontSize: { title: '标签大小', type: 'number', val: 20 },
+        labelGap: { title: '标签间距', type: 'number', val: 12 }
+      }
+    });
+    const group = createItem({ id: 'group', type: 'group', children: [busbar] });
+    const scaled = scaleResizeVisualMetrics(group, collectResizeVisualMetrics(group), 0.5, 0.5);
+
+    expect(scaled.children?.[0].props.strokeWidth.val).toBe(stroke_width / 2);
+    expect(scaled.children?.[0].props.fontSize.val).toBe(10);
+    expect(scaled.children?.[0].props.labelGap.val).toBe(6);
+  });
+});

@@ -206,8 +206,11 @@
             >
               <el-icon :size="20" :class="drawline_selected ? 'icon-selected' : ''">
                 <svg-analysis v-if="drawline_mode === 'free'" name="pen-line"></svg-analysis>
-                <Minus v-else-if="drawline_mode === 'horizontal'" />
-                <Minus v-else style="transform: rotate(90deg)" />
+                <span
+                  v-else
+                  class="rounded-line-icon"
+                  :class="{ 'is-vertical': drawline_mode === 'vertical' }"
+                ></span>
               </el-icon>
               <span class="header-action-label">连线</span>
             </el-button>
@@ -237,7 +240,7 @@
                 @click="onDrawLineModeClick('vertical')"
               >
                 <el-icon :size="20" :class="drawline_mode === 'vertical' ? 'icon-selected' : ''">
-                  <Minus style="transform: rotate(90deg)" />
+                  <span class="rounded-line-icon is-vertical"></span>
                 </el-icon>
                 <span class="header-action-label">竖线</span>
               </el-button>
@@ -250,7 +253,7 @@
                 @click="onDrawLineModeClick('horizontal')"
               >
                 <el-icon :size="20" :class="drawline_mode === 'horizontal' ? 'icon-selected' : ''">
-                  <Minus />
+                  <span class="rounded-line-icon"></span>
                 </el-icon>
                 <span class="header-action-label">横线</span>
               </el-button>
@@ -374,7 +377,7 @@
 </template>
 <script setup lang="ts">
 import { useDark, useToggle, useFullscreen } from '@vueuse/core';
-import { Promotion, Aim, Minus } from '@element-plus/icons-vue';
+import { Promotion, Aim } from '@element-plus/icons-vue';
 import {
   ElIcon,
   ElDivider,
@@ -504,6 +507,18 @@ const onDrawLineModeClick = (mode: DrawLineMode) => {
 .icon-selected {
   background-color: #ecf5ff;
   color: #409eff;
+}
+
+.rounded-line-icon {
+  display: block;
+  width: 16px;
+  height: 2px;
+  border-radius: 1px;
+  background-color: currentColor;
+}
+
+.rounded-line-icon.is-vertical {
+  transform: rotate(90deg);
 }
 
 .drawline-mode-title {

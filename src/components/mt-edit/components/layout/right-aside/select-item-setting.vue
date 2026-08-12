@@ -27,6 +27,7 @@
               <el-input-number
                 size="small"
                 :precision="2"
+                :min="item_min_size.width"
                 v-model="item_binfo_width"
                 @change="emits('addHistory')"
               ></el-input-number>
@@ -35,6 +36,7 @@
               <el-input-number
                 size="small"
                 :precision="2"
+                :min="item_min_size.height"
                 v-model="item_binfo_height"
                 @change="emits('addHistory')"
               ></el-input-number>
@@ -116,6 +118,7 @@ import type { IDoneJson } from '@/components/mt-edit/store/types';
 import SelectItemPropsSetting from './select-item-props-setting.vue';
 import SelectItemAnimateSetting from './select-item-animate-setting/index.vue';
 import SelectItemEventSetting from './select-item-event-setting/index.vue';
+import { clampResizeDimension, getResizeMinSize } from '@/components/mt-dzr/resize-constraints';
 const activeName = ref('config');
 const activeNames = ref(['1']);
 type SelectItemSettingProps = {
@@ -127,6 +130,10 @@ const emits = defineEmits(['update:itemJson', 'addHistory']);
 const slots = useSlots();
 // 自由连线 直角连线都有自定义宽高以及禁止缩放和旋转
 const is_line = computed(() => selectItemSettingProps.itemJson?.type === 'sys-line');
+const item_min_size = computed(() => {
+  const item = selectItemSettingProps.itemJson;
+  return item ? getResizeMinSize(item) : { width: 1, height: 1 };
+});
 const item_title = computed({
   get: () => {
     return selectItemSettingProps.itemJson?.title;
@@ -175,7 +182,7 @@ const item_binfo_width = computed({
       ...selectItemSettingProps.itemJson,
       binfo: {
         ...selectItemSettingProps.itemJson?.binfo,
-        width: value
+        width: clampResizeDimension(value, item_min_size.value.width)
       }
     });
   }
@@ -189,7 +196,7 @@ const item_binfo_height = computed({
       ...selectItemSettingProps.itemJson,
       binfo: {
         ...selectItemSettingProps.itemJson?.binfo,
-        height: value
+        height: clampResizeDimension(value, item_min_size.value.height)
       }
     });
   }

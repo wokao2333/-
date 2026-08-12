@@ -38,7 +38,18 @@
             <el-color-picker v-model="canvas_bg_color"></el-color-picker>
           </el-form-item>
 
-          <!-- 4. 背景图片上传 -->
+          <!-- 4. 键盘移动距离 -->
+          <el-form-item label="键盘移动距离" size="small" label-width="100px">
+            <el-input-number
+              v-model="keyboard_move_distance"
+              :min="0.1"
+              :step="0.1"
+              :precision="1"
+              size="small"
+            ></el-input-number>
+          </el-form-item>
+
+          <!-- 5. 背景图片上传 -->
           <el-form-item label="背景图片" size="small">
             <el-upload
               ref="canvasBgImgUploadRef"
@@ -78,17 +89,17 @@
             </el-upload>
           </el-form-item>
 
-          <!-- 5. 辅助功能开关：参考线 -->
+          <!-- 6. 辅助功能开关：参考线 -->
           <el-form-item label="参考线" size="small">
             <el-switch v-model="canvas_guide"></el-switch>
           </el-form-item>
 
-          <!-- 6. 辅助功能开关：吸附 -->
+          <!-- 7. 辅助功能开关：吸附 -->
           <el-form-item label="吸附" size="small">
             <el-switch v-model="canvas_adsorp"></el-switch>
           </el-form-item>
 
-          <!-- 7. 网格开关与配置 -->
+          <!-- 8. 网格开关与配置 -->
           <el-form-item label="网格" size="small">
             <el-switch v-model="grid_enabled"></el-switch>
           </el-form-item>
@@ -131,6 +142,7 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn';
 import { computed, ref } from 'vue';
 import SvgAnalysis from '@/components/mt-edit/components/svg-analysis/index.vue';
 import { blobToBase64 } from '@/components/mt-edit/utils';
+import { normalizeKeyboardMoveDistance } from '@/components/mt-edit/store/global';
 
 // 定义属性接口，接收父组件传递的画布配置与网格配置
 type RightAsideProps = {
@@ -213,6 +225,16 @@ const canvas_bg_color = computed({
     emits('update:canvasCfg', {
       ...rightAsideProps.canvasCfg,
       color: value
+    });
+  }
+});
+
+const keyboard_move_distance = computed({
+  get: () => normalizeKeyboardMoveDistance(rightAsideProps.canvasCfg.keyboard_move_distance),
+  set: (value) => {
+    emits('update:canvasCfg', {
+      ...rightAsideProps.canvasCfg,
+      keyboard_move_distance: normalizeKeyboardMoveDistance(value)
     });
   }
 });

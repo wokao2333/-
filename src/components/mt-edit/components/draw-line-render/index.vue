@@ -54,6 +54,8 @@
             : lineRenderProps.itemJson.props.stroke.val
         "
         :stroke-width="lineRenderProps.itemJson.props['stroke-width'].val"
+        stroke-linecap="round"
+        stroke-linejoin="round"
         style="cursor: move"
         stroke-dashoffset="0"
         :stroke-dasharray="

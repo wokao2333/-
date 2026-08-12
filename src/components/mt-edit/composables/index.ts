@@ -8,6 +8,7 @@ import type {
   ILeftAsideConfigItemPublicProps
 } from '../store/types';
 import { objectDeepClone } from '../utils';
+import { normalizeResizeBaseSizes } from '@/components/mt-dzr/resize-constraints';
 
 export const genExportJson = (
   canvasCfg: IGlobalStoreCanvasCfg,
@@ -44,7 +45,7 @@ export const useExportJsonToDoneJson = (json: IExportJson) => {
       init_configs = [...init_configs, ...iterator];
     }
   }
-  const importDoneJson: IDoneJson[] = json.json.map((m) => {
+  const importedItems: IDoneJson[] = json.json.map((m) => {
     let props: ILeftAsideConfigItemPublicProps = {};
     let symbol = undefined;
     // 找到原始的props
@@ -67,6 +68,8 @@ export const useExportJsonToDoneJson = (json: IExportJson) => {
       symbol
     };
   });
+  // 旧数据没有缩放基准时，禁止在当前尺寸上继续缩小；放大后仍可缩回该尺寸。
+  const importDoneJson = normalizeResizeBaseSizes(importedItems, true);
   return {
     canvasCfg: json.canvasCfg,
     gridCfg: json.gridCfg,

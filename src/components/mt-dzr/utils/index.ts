@@ -112,6 +112,10 @@ export const getNewStyle = (
   minWidth: number,
   minHeight: number
 ) => {
+  if (ratio && Number.isFinite(ratio) && ratio > 0) {
+    minWidth = Math.max(minWidth, minHeight * ratio);
+    minHeight = minWidth / ratio;
+  }
   // eslint-disable-next-line prefer-const
   let { width, height, centerX, centerY, rotateAngle } = rect;
   const widthFlag = width < 0 ? -1 : 1;

@@ -5,6 +5,7 @@ import type {
   ILeftAsideConfigItemPublicProps,
   ICommonAnimations
 } from '../store/types';
+import { createResizeBaseSize } from '@/components/mt-dzr/resize-constraints';
 
 export interface TemplateKvLine {
   key: string;
@@ -45,11 +46,13 @@ export function buildKvItem(
   if (line.key) props.label.val = line.key;
   props.value.val = line.value;
   const common_animations = objectDeepClone<ICommonAnimations>(kvCfg.common_animations);
+  const binfo = { left, top, width, height, angle: 0 };
   return {
     id: kvCfg.id + '-' + randomString(),
     title: kvCfg.title,
     type: kvCfg.type,
-    binfo: { left, top, width, height, angle: 0 },
+    binfo,
+    resize_base_size: createResizeBaseSize(binfo),
     resize: true,
     rotate: true,
     lock: false,
@@ -96,11 +99,13 @@ export function buildGroupFromItems(items: IDoneJson[]): IDoneJson | null {
     },
     active: false
   }));
+  const binfo = { left: minLeft, top: minTop, width, height, angle: 0 };
   return {
     id: 'group-' + randomString(),
     title: '组合',
     type: 'group',
-    binfo: { left: minLeft, top: minTop, width, height, angle: 0 },
+    binfo,
+    resize_base_size: createResizeBaseSize(binfo),
     resize: true,
     rotate: true,
     lock: false,

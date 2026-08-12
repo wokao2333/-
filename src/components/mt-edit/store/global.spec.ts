@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { useExportJsonToDoneJson } from '../composables';
 import type { IExportJson } from '../components/types';
-import { createDefaultCanvasCfg } from './global';
+import { createDefaultCanvasCfg, normalizeKeyboardMoveDistance } from './global';
 
 describe('default canvas config', () => {
   it('uses the microgrid content viewport size', () => {
     expect(createDefaultCanvasCfg()).toMatchObject({
       width: 1280,
-      height: 750
+      height: 750,
+      keyboard_move_distance: 0.5
     });
   });
 
@@ -31,5 +32,11 @@ describe('default canvas config', () => {
       width: 1280,
       height: 800
     });
+  });
+
+  it('normalizes keyboard move distance to one decimal place with a positive fallback', () => {
+    expect(normalizeKeyboardMoveDistance(1.26)).toBe(1.3);
+    expect(normalizeKeyboardMoveDistance(undefined)).toBe(0.5);
+    expect(normalizeKeyboardMoveDistance(0)).toBe(0.5);
   });
 });

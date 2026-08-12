@@ -33,11 +33,15 @@ type ResizeProps = {
   gridAlignSize: number;
   genId: string;
   useProportionalScaling?: boolean;
+  minWidth?: number;
+  minHeight?: number;
 };
 const resizeProps = withDefaults(defineProps<ResizeProps>(), {
   scaleRatio: 1,
   gridAlignSize: 1,
-  useProportionalScaling: true
+  useProportionalScaling: true,
+  minWidth: 1,
+  minHeight: 1
 });
 const points = computed(() => {
   return {
@@ -108,6 +112,9 @@ const getCursor = (init_angle: number) => {
   return find_cursor.cursor + '-resize';
 };
 const emits = defineEmits(['update:itemInfo', 'onResizeDone', 'onResizeMove']);
+const alignMinimumToGrid = (minimum: number) => {
+  return Math.ceil(minimum / resizeProps.gridAlignSize) * resizeProps.gridAlignSize;
+};
 //记录原始位置
 const dzr_copy_info_value = ref({ ...resizeProps.itemInfo });
 const onMouseDown = (
@@ -144,10 +151,20 @@ const onMouseDown = (
     // 如果按shift键则等比缩放
     const ratio =
       resizeProps.useProportionalScaling || me.shiftKey ? rect.width / rect.height : undefined;
+    const min_width = alignMinimumToGrid(resizeProps.minWidth);
+    const min_height = alignMinimumToGrid(resizeProps.minHeight);
     const {
       position: { centerX, centerY },
       size: { width, height }
-    } = getNewStyle(type, { ...rect, rotateAngle: rect.rotateAngle }, deltaW, deltaH, ratio, 1, 1);
+    } = getNewStyle(
+      type,
+      { ...rect, rotateAngle: rect.rotateAngle },
+      deltaW,
+      deltaH,
+      ratio,
+      min_width,
+      min_height
+    );
     const pData = centerToTL({
       centerX,
       centerY,
@@ -191,10 +208,10 @@ const onMouseDown = (
   position: absolute;
   background: #fff;
   border: 1px solid #59c7f9;
-  width: 8px;
-  height: 8px;
-  margin-left: -4px;
-  margin-top: -4px;
+  width: 4px;
+  height: 4px;
+  margin-left: -3px;
+  margin-top: -3px;
   border-radius: 50%;
   z-index: 1;
 }

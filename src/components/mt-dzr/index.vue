@@ -42,6 +42,8 @@
         :grid-align-size="grid_align_size"
         :gen-id="gen_id"
         :use-proportional-scaling="MtDzrProps.useProportionalScaling"
+        :min-width="MtDzrProps.minWidth"
+        :min-height="MtDzrProps.minHeight"
         @on-resize-done="onResizeDone"
         @on-resize-move="(val) => onResizeMove(val)"
       ></resize-handle>

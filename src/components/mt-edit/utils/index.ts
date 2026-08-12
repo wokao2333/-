@@ -6,6 +6,7 @@ import type {
   ILeftAsideConfigItemPublicProps
 } from '../store/types';
 import { useUpdateSysLine } from '@/components/mt-edit/composables/sys-line';
+import { createResizeBaseSize } from '@/components/mt-dzr/resize-constraints';
 export const createGroupInfo = (
   selected_items: IDoneJson[],
   canvas_dom: HTMLElement,
@@ -58,6 +59,7 @@ export const createGroupInfo = (
     title: '组合',
     type: 'group',
     binfo: group_binfo,
+    resize_base_size: createResizeBaseSize(group_binfo),
     resize: true,
     rotate: true,
     lock: false,

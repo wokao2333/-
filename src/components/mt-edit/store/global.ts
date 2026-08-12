@@ -13,6 +13,16 @@ export const DEFAULT_CANVAS_SIZE = {
   height: 750
 } as const;
 
+export const DEFAULT_KEYBOARD_MOVE_DISTANCE = 0.5;
+
+export const normalizeKeyboardMoveDistance = (value: unknown) => {
+  const distance = Number(value);
+
+  return Number.isFinite(distance) && distance > 0
+    ? Math.round(distance * 10) / 10
+    : DEFAULT_KEYBOARD_MOVE_DISTANCE;
+};
+
 export const createDefaultCanvasCfg = (): IGlobalStoreCanvasCfg => ({
   width: DEFAULT_CANVAS_SIZE.width,
   height: DEFAULT_CANVAS_SIZE.height,
@@ -22,6 +32,7 @@ export const createDefaultCanvasCfg = (): IGlobalStoreCanvasCfg => ({
   guide: true,
   adsorp: true,
   adsorp_diff: 5,
+  keyboard_move_distance: DEFAULT_KEYBOARD_MOVE_DISTANCE,
   transform_origin: {
     x: 0,
     y: 0

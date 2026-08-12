@@ -9,6 +9,8 @@ export interface IDzrProps {
   lock?: boolean; //锁定
   active?: boolean; //激活
   useProportionalScaling?: boolean; //开启等比例缩放
+  minWidth?: number; //最小宽度
+  minHeight?: number; //最小高度
   showGhostDom?: boolean; //是否显示幽灵dom
   class?: string; //
   disabled: boolean; //是否禁用
