@@ -413,7 +413,8 @@ const sysSvgIconNames = new Set([
   '电流互感器',
   '断路器',
   '接地刀闸',
-  '零序电流互感器'
+  '零序电流互感器',
+  '负荷开关'
 ]);
 // 属于“新能源”分类的电气图标
 const newEnergyIconNames = new Set([
@@ -445,7 +446,8 @@ const gridIconNames = new Set([
   '电流互感器',
   '断路器',
   '接地刀闸',
-  '零序电流互感器'
+  '零序电流互感器',
+  '负荷开关'
 ]);
 const gridItems: ILeftAsideConfigItem[] = [];
 // 拖入画布时只显示图形、不自动附带“设备名称”文字标签的图标
@@ -458,7 +460,8 @@ const noAutoLabelIconNames = new Set([
   '电流互感器',
   '断路器',
   '接地刀闸',
-  '零序电流互感器'
+  '零序电流互感器',
+  '负荷开关'
 ]);
 // 属于“通信辅助”分类的电气图标
 const commIconNames = new Set(['微网控制单元', '通信网关', '交换机']);

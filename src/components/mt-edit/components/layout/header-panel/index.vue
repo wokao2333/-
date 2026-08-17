@@ -283,18 +283,56 @@
           <span class="header-action-label">保存</span>
         </el-button>
         <el-divider v-if="headerPanelProps.useThumbnail" direction="vertical"></el-divider>
-        <el-button
+        <el-popover
           v-if="headerPanelProps.useThumbnail"
-          text
-          size="small"
-          class="header-action-button"
-          @click="emits('onThumbnailClick')"
+          placement="bottom"
+          :width="240"
+          trigger="hover"
         >
-          <el-icon :size="20">
-            <svg-analysis name="thumbnail"></svg-analysis>
-          </el-icon>
-          <span class="header-action-label">缩略图</span>
-        </el-button>
+          <template #reference>
+            <el-button
+              text
+              size="small"
+              class="header-action-button"
+              aria-label="保存缩略图"
+              @click="onThumbnailFormatClick('default')"
+            >
+              <el-icon :size="20">
+                <svg-analysis name="thumbnail"></svg-analysis>
+              </el-icon>
+              <span class="header-action-label">缩略图</span>
+            </el-button>
+          </template>
+          <div class="flex flex-col gap-6px">
+            <div class="thumbnail-format-title">缩略图格式</div>
+            <el-button-group class="flex">
+              <el-button
+                text
+                size="small"
+                class="header-action-button flex-1"
+                aria-label="默认格式：导出 PNG 位图缩略图"
+                @click="onThumbnailFormatClick('default')"
+              >
+                <el-icon :size="20">
+                  <svg-analysis name="thumbnail"></svg-analysis>
+                </el-icon>
+                <span class="header-action-label">PNG</span>
+              </el-button>
+              <el-button
+                text
+                size="small"
+                class="header-action-button flex-1"
+                aria-label="SVG 格式：导出矢量缩略图"
+                @click="onThumbnailFormatClick('svg')"
+              >
+                <el-icon :size="20">
+                  <svg-analysis name="export-json"></svg-analysis>
+                </el-icon>
+                <span class="header-action-label">SVG</span>
+              </el-button>
+            </el-button-group>
+          </div>
+        </el-popover>
         <el-divider direction="vertical"></el-divider>
         <el-button text size="small" class="header-action-button" @click="emits('onPreviewClick')">
           <el-icon :size="20">
@@ -484,6 +522,11 @@ const onDrawLineModeClick = (mode: DrawLineMode) => {
   drawline_mode.value = mode;
   emits('onDrawLineModeChange', drawline_mode.value);
 };
+// 缩略图导出格式：default 默认导出（PNG 位图）；svg 矢量格式
+type ThumbnailFormat = 'default' | 'svg';
+const onThumbnailFormatClick = (format: ThumbnailFormat) => {
+  emits('onThumbnailClick', format);
+};
 </script>
 <style scoped>
 .header-action-button {
@@ -529,6 +572,20 @@ const onDrawLineModeClick = (mode: DrawLineMode) => {
 }
 
 .drawline-mode-tip {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--el-text-color-secondary);
+  padding: 0 2px;
+}
+
+.thumbnail-format-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  padding: 0 2px;
+}
+
+.thumbnail-format-tip {
   font-size: 12px;
   line-height: 1.4;
   color: var(--el-text-color-secondary);

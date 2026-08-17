@@ -439,8 +439,8 @@ const onPublishClick = () => {
   );
   emits('onPublishClick', exportJson);
 };
-const onThumbnailClick = () => {
-  emits('onThumbnailClick');
+const onThumbnailClick = (format: 'default' | 'svg' = 'default') => {
+  emits('onThumbnailClick', format);
 };
 const onDrawLineClick = (val: boolean) => {
   line_append_enable.value = val;

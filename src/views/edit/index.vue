@@ -2,7 +2,7 @@
 import { computed, nextTick, onMounted, reactive, ref, shallowRef, watch } from 'vue';
 import type { IExportJson } from '@/components/mt-edit/components/types';
 import type { IDoneJson, ILeftAsideConfigItem } from '@/components/mt-edit/store/types';
-import { useGenThumbnail } from '@/components/mt-edit/composables/thumbnail';
+import { useGenThumbnail, useGenSvgThumbnail } from '@/components/mt-edit/composables/thumbnail';
 import { MtEdit, leftAsideStore } from '@/export';
 import { useRouter } from 'vue-router';
 import { createDefaultCanvasCfg, globalStore } from '@/components/mt-edit/store/global';
@@ -1898,7 +1898,11 @@ const onSaveDiagram = async (exportJson: IExportJson): Promise<boolean> => {
   }
 };
 
-const onThumbnailClick = () => {
+const onThumbnailClick = (format: 'default' | 'svg' = 'default') => {
+  if (format === 'svg') {
+    useGenSvgThumbnail();
+    return;
+  }
   useGenThumbnail();
 };
 </script>

@@ -99,5 +99,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/**
-          draft: true          # 先存草稿，确认无误再发布
+          draft: false # 构建成功后直接发布，安装包可通过固定链接下载
+          prerelease: false
           generate_release_notes: true
