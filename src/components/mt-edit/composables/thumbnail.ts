@@ -71,9 +71,48 @@ export const useGenThumbnail = async (canvas_id: string = 'mtCanvasArea') => {
   });
 };
 
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const XHTML_NS = 'http://www.w3.org/1999/xhtml';
+
+/**
+ * Vue's v-bind() CSS variables are written to an ancestor of the canvas.
+ * Copy the resolved variables into the exported XHTML root so the cloned
+ * canvas keeps its dimensions, background and transform-related styles.
+ */
+const copyInheritedCssVariables = (source: HTMLElement, target: HTMLElement) => {
+  const variables = new Map<string, string>();
+
+  // Inline variables are the important part here (the canvas dimensions are
+  // generated this way), while walking ancestors also preserves inherited
+  // theme variables such as the Element Plus colors.
+  for (let current: HTMLElement | null = source; current; current = current.parentElement) {
+    for (let index = 0; index < current.style.length; index += 1) {
+      const property = current.style.item(index);
+      if (property.startsWith('--') && !variables.has(property)) {
+        variables.set(property, current.style.getPropertyValue(property));
+      }
+    }
+  }
+
+  // Include variables coming from computed styles as a fallback for themes
+  // that do not expose their values through inline styles.
+  const computedStyle = window.getComputedStyle(source);
+  for (let index = 0; index < computedStyle.length; index += 1) {
+    const property = computedStyle.item(index);
+    if (property.startsWith('--') && !variables.has(property)) {
+      variables.set(property, computedStyle.getPropertyValue(property));
+    }
+  }
+
+  variables.forEach((value, property) => {
+    target.style.setProperty(property, value);
+  });
+};
+
 /**
  * 生成画布 SVG 矢量缩略图并下载
- * 通过 foreignObject 内嵌画布 DOM 克隆节点，并收集页面样式表保证独立 SVG 中的渲染效果
+ * 通过 foreignObject 内嵌画布 DOM 克隆节点，并收集页面样式表保证独立 SVG 中的渲染效果。
+ * 画布使用 Vue 的运行时 CSS 变量控制尺寸，因此导出时必须把祖先节点上的变量一并带入。
  * @param canvas_id 画布 DOM id，默认为 mtCanvasArea
  */
 export const useGenSvgThumbnail = async (canvas_id: string = 'mtCanvasArea') => {
@@ -82,8 +121,12 @@ export const useGenSvgThumbnail = async (canvas_id: string = 'mtCanvasArea') => 
     ElMessage.error('没有找到canvas元素,请检查！');
     return;
   }
-  const width = el.offsetWidth;
-  const height = el.offsetHeight;
+  const width = el.offsetWidth || el.clientWidth;
+  const height = el.offsetHeight || el.clientHeight;
+  if (!width || !height) {
+    ElMessage.error('画布尺寸无效，无法导出 SVG');
+    return;
+  }
   // 收集页面内所有 CSS 规则，保证克隆节点在独立 SVG 中也能正确渲染
   let cssText = '';
   for (const sheet of Array.from(document.styleSheets)) {
@@ -102,17 +145,43 @@ export const useGenSvgThumbnail = async (canvas_id: string = 'mtCanvasArea') => 
   clone.style.transformOrigin = '0 0';
   clone.style.left = '0';
   clone.style.top = '0';
+  clone.style.width = `${width}px`;
+  clone.style.height = `${height}px`;
   // 保留 #mt-edit 根节点的 id/class，使基于其作用域的 CSS 变量与选择器在 SVG 内继续生效
   const root = el.closest('#mt-edit') as HTMLElement | null;
-  const wrapper = document.createElement('div');
-  wrapper.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+  const wrapper = document.createElementNS(XHTML_NS, 'div') as HTMLDivElement;
   wrapper.setAttribute('id', 'mt-edit');
   if (root) {
     wrapper.setAttribute('class', root.getAttribute('class') || '');
   }
+  copyInheritedCssVariables(el, wrapper);
+
+  // Put the stylesheet inside the XHTML subtree. This keeps HTML selectors
+  // and scoped Vue styles effective when the downloaded SVG is opened alone.
+  const style = document.createElementNS(XHTML_NS, 'style');
+  style.textContent = cssText;
+  wrapper.appendChild(style);
   wrapper.appendChild(clone);
-  const serialized = new XMLSerializer().serializeToString(wrapper);
-  const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject width="100%" height="100%"><style>${cssText}</style>${serialized}</foreignObject></svg>`;
+
+  // Build the document with namespace-aware DOM APIs instead of concatenating
+  // raw markup. That prevents the XHTML subtree from being parsed as SVG.
+  const svgDocument = document.implementation.createDocument(SVG_NS, 'svg', null);
+  const svg = svgDocument.documentElement;
+  svg.setAttribute('xmlns', SVG_NS);
+  svg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+  svg.setAttribute('width', `${width}`);
+  svg.setAttribute('height', `${height}`);
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+  const foreignObject = svgDocument.createElementNS(SVG_NS, 'foreignObject');
+  foreignObject.setAttribute('x', '0');
+  foreignObject.setAttribute('y', '0');
+  foreignObject.setAttribute('width', `${width}`);
+  foreignObject.setAttribute('height', `${height}`);
+  foreignObject.appendChild(svgDocument.importNode(wrapper, true));
+  svg.appendChild(foreignObject);
+
+  const svgContent = new XMLSerializer().serializeToString(svgDocument);
   const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const img_link = document.createElement('a');
@@ -123,5 +192,6 @@ export const useGenSvgThumbnail = async (canvas_id: string = 'mtCanvasArea') => 
   img_link.click();
   // 然后移除
   document.body.removeChild(img_link);
-  URL.revokeObjectURL(url);
+  // Give the browser a chance to start the download before releasing the blob.
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 };

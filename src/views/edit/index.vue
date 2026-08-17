@@ -1267,11 +1267,11 @@ const onPublishClick = async (exportJson: IExportJson) => {
     ElMessage.error('未找到当前场站信息');
     return;
   }
-  // 连接信息已下沉到 MCU：从当前场站绑定的首个 MCU 解析发布接口地址
+  // 优先使用当前一次图绑定的 MCU；未绑定具体 MCU 的历史数据才回退到场站首个 MCU。
   await ensureStationMcus(station.id);
-  const mcu = getStationPrimaryMcu(station.id);
+  const mcu = getDiagramConnectionMcu(station.id, currentDiagram.value);
   if (!mcu || !mcu.ip) {
-    ElMessage.error('当前场站尚未绑定MCU或未配置IP，无法发布');
+    ElMessage.error('当前一次图尚未绑定MCU或MCU未配置IP，无法发布');
     return;
   }
 
@@ -1312,7 +1312,7 @@ const onPublishClick = async (exportJson: IExportJson) => {
   } catch (error: any) {
     const msg = error?.message || String(error);
     ElMessage.error(`发布失败: ${msg}`);
-    console.error('发布失败', error);
+    console.error('发布失败', { url, mcuId: mcu.id, mcuIp: mcu.ip, mcuPort: mcu.port }, error);
   }
 };
 
@@ -1327,11 +1327,11 @@ const onPublishDiagram = async (stationId: string, diagramId: string) => {
     ElMessage.error('未找到当前一次接线图');
     return;
   }
-  // 连接信息已下沉到 MCU：从该场站绑定的首个 MCU 解析发布接口地址
+  // 优先使用该一次图绑定的 MCU；未绑定具体 MCU 的历史数据才回退到场站首个 MCU。
   await ensureStationMcus(station.id);
-  const mcu = getStationPrimaryMcu(station.id);
+  const mcu = getDiagramConnectionMcu(station.id, diagram);
   if (!mcu || !mcu.ip) {
-    ElMessage.error('当前场站尚未绑定MCU或未配置IP，无法发布');
+    ElMessage.error('该一次图尚未绑定MCU或MCU未配置IP，无法发布');
     return;
   }
 
@@ -1372,7 +1372,7 @@ const onPublishDiagram = async (stationId: string, diagramId: string) => {
   } catch (error: any) {
     const msg = error?.message || String(error);
     ElMessage.error(`发布失败: ${msg}`);
-    console.error('发布失败', error);
+    console.error('发布失败', { url, mcuId: mcu.id, mcuIp: mcu.ip, mcuPort: mcu.port }, error);
   }
 };
 
