@@ -386,7 +386,7 @@ const cloneConfigToDoneJson = (
   lock: false,
   active: false,
   hide: false,
-  use_proportional_scaling: true,
+  use_proportional_scaling: cfg.id !== 'text-vue',
   props: objectDeepClone(cfg.props),
   tag: cfg.id,
   common_animations: objectDeepClone(cfg.common_animations),
@@ -699,24 +699,6 @@ const stripLegacyDevicePanels = (exportJson: IExportJson) => {
       return true;
     });
   exportJson.json = strip(exportJson.json as any[]) as IExportJson['json'];
-};
-
-// 兼容已保存的旧测点面板：预览前统一补足数值列宽度，并在卡片与单位之间保留间距。
-const normalizePreviewPointPanelLayout = (exportJson: IExportJson) => {
-  const visit = (items: IExportJson['json']) => {
-    for (const item of items) {
-      const bind = (item as any).deviceBind as DeviceBindInfo | undefined;
-      if (item.tag === 'kv-vue' && bind?.dataKey && bind.targetAttr === 'props.value.val') {
-        setValueByPath(item, 'props.valueWidth.val', POINT_VALUE_WIDTH);
-        setValueByPath(item, 'props.unitGap.val', POINT_UNIT_GAP);
-      }
-
-      const children = (item as any).children as IExportJson['json'] | undefined;
-      if (children?.length) visit(children);
-    }
-  };
-
-  visit(exportJson.json);
 };
 
 interface DevicePanelSource {
@@ -1170,7 +1152,6 @@ const onPreviewClick = async (
   // 预览前清理历史遗留的旧测点面板（deviceId 误写为类型名），确保仅保留正确分组，
   // 既避免 /batchPoint 重复请求，也避免错误返回值覆盖正确数据。
   stripLegacyDevicePanels(exportJson);
-  normalizePreviewPointPanelLayout(exportJson);
 
   if (groupEntries.length > 0) {
     if (!stationId) {

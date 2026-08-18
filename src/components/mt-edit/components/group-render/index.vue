@@ -19,6 +19,8 @@
         :canvas-cfg="groupRender.canvasCfg"
         :canvas-dom="groupRender.canvasDom"
         :lock-state="false"
+        :editable="groupRender.editable && !item.lock"
+        @update:item-json="(value) => onUpdateChild(item.id, value)"
       ></render-item>
     </div>
   </div>
@@ -35,8 +37,17 @@ type GroupRender = {
   grid: IGlobalStoreGridCfg;
   canvasCfg: IGlobalStoreCanvasCfg;
   canvasDom: HTMLElement | null;
+  editable?: boolean;
 };
 const groupRender = withDefaults(defineProps<GroupRender>(), {});
+const emits = defineEmits(['update:itemJson']);
+
+const onUpdateChild = (id: string, value: IDoneJson) => {
+  emits('update:itemJson', {
+    ...groupRender.itemJson,
+    children: (groupRender.itemJson.children ?? []).map((item) => (item.id === id ? value : item))
+  });
+};
 </script>
 <style scoped>
 .mt-group {

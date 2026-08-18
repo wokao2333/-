@@ -15,13 +15,17 @@
       :grid="renderItemProps.grid"
       :canvas-cfg="renderItemProps.canvasCfg"
       :canvas-dom="renderItemProps.canvasDom"
+      :editable="renderItemProps.editable"
+      @update:item-json="onUpdateNestedItemJson"
     ></group-render>
     <component
       v-else-if="item_json.type === 'vue'"
       draggable="false"
       :is="item_json.tag"
       v-bind="prosToVBind(item_json.props)"
+      :editable="item_json.tag === 'text-vue' ? renderItemProps.editable : undefined"
       @update:modelValue="(val: any) => onUpdateModelValue(item_json.props, val)"
+      @update:text="onUpdateText"
     ></component>
     <img
       v-else-if="item_json.type === 'img'"
@@ -70,10 +74,12 @@ type RenderItemProps = {
   canvasDom: HTMLElement | null;
   doneJson?: IDoneJson[];
   lockState: boolean;
+  editable?: boolean;
   lineAppendEnable?: boolean;
 };
 const renderItemProps = withDefaults(defineProps<RenderItemProps>(), {
   doneJson: () => [],
+  editable: true,
   lineAppendEnable: false
 });
 const emits = defineEmits(['update:itemJson', 'setIntention', 'lineMouseUp']);
@@ -96,6 +102,23 @@ const onUpdateModelValue = (props: ILeftAsideConfigItemPublicProps, value: any) 
       }
     });
   }
+};
+const onUpdateText = (value: string) => {
+  const textProp = item_json.value.props.text;
+  if (!textProp) return;
+  emits('update:itemJson', {
+    ...item_json.value,
+    props: {
+      ...item_json.value.props,
+      text: {
+        ...textProp,
+        val: value
+      }
+    }
+  });
+};
+const onUpdateNestedItemJson = (value: IDoneJson) => {
+  emits('update:itemJson', value);
 };
 </script>
 <style scoped></style>

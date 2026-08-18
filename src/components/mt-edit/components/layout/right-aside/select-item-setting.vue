@@ -250,7 +250,8 @@ const item_resize = computed({
 });
 const item_use_proportional_scaling = computed({
   get: () => {
-    return selectItemSettingProps.itemJson?.use_proportional_scaling !== false;
+    const item = selectItemSettingProps.itemJson;
+    return item?.use_proportional_scaling ?? item?.tag !== 'text-vue';
   },
   set: (value) => {
     emits('update:itemJson', {

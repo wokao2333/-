@@ -15,21 +15,27 @@ export const genExportJson = (
   gridCfg: IGlobalStoreGridCfg,
   doneJson: IDoneJson[]
 ) => {
-  let export_done_json: IExportDoneJson[] = [];
-  export_done_json = objectDeepClone<IDoneJson[]>(doneJson).map((m) => {
-    if (m.symbol) {
-      delete m.symbol;
-    }
-    let new_props = {};
-    for (const key in m.props) {
-      new_props = { ...new_props, ...{ [key]: m.props[key].val } };
-    }
+  const toExportItem = (item: IDoneJson): IExportDoneJson => {
+    const { symbol: _symbol, children, props, ...rest } = item;
+    const exportProps = Object.entries(props).reduce<Record<string, unknown>>(
+      (result, [key, prop]) => {
+        result[key] = prop.val;
+        return result;
+      },
+      {}
+    );
+
     return {
-      ...m,
-      props: new_props,
-      active: false
+      ...rest,
+      props: exportProps,
+      active: false,
+      ...(Array.isArray(children) ? { children: children.map(toExportItem) } : {})
     };
-  });
+  };
+
+  // group 的子图元也必须转成发布 JSON；否则组合内元素仍保留编辑态 props，
+  // 微电网与本地恢复会走到两套不同的数据结构。
+  const export_done_json = objectDeepClone<IDoneJson[]>(doneJson).map(toExportItem);
   const exportJson: IExportJson = {
     canvasCfg,
     gridCfg,
@@ -45,29 +51,40 @@ export const useExportJsonToDoneJson = (json: IExportJson) => {
       init_configs = [...init_configs, ...iterator];
     }
   }
-  const importedItems: IDoneJson[] = json.json.map((m) => {
+  const getExportPropValue = (value: unknown) =>
+    value && typeof value === 'object' && 'val' in value ? (value as { val: unknown }).val : value;
+  const toDoneItem = (item: IExportDoneJson): IDoneJson => {
     let props: ILeftAsideConfigItemPublicProps = {};
     let symbol = undefined;
     // 找到原始的props
-    const find_item = init_configs.find((f) => f?.id == m.tag);
+    const find_item = init_configs.find((f) => f?.id == item.tag);
     const find_props = find_item?.props;
     if (find_props) {
       props = { ...props, ...objectDeepClone(find_props) };
     }
-    for (const key in m.props) {
+    for (const key in item.props) {
+      const value = getExportPropValue(item.props[key]);
       if (props[key]) {
-        props[key].val = m.props[key];
+        props[key].val = value;
+      } else {
+        props[key] = {
+          title: key,
+          type: 'input',
+          val: value
+        };
       }
     }
     if (find_item?.symbol) {
       symbol = find_item.symbol;
     }
     return {
-      ...m,
+      ...item,
       props,
-      symbol
+      symbol,
+      ...(Array.isArray(item.children) ? { children: item.children.map(toDoneItem) } : {})
     };
-  });
+  };
+  const importedItems = json.json.map(toDoneItem);
   // 旧数据没有缩放基准时，禁止在当前尺寸上继续缩小；放大后仍可缩回该尺寸。
   const importDoneJson = normalizeResizeBaseSizes(importedItems, true);
   return {
