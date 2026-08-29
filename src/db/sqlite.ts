@@ -66,14 +66,14 @@ function migrate(db: Database) {
   db.run(`CREATE INDEX IF NOT EXISTS idx_points_addrDec ON points(addrDec)`);
   db.run(`CREATE TABLE IF NOT EXISTS device_types (
     name TEXT PRIMARY KEY,
-    typeCode INTEGER,
+    typeCode TEXT,
     createTime INTEGER,
     updateTime INTEGER
   )`);
   db.run(`CREATE TABLE IF NOT EXISTS device_points (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     deviceType TEXT,
-    typeCode INTEGER,
+    typeCode TEXT,
     innerId TEXT,
     pointName TEXT,
     displayName TEXT,

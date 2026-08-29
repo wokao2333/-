@@ -787,10 +787,11 @@ const onDeviceTemplateChange = ({ deviceType, points }: DeviceTemplateSelectionC
   );
 };
 
-const getEtypeForType = (typeName?: string): number | string | undefined => {
+const getEtypeForType = (typeName?: string): string | undefined => {
   if (!typeName) return undefined;
   const row = deviceTypes.value.find((dt) => dt.name === typeName);
-  return row?.typeCode;
+  // typeCode 为 Excel「类型」列原始文本，空串视为未配置
+  return row?.typeCode || undefined;
 };
 
 // 依据已选设备类型（deviceType）加载该类型下的测点，并以键值对面板形式展示在设备右侧 20px 处。
@@ -1100,12 +1101,28 @@ const fetchBatchPointData = async (
   if (json.code !== 200) {
     throw new Error(json.msg || `code=${json.code}`);
   }
-  const rawData = json.data as Record<string, { pointCode: string; value: unknown; unit?: string }>;
+  const rawData = json.data as unknown;
   const normalized: Record<string, { value: unknown; unit?: string }> = {};
-  for (const key in rawData) {
-    const point = rawData[key];
-    if (point && typeof point === 'object') {
-      normalized[key] = { value: point.value, unit: point.unit };
+  // 兼容两种返回结构：
+  // 1) 对象：{ [pointCode]: { value, unit } }
+  // 2) 数组：[{ pointCode, value, unit }, ...]（按 pointCode 归组）
+  if (Array.isArray(rawData)) {
+    for (const point of rawData) {
+      if (!point || typeof point !== 'object') continue;
+      const record = point as Record<string, unknown>;
+      const key = String(record.pointCode || record.code || record.key || '').trim();
+      if (key) {
+        normalized[key] = { value: record.value, unit: record.unit as string | undefined };
+      }
+    }
+  } else if (rawData && typeof rawData === 'object') {
+    for (const key in rawData as Record<string, unknown>) {
+      const point = (rawData as Record<string, unknown>)[key] as
+        | { value: unknown; unit?: string }
+        | undefined;
+      if (point && typeof point === 'object') {
+        normalized[key] = { value: point.value, unit: point.unit };
+      }
     }
   }
   return normalized;
@@ -1124,12 +1141,19 @@ const injectRealtimeData = (
         if (deviceData) {
           const pointData = deviceData[bind.dataKey];
           if (pointData && pointData.value !== undefined && pointData.value !== null) {
-            // exportJson 中 props 为嵌套结构 { value: { val }, unit: { val } }，
-            // targetAttr 形如 props.value.val，必须写入到最深层 val，
-            // 若直接覆盖 props.value/props.unit 会破坏 { val } 结构，导致渲染时取不到值。
-            setValueByPath(item, bind.targetAttr, pointData.value);
+            // 兼容两种 props 结构：
+            // 1) 编辑态 done_json：嵌套 { value: { val } }，写入最深层 val；
+            // 2) genExportJson 导出态：扁平 { value: '键值' }（见 genExportJson 的 prop.val 拍平），
+            //    此时 targetAttr 末尾的 .val 需去掉，直接写扁平键，否则 setValueByPath 会因
+            //    中间节点是字符串而静默失败，预览仍显示占位符。
+            const writeByTargetAttr = (targetAttr: string, value: unknown) => {
+              if (!setValueByPath(item, targetAttr, value)) {
+                setValueByPath(item, targetAttr.replace(/\.val$/, ''), value);
+              }
+            };
+            writeByTargetAttr(bind.targetAttr, pointData.value);
             if (pointData.unit !== undefined && pointData.unit !== null && pointData.unit !== '') {
-              setValueByPath(item, kvUnitTargetAttr, pointData.unit);
+              writeByTargetAttr(kvUnitTargetAttr, pointData.unit);
             }
           }
         }
@@ -1952,7 +1976,7 @@ const onThumbnailClick = (format: 'default' | 'svg' = 'default') => {
                 <el-option
                   v-for="dt in deviceTypes"
                   :key="dt.name"
-                  :label="`${dt.name} (${dt.typeCode})`"
+                  :label="dt.typeCode ? `${dt.name} (${dt.typeCode})` : dt.name"
                   :value="dt.name"
                 />
               </el-select>

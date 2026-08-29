@@ -91,8 +91,6 @@ const gridStyle = computed(() => ({
 
 .kvKeyValue {
   box-sizing: border-box;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
   line-height: 1.2;
@@ -101,17 +99,27 @@ const gridStyle = computed(() => ({
 .kvKey {
   font-size: v-bind('`${computedLabelFontSize}px`');
   color: v-bind('`${computedLabelColor}`');
+  width: max-content;
+  justify-self: end;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .kvValue {
   font-size: v-bind('`${computedValueFontSize}px`');
   color: v-bind('`${computedValueColor}`');
   text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .kvUnit {
   font-size: v-bind('`${computedUnitFontSize}px`');
   color: v-bind('`${computedUnitColor}`');
   padding-left: v-bind('`${props.unitGap}px`');
+  width: max-content;
+  justify-self: start;
+  overflow: visible;
+  text-overflow: clip;
 }
 </style>

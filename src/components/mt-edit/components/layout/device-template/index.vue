@@ -21,7 +21,12 @@
         <el-empty v-if="!deviceTypes.length" description="暂无设备类型，请先导入" />
         <el-table v-else :data="deviceTypes" border stripe size="small" max-height="100%">
           <el-table-column prop="name" label="设备类型" min-width="140" show-overflow-tooltip />
-          <el-table-column prop="typeCode" label="类型" width="64" align="center" />
+          <el-table-column
+            prop="typeCode"
+            label="类型"
+            min-width="120"
+            show-overflow-tooltip
+          />
           <el-table-column label="测点" width="90" align="center">
             <template #default="{ row }">
               <span>{{ row.selectedCount }}/{{ row.pointCount }}</span>

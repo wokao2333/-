@@ -1,6 +1,8 @@
 import { Canvg } from 'canvg';
 import html2canvas from 'html2canvas';
 import { ElMessage } from 'element-plus';
+import { genVectorSvg } from './gen-vector-svg';
+import { globalStore } from '../store/global';
 export const useGenThumbnail = async (canvas_id: string = 'mtCanvasArea') => {
   const el = <HTMLElement | null>document.querySelector(`#${canvas_id}`);
   if (!el) {
@@ -110,12 +112,49 @@ const copyInheritedCssVariables = (source: HTMLElement, target: HTMLElement) => 
 };
 
 /**
- * 生成画布 SVG 矢量缩略图并下载
- * 通过 foreignObject 内嵌画布 DOM 克隆节点，并收集页面样式表保证独立 SVG 中的渲染效果。
- * 画布使用 Vue 的运行时 CSS 变量控制尺寸，因此导出时必须把祖先节点上的变量一并带入。
+ * 下载一段 SVG 字符串为独立 .svg 文件
+ */
+const downloadSvg = (svgContent: string) => {
+  const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const img_link = document.createElement('a');
+  img_link.href = url;
+  img_link.download = `${Date.now()}.svg`;
+  document.body.appendChild(img_link);
+  // 触发点击
+  img_link.click();
+  // 然后移除
+  document.body.removeChild(img_link);
+  // Give the browser a chance to start the download before releasing the blob.
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+};
+
+/**
+ * 生成画布 SVG 缩略图并下载
+ *
+ * 优先基于画布数据（done_json + canvasCfg）直接构建轻量原生矢量 SVG：
+ * 纯 <symbol>/<use>/<text>/<path> 图元，不含页面框架的 CSS 变量与样式表，
+ * 体积小、兼容性好（任何 SVG 渲染器都能打开），与图一（method-draw-image.svg）同类。
+ *
+ * 仅当画布数据为空（非编辑态导出）时，才回退到旧的 foreignObject 内嵌 DOM 快照方案，
+ * 以保证画面完整。
+ *
  * @param canvas_id 画布 DOM id，默认为 mtCanvasArea
  */
 export const useGenSvgThumbnail = async (canvas_id: string = 'mtCanvasArea') => {
+  // 优先走数据驱动矢量导出
+  try {
+    const vectorSvg = genVectorSvg();
+    if (vectorSvg && globalStore.done_json?.length) {
+      downloadSvg(vectorSvg);
+      return;
+    }
+  } catch (e) {
+    // 矢量导出异常时降级到 DOM 快照
+    console.warn('矢量 SVG 导出失败，降级为 DOM 快照', e);
+  }
+
+  // 兜底：DOM 快照 + foreignObject
   const el = <HTMLElement | null>document.querySelector(`#${canvas_id}`);
   if (!el) {
     ElMessage.error('没有找到canvas元素,请检查！');
@@ -182,16 +221,5 @@ export const useGenSvgThumbnail = async (canvas_id: string = 'mtCanvasArea') => 
   svg.appendChild(foreignObject);
 
   const svgContent = new XMLSerializer().serializeToString(svgDocument);
-  const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const img_link = document.createElement('a');
-  img_link.href = url;
-  img_link.download = `${Date.now()}.svg`;
-  document.body.appendChild(img_link);
-  // 触发点击
-  img_link.click();
-  // 然后移除
-  document.body.removeChild(img_link);
-  // Give the browser a chance to start the download before releasing the blob.
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  downloadSvg(svgContent);
 };

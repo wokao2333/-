@@ -393,7 +393,7 @@ export const webDatabase: DatabaseService = {
         const row = stmt.getAsObject() as Record<string, unknown>;
         out.push({
           name: row.name as string,
-          typeCode: (row.typeCode as number) ?? 0,
+          typeCode: String(row.typeCode ?? ''),
           pointCount: (row.pointCount as number) ?? 0,
           selectedCount: (row.selectedCount as number) ?? 0
         });
@@ -417,7 +417,7 @@ export const webDatabase: DatabaseService = {
         out.push({
           id: row.id as number,
           deviceType: row.deviceType as string,
-          typeCode: (row.typeCode as number) ?? 0,
+          typeCode: String(row.typeCode ?? ''),
           innerId: (row.innerId as string) ?? '',
           pointName: (row.pointName as string) ?? '',
           displayName: (row.displayName as string) ?? '',

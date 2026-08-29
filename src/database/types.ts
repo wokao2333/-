@@ -70,8 +70,8 @@ export interface PointRepository {
 export interface DeviceTypeRow {
   /** 设备类型名称（如「并网点上侧」），唯一键 */
   name: string;
-  /** 类型编号（Excel「类型」列，如 24） */
-  typeCode: number;
+  /** 类型标识（Excel「类型」列原文，如 24 或 EV_CHARGER_RESOURCE_MODEL） */
+  typeCode: string;
   /** 该类型下测点总数 */
   pointCount: number;
   /** 已配置为展示的测点数量 */
@@ -83,8 +83,8 @@ export interface DevicePointRow {
   id: number;
   /** 所属设备类型名称 */
   deviceType: string;
-  /** 类型编号 */
-  typeCode: number;
+  /** 类型标识（Excel「类型」列原文） */
+  typeCode: string;
   /** 属性标识（内部点 ID，如 PhV_phsA） */
   innerId: string;
   /** 点名称（如「A 相电压」） */
@@ -107,7 +107,8 @@ export interface DevicePointRow {
 
 /** 从 Excel 解析出的一条测点（尚未入库，无 id） */
 export interface DevicePointImportRow {
-  typeCode: number;
+  /** 类型标识（Excel「类型」列原文，不转换） */
+  typeCode: string;
   deviceType: string;
   innerId: string;
   pointName: string;

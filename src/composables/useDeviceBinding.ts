@@ -353,10 +353,32 @@ const pickDeviceId = (item: Record<string, unknown>) => {
   return valueToString(item.id || item.deviceId || item.device_id);
 };
 
+const pickPointCode = (item: Record<string, unknown>) => {
+  return valueToString(item.pointCode || item.code || item.key);
+};
+
 const normalizeRealtimeData = (source: unknown, deviceIds: string[]) => {
   const data: Record<string, Record<string, unknown>> = {};
 
   if (Array.isArray(source)) {
+    const records = source.filter(isRecord);
+
+    // 兼容「单设备测点数组」格式：data: [{ pointCode, value, unit }, ...]
+    // 这种数据里没有 deviceId，但请求时只传了一个设备 id，所以按 deviceIds[0] 归组。
+    const pointRecords = records.filter((item) => !pickDeviceId(item) && pickPointCode(item));
+    if (pointRecords.length && pointRecords.length === records.length && deviceIds.length === 1) {
+      const deviceId = deviceIds[0];
+      const pointMap: Record<string, unknown> = {};
+      pointRecords.forEach((item) => {
+        const key = pickPointCode(item);
+        if (key) {
+          pointMap[key] = item;
+        }
+      });
+      data[deviceId] = pointMap;
+      return data;
+    }
+
     source.forEach((item) => {
       if (!item || typeof item !== 'object') {
         return;

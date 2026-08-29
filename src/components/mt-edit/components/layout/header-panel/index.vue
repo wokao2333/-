@@ -341,7 +341,7 @@
           <span class="header-action-label">预览</span>
         </el-button>
         <el-divider direction="vertical"></el-divider>
-        <el-button text size="small" class="header-action-button" @click="emits('onPublishClick')">
+        <el-button text size="small" class="header-action-button" @click="onPublishClick">
           <el-icon :size="20">
             <Promotion />
           </el-icon>
@@ -423,7 +423,8 @@ import {
   ElButton,
   ElButtonGroup,
   ElTag,
-  ElTooltip
+  ElTooltip,
+  ElMessageBox
 } from 'element-plus';
 import SvgAnalysis from '@/components/mt-edit/components/svg-analysis/index.vue';
 import type { DrawLineMode, IRealTimeData } from '@/components/mt-edit/store/types';
@@ -526,6 +527,20 @@ const onDrawLineModeClick = (mode: DrawLineMode) => {
 type ThumbnailFormat = 'default' | 'svg';
 const onThumbnailFormatClick = (format: ThumbnailFormat) => {
   emits('onThumbnailClick', format);
+};
+// 发布前弹出确认对话框，确认后才触发发布事件
+const onPublishClick = () => {
+  ElMessageBox.confirm('确定要发布当前内容吗？', '发布确认', {
+    confirmButtonText: '确定发布',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
+    .then(() => {
+      emits('onPublishClick');
+    })
+    .catch(() => {
+      // 用户取消发布，不执行任何操作
+    });
 };
 </script>
 <style scoped>

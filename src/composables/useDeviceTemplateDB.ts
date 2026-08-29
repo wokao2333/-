@@ -21,7 +21,9 @@ function parseRows(aoa: unknown[][]): DevicePointImportRow[] {
     const pointName = get(row, '点名称');
     if (!deviceType || (!pointName && !innerId)) continue;
     rows.push({
-      typeCode: Number(get(row, '类型')) || 0,
+      // 直接取 Excel「类型」列的原始文本，不做数字转换：
+      // 该列既可能是数字 etype（如 24），也可能是字符串模型名（如 EV_CHARGER_RESOURCE_MODEL）。
+      typeCode: get(row, '类型'),
       deviceType,
       innerId,
       pointName,
