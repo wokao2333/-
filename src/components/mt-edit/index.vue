@@ -125,7 +125,7 @@
             {{ mtEidtProps.currentDiagramName || '—' }}
           </span>
         </div>
-        <div class="flex items-center gap-6px">
+        <div class="flex items-center gap-6px" :title="statusTitle">
           <span
             class="inline-block w-8px h-8px rounded-full"
             :style="{ backgroundColor: statusColor }"
@@ -208,6 +208,7 @@ import { cacheStore } from './store/cache';
 import { objectDeepClone } from './utils';
 import { genExportJson, useExportJsonToDoneJson } from './composables';
 import { collectUnboundDevices, type UnboundDeviceItem } from '@/composables/useDeviceBinding';
+import { checkMcuHealth, type McuHealthResult } from '@/composables/useMcuHealth';
 import type { IExportJson } from './components/types';
 import type { DrawLineMode } from './store/types';
 import type { DeviceTemplateSelectionChange } from './components/layout/device-template/types';
@@ -216,8 +217,11 @@ type MtEditProps = {
   exportExtra?: Record<string, unknown>;
   /** 当前已加载一次接线图的最近更新时间（时间戳，毫秒） */
   currentDiagramUpdateTime?: number;
-  /** 当前接线图所属场站所绑定MCU（首个）的 IP 地址，用于连接状态探测 */
-  currentStationIp?: string;
+  /**
+   * 当前接线图所绑定 MCU 的接口基地址（如 http://192.168.79.11:9998），
+   * 用于调用 `GET /business/monitor/health` 探测服务连接状态
+   */
+  currentStationBaseUrl?: string;
   /** 当前展示一次接线图所属场站名称 */
   currentStationName?: string;
   /** 当前展示一次接线图名称 */
@@ -227,7 +231,7 @@ const mtEidtProps = withDefaults(defineProps<MtEditProps>(), {
   useThumbnail: false,
   exportExtra: () => ({}),
   currentDiagramUpdateTime: undefined,
-  currentStationIp: '',
+  currentStationBaseUrl: '',
   currentStationName: '',
   currentDiagramName: ''
 });
@@ -288,50 +292,47 @@ const tabs = [
 ];
 const currentTab = computed(() => tabs.find((f) => f.name === left_aside_active_tab.value));
 
-/* 底部状态栏：连接状态探测（浏览器无法执行 ICMP ping，改用 HTTP 可达性探测作为近似实现） */
+/*
+ * 底部状态栏：连接状态探测。
+ * 依据《服务健康检查接口》，使用 MCU 的 `GET /business/monitor/health`
+ * 并以响应体 `code === 200` 判定服务可达，同时展示服务发布版本。
+ */
 const checking = ref(false);
-const connected = ref<boolean | null>(null);
-let pingTimer: number | undefined;
+/** 最近一次健康检查结果；null 表示尚未检测过（无 MCU 地址时保持为 null） */
+const healthInfo = ref<McuHealthResult | null>(null);
+let healthTimer: number | undefined;
 
-/** 通过向场站 IP 发起 HTTP 探测判断其是否可达：能连通即视为“已连接”，否则“未连接” */
-const pingStation = async (ip: string): Promise<boolean> => {
-  if (!ip) return false;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 3000);
+const connected = computed(() => healthInfo.value?.ok === true);
+
+/** 执行一次健康检查（首次检测展示“检测中”，轮询时保留上次状态避免状态栏闪烁） */
+const runHealthCheck = async (baseUrl: string) => {
+  if (!baseUrl) return;
+  if (!healthInfo.value) checking.value = true;
   try {
-    await fetch(`http://${ip}`, {
-      method: 'HEAD',
-      mode: 'no-cors',
-      cache: 'no-store',
-      signal: controller.signal
-    });
-    return true;
-  } catch {
-    return false;
+    const result = await checkMcuHealth(baseUrl);
+    // 地址已切换时丢弃过期结果，避免旧 MCU 的检测结果覆盖新状态
+    if (mtEidtProps.currentStationBaseUrl !== baseUrl) return;
+    healthInfo.value = result;
   } finally {
-    clearTimeout(timer);
+    if (mtEidtProps.currentStationBaseUrl === baseUrl) checking.value = false;
   }
 };
 
-const runPing = async (ip: string) => {
-  checking.value = true;
-  connected.value = await pingStation(ip);
-  checking.value = false;
-};
-
 watch(
-  () => mtEidtProps.currentStationIp,
-  (ip) => {
-    if (pingTimer) {
-      clearInterval(pingTimer);
-      pingTimer = undefined;
+  () => mtEidtProps.currentStationBaseUrl,
+  (baseUrl) => {
+    if (healthTimer) {
+      clearInterval(healthTimer);
+      healthTimer = undefined;
     }
-    if (ip) {
-      runPing(ip);
+    if (baseUrl) {
+      // 切换 MCU 后清空旧结果，避免短暂展示上一台设备的连接状态
+      healthInfo.value = null;
+      runHealthCheck(baseUrl);
       // 每 10 秒重新探测一次，保持连接状态实时性
-      pingTimer = window.setInterval(() => runPing(ip), 10000);
+      healthTimer = window.setInterval(() => runHealthCheck(baseUrl), 10000);
     } else {
-      connected.value = null;
+      healthInfo.value = null;
       checking.value = false;
     }
   },
@@ -339,24 +340,40 @@ watch(
 );
 
 onUnmounted(() => {
-  if (pingTimer) clearInterval(pingTimer);
+  if (healthTimer) clearInterval(healthTimer);
 });
 
 const statusColor = computed(() => {
   if (checking.value) return '#E6A23C'; // 检测中：黄色
-  if (connected.value === true) return '#67C23A'; // 已连接：绿色
+  if (connected.value) return '#67C23A'; // 已连接：绿色
   return '#F56C6C'; // 未连接：红色
 });
 
 const statusText = computed(() => {
   if (checking.value) return '连接检测中…';
-  if (connected.value === true) return '已连接';
+  if (connected.value) {
+    const version = healthInfo.value?.version;
+    return version && version !== 'unknown' ? `已连接 · v${version}` : '已连接';
+  }
   return '未连接';
+});
+
+/** 状态栏悬停提示：补充服务时间或失败原因，便于排查 */
+const statusTitle = computed(() => {
+  const info = healthInfo.value;
+  if (!mtEidtProps.currentStationBaseUrl) return '当前接线图未绑定 MCU 或 MCU 未配置 IP';
+  if (checking.value) return '正在检测服务连接状态…';
+  if (!info) return '尚未检测';
+  if (!info.ok) return `服务不可达：${info.error ?? '未知原因'}`;
+  const parts = [`服务可达（${mtEidtProps.currentStationBaseUrl}）`];
+  if (info.version) parts.push(`版本：${info.version}`);
+  if (info.serverTime) parts.push(`服务时间：${info.serverTime}`);
+  return parts.join('，');
 });
 
 const connectionStatus = computed<'checking' | 'connected' | 'disconnected'>(() => {
   if (checking.value) return 'checking';
-  return connected.value === true ? 'connected' : 'disconnected';
+  return connected.value ? 'connected' : 'disconnected';
 });
 
 watch(

@@ -346,7 +346,7 @@ export const genVectorSvg = (): string => {
   const items = globalStore.done_json ?? [];
   const cfg = globalStore.canvasCfg;
   const width = cfg.width || 1280;
-  const height = cfg.height || 750;
+  const height = cfg.height || 734;
 
   collectSymbolDefs(items);
   const defs = [

@@ -167,7 +167,7 @@ const canvasBgImgUploadRef = ref();
  * 用于展示当前画布尺寸
  */
 const canvas_size = computed(
-  () => `${rightAsideProps.canvasCfg.width || 1280}*${rightAsideProps.canvasCfg.height || 750}`
+  () => `${rightAsideProps.canvasCfg.width || 1280}*${rightAsideProps.canvasCfg.height || 734}`
 );
 
 // 自定义画布缩放比例输入框的计算属性

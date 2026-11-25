@@ -22,6 +22,7 @@ import type {
 } from '@/components/mt-edit/components/layout/station-aside/types';
 import { useStationDB } from '@/composables/useStationDB';
 import { useMcuDB } from '@/composables/useMcuDB';
+import { getMcuBaseUrl } from '@/composables/useMcuHealth';
 import { validateDiagramNameUnique, validateStationImport } from '@/composables/useStationDedup';
 import { configStore } from '@/components/mt-edit/store/config';
 import { useDeviceTemplateDB } from '@/composables/useDeviceTemplateDB';
@@ -240,14 +241,17 @@ const currentDiagram = computed(() => {
 /** 传递给编辑器底部状态栏：当前接线图的最近更新时间 */
 const currentDiagramUpdateTime = computed(() => currentDiagram.value?.updateTime);
 /**
- * 传递给编辑器底部状态栏：当前正在编辑的一次接线图所「绑定MCU」的 IP 地址，用于连接状态探测。
- * 严格取自该接线图自身的 boundMcuInfo.ip（即用户通过「绑定MCU」为其绑定的那台 MCU），
- * 而非场站列表/详情中的场站整体连接状态，也非场站下首个 MCU 的 IP。
- * 若当前接线图尚未绑定任何 MCU，则返回空串，底部状态栏据此显示为「未连接」。
+ * 传递给编辑器底部状态栏：当前正在编辑的一次接线图所「绑定MCU」的接口基地址（IP + 端口），
+ * 编辑器据此调用 `GET /business/monitor/health` 探测服务连接状态。
+ * 解析规则与设备列表 / 发布保持一致（getDiagramConnectionMcu）：
+ * 优先使用该一次图绑定的 MCU 实时记录，记录缺失时回退到绑定时保存的快照，
+ * 未绑定具体 MCU 的历史数据才回退到该场站首个 MCU。
+ * 未解析到 MCU 或 MCU 未配置 IP 时返回空串，底部状态栏据此显示为「未连接」。
  */
-const currentStationIp = computed(() => {
-  const diagram = currentDiagram.value;
-  return diagram?.boundMcuInfo?.ip ?? '';
+const currentStationBaseUrl = computed(() => {
+  const context = drawingDiagram.value;
+  if (!context) return '';
+  return getMcuBaseUrl(getDiagramConnectionMcu(context.stationId, currentDiagram.value));
 });
 /** 传递给编辑器底部状态栏：当前一次接线图所属场站名称 */
 const currentStationName = computed(() => {
@@ -301,15 +305,12 @@ onMounted(async () => {
 
 // 由 MCU 实体构造接口基地址：连接信息（IP / 端口）已下沉到 MCU，不再由场站持有。
 const buildMcuBaseUrl = (mcu: McuItem): string | null => {
-  if (!mcu.ip) {
+  const baseUrl = getMcuBaseUrl(mcu);
+  if (!baseUrl) {
     ElMessage.error('该MCU未配置 IP 地址，无法建立连接');
     return null;
   }
-  let base = `http://${mcu.ip}`;
-  if (mcu.port) {
-    base += `:${mcu.port}`;
-  }
-  return base;
+  return baseUrl;
 };
 
 const getDeviceBind = (item: DeviceBindableItem) => ensureDeviceBind(item);
@@ -938,7 +939,9 @@ const openDeviceListDialog = async (item: DeviceBindableItem) => {
   }
   if (connectionStatus.value !== 'connected') {
     ElMessage.warning(
-      connectionStatus.value === 'checking' ? '连接状态检测中，请稍后再试' : '当前未连接'
+      connectionStatus.value === 'checking'
+        ? '连接状态检测中，请稍后再试'
+        : '当前未连接MCU服务，请检查 MCU 地址后重试'
     );
     return;
   }
@@ -1560,7 +1563,7 @@ const onBindDiagramMcu = async (stationId: string, diagramId: string, mcu: McuIt
 };
 
 const loadDiagram = (stationId: string, diagramId: string) => {
-  // 预加载该场站绑定的 MCU，使底部状态栏连接状态能基于 MCU 的 IP 派生
+  // 预加载该场站绑定的 MCU，使底部状态栏连接状态能基于 MCU 的接口基地址派生
   ensureStationMcus(stationId);
   const station = stations.value.find((f) => f.id === stationId);
   const diagram = station?.diagrams.find((f) => f.id === diagramId);
@@ -1920,7 +1923,7 @@ const onThumbnailClick = (format: 'default' | 'svg' = 'default') => {
         :use-thumbnail="true"
         :export-extra="exportExtra"
         :current-diagram-update-time="currentDiagramUpdateTime"
-        :current-station-ip="currentStationIp"
+        :current-station-base-url="currentStationBaseUrl"
         :current-station-name="currentStationName"
         :current-diagram-name="currentDiagramName"
         @on-preview-click="onPreviewClick"

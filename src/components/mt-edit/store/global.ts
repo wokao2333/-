@@ -8,9 +8,10 @@ import type {
   IRealTimeData
 } from './types';
 
+// 1280×800 设计稿扣除 66px 顶部高度后的内容区画布尺寸
 export const DEFAULT_CANVAS_SIZE = {
   width: 1280,
-  height: 750
+  height: 734
 } as const;
 
 export const DEFAULT_KEYBOARD_MOVE_DISTANCE = 0.5;

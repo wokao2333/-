@@ -8,7 +8,7 @@ describe('default canvas config', () => {
   it('uses the microgrid content viewport size', () => {
     expect(createDefaultCanvasCfg()).toMatchObject({
       width: 1280,
-      height: 750,
+      height: 734,
       keyboard_move_distance: 0.5
     });
   });
